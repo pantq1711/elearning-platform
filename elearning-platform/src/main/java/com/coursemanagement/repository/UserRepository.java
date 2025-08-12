@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -52,93 +53,213 @@ public interface UserRepository extends JpaRepository<User, Long> {
     List<User> findByRole(User.Role role);
 
     /**
-     * Tìm tất cả user đang hoạt động theo vai trò
-     * @param role Vai trò cần tìm
-     * @param isActive Trạng thái hoạt động (true/false)
-     * @return Danh sách user hoạt động có vai trò đó
-     */
-    List<User> findByRoleAndIsActive(User.Role role, boolean isActive);
-
-    /**
-     * Tìm tất cả user đang hoạt động
-     * @param isActive Trạng thái hoạt động
-     * @return Danh sách user hoạt động
-     */
-    List<User> findByIsActive(boolean isActive);
-
-    /**
-     * Tìm user theo username hoặc email (dùng cho tìm kiếm)
-     * @param username Tên đăng nhập
-     * @param email Email
-     * @return Danh sách user tìm thấy
-     */
-    @Query("SELECT u FROM User u WHERE u.username LIKE %:keyword% OR u.email LIKE %:keyword%")
-    List<User> findByUsernameOrEmailContaining(@Param("keyword") String keyword);
-
-    /**
-     * Đếm số lượng user theo vai trò
-     * @param role Vai trò cần đếm
+     * Đếm số user theo vai trò
+     * @param role Vai trò
      * @return Số lượng user
      */
     long countByRole(User.Role role);
 
     /**
-     * Đếm số lượng user đang hoạt động
+     * Tìm user theo trạng thái hoạt động
      * @param isActive Trạng thái hoạt động
-     * @return Số lượng user đang hoạt động
+     * @return Danh sách user
+     */
+    List<User> findByIsActive(boolean isActive);
+
+    /**
+     * Tìm user theo vai trò và trạng thái hoạt động
+     * @param role Vai trò
+     * @param isActive Trạng thái hoạt động
+     * @return Danh sách user
+     */
+    List<User> findByRoleAndIsActive(User.Role role, boolean isActive);
+
+    /**
+     * Lấy user mới đăng ký gần đây
+     * @param limit Số lượng user cần lấy
+     * @return Danh sách user mới
+     */
+    @Query("SELECT u FROM User u ORDER BY u.createdAt DESC LIMIT :limit")
+    List<User> findTopByOrderByCreatedAtDesc(@Param("limit") int limit);
+
+    /**
+     * Tìm user theo tên có chứa từ khóa
+     * @param keyword Từ khóa tìm kiếm
+     * @return Danh sách user chứa từ khóa
+     */
+    @Query("SELECT u FROM User u WHERE LOWER(u.username) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+            "OR LOWER(u.email) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+            "ORDER BY u.username ASC")
+    List<User> findByUsernameContainingIgnoreCaseOrEmailContainingIgnoreCase(@Param("keyword") String keyword);
+
+    /**
+     * Tìm user theo họ tên có chứa từ khóa
+     * @param keyword Từ khóa tìm kiếm
+     * @return Danh sách user có họ tên chứa từ khóa
+     */
+    @Query("SELECT u FROM User u WHERE LOWER(u.fullName) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+            "ORDER BY u.fullName ASC")
+    List<User> findByFullNameContainingIgnoreCase(@Param("keyword") String keyword);
+
+    /**
+     * Tìm user theo username, email hoặc họ tên có chứa từ khóa
+     * @param keyword Từ khóa tìm kiếm
+     * @return Danh sách user chứa từ khóa
+     */
+    @Query("SELECT u FROM User u WHERE " +
+            "LOWER(u.username) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(u.email) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(u.fullName) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+            "ORDER BY u.username ASC")
+    List<User> searchUsers(@Param("keyword") String keyword);
+
+    /**
+     * Tìm user theo khoảng thời gian tạo
+     * @param startDate Ngày bắt đầu
+     * @param endDate Ngày kết thúc
+     * @return Danh sách user trong khoảng thời gian
+     */
+    @Query("SELECT u FROM User u WHERE u.createdAt BETWEEN :startDate AND :endDate " +
+            "ORDER BY u.createdAt DESC")
+    List<User> findUsersByDateRange(@Param("startDate") LocalDateTime startDate,
+                                    @Param("endDate") LocalDateTime endDate);
+
+    /**
+     * Tìm user đăng nhập gần đây
+     * @param limit Số lượng user cần lấy
+     * @return Danh sách user đăng nhập gần đây
+     */
+    @Query("SELECT u FROM User u WHERE u.lastLogin IS NOT NULL " +
+            "ORDER BY u.lastLogin DESC LIMIT :limit")
+    List<User> findRecentlyLoggedInUsers(@Param("limit") int limit);
+
+    /**
+     * Tìm user chưa đăng nhập lần nào
+     * @return Danh sách user chưa đăng nhập
+     */
+    @Query("SELECT u FROM User u WHERE u.lastLogin IS NULL ORDER BY u.createdAt DESC")
+    List<User> findUsersNeverLoggedIn();
+
+    /**
+     * Tìm user không hoạt động trong khoảng thời gian
+     * @param days Số ngày không hoạt động
+     * @return Danh sách user không hoạt động
+     */
+    @Query("SELECT u FROM User u WHERE u.lastLogin < :cutoffDate OR u.lastLogin IS NULL " +
+            "ORDER BY u.lastLogin ASC")
+    List<User> findInactiveUsers(@Param("cutoffDate") LocalDateTime cutoffDate);
+
+    /**
+     * Đếm số user đăng ký trong tháng hiện tại
+     * @return Số lượng user mới
+     */
+    @Query("SELECT COUNT(u) FROM User u WHERE " +
+            "YEAR(u.createdAt) = YEAR(CURRENT_DATE) AND " +
+            "MONTH(u.createdAt) = MONTH(CURRENT_DATE)")
+    long countUsersCreatedThisMonth();
+
+    /**
+     * Đếm số user đăng nhập trong ngày hôm nay
+     * @return Số lượng user đăng nhập hôm nay
+     */
+    @Query("SELECT COUNT(u) FROM User u WHERE DATE(u.lastLogin) = CURRENT_DATE")
+    long countUsersLoggedInToday();
+
+    /**
+     * Đếm số user đăng nhập trong tuần này
+     * @return Số lượng user đăng nhập tuần này
+     */
+    @Query("SELECT COUNT(u) FROM User u WHERE u.lastLogin >= :weekStart")
+    long countUsersLoggedInThisWeek(@Param("weekStart") LocalDateTime weekStart);
+
+    /**
+     * Lấy thống kê user theo vai trò
+     * @return Danh sách [Role, UserCount]
+     */
+    @Query("SELECT u.role, COUNT(u) FROM User u GROUP BY u.role ORDER BY COUNT(u) DESC")
+    List<Object[]> getUserStatisticsByRole();
+
+    /**
+     * Lấy thống kê user theo tháng đăng ký
+     * @param year Năm cần thống kê
+     * @return Danh sách [Month, UserCount]
+     */
+    @Query("SELECT MONTH(u.createdAt), COUNT(u) FROM User u " +
+            "WHERE YEAR(u.createdAt) = :year " +
+            "GROUP BY MONTH(u.createdAt) " +
+            "ORDER BY MONTH(u.createdAt)")
+    List<Object[]> getUserRegistrationStatisticsByMonth(@Param("year") int year);
+
+    /**
+     * Tìm giảng viên có nhiều khóa học nhất
+     * @param limit Số lượng giảng viên cần lấy
+     * @return Danh sách giảng viên hàng đầu
+     */
+    @Query("SELECT u FROM User u " +
+            "LEFT JOIN u.instructedCourses c " +
+            "WHERE u.role = 'INSTRUCTOR' " +
+            "GROUP BY u " +
+            "ORDER BY COUNT(c) DESC " +
+            "LIMIT :limit")
+    List<User> findTopInstructorsByCourseCount(@Param("limit") int limit);
+
+    /**
+     * Tìm học viên có nhiều đăng ký nhất
+     * @param limit Số lượng học viên cần lấy
+     * @return Danh sách học viên tích cực nhất
+     */
+    @Query("SELECT u FROM User u " +
+            "LEFT JOIN u.enrollments e " +
+            "WHERE u.role = 'STUDENT' " +
+            "GROUP BY u " +
+            "ORDER BY COUNT(e) DESC " +
+            "LIMIT :limit")
+    List<User> findTopStudentsByEnrollmentCount(@Param("limit") int limit);
+
+    /**
+     * Tìm user theo email domain
+     * @param domain Email domain (vd: gmail.com)
+     * @return Danh sách user có email domain đó
+     */
+    @Query("SELECT u FROM User u WHERE u.email LIKE CONCAT('%@', :domain) ORDER BY u.username ASC")
+    List<User> findUsersByEmailDomain(@Param("domain") String domain);
+
+    /**
+     * Đếm số user theo trạng thái hoạt động
+     * @param isActive Trạng thái hoạt động
+     * @return Số lượng user
      */
     long countByIsActive(boolean isActive);
 
     /**
-     * Tìm tất cả giảng viên đang hoạt động
-     * Sử dụng @Query để viết JPQL tùy chỉnh
-     * @return Danh sách giảng viên đang hoạt động
-     */
-    @Query("SELECT u FROM User u WHERE u.role = 'INSTRUCTOR' AND u.isActive = true")
-    List<User> findActiveInstructors();
-
-    /**
-     * Tìm tất cả học viên đang hoạt động
-     * @return Danh sách học viên đang hoạt động
-     */
-    @Query("SELECT u FROM User u WHERE u.role = 'STUDENT' AND u.isActive = true")
-    List<User> findActiveStudents();
-
-    /**
-     * Tìm user theo ID và vai trò (để đảm bảo quyền truy cập)
-     * @param id ID của user
-     * @param role Vai trò của user
-     * @return Optional<User>
-     */
-    Optional<User> findByIdAndRole(Long id, User.Role role);
-
-    /**
-     * Tìm user theo username và trạng thái hoạt động
-     * Dùng cho việc đăng nhập (chỉ cho phép user đang hoạt động)
-     * @param username Tên đăng nhập
-     * @param isActive Trạng thái hoạt động
-     * @return Optional<User>
-     */
-    Optional<User> findByUsernameAndIsActive(String username, boolean isActive);
-
-    /**
-     * Lấy top N user được tạo gần đây nhất
+     * Tìm user có nhiều enrollment nhất trong tháng
+     * @param year Năm
+     * @param month Tháng
      * @param limit Số lượng user cần lấy
-     * @return Danh sách user mới nhất
+     * @return Danh sách user tích cực nhất trong tháng
      */
-    @Query("SELECT u FROM User u ORDER BY u.createdAt DESC LIMIT :limit")
-    List<User> findTopNewestUsers(@Param("limit") int limit);
+    @Query("SELECT u FROM User u " +
+            "LEFT JOIN u.enrollments e " +
+            "WHERE YEAR(e.enrolledAt) = :year AND MONTH(e.enrolledAt) = :month " +
+            "GROUP BY u " +
+            "ORDER BY COUNT(e) DESC " +
+            "LIMIT :limit")
+    List<User> findMostActiveUsersInMonth(@Param("year") int year,
+                                          @Param("month") int month,
+                                          @Param("limit") int limit);
 
     /**
-     * Tìm user có username hoặc email trùng với user khác (dùng khi update)
-     * Loại trừ user hiện tại khi kiểm tra trùng lặp
-     * @param username Tên đăng nhập cần kiểm tra
-     * @param email Email cần kiểm tra
-     * @param excludeId ID của user hiện tại (để loại trừ)
-     * @return Danh sách user trùng lặp
+     * Tìm admin users
+     * @return Danh sách admin
      */
-    @Query("SELECT u FROM User u WHERE (u.username = :username OR u.email = :email) AND u.id != :excludeId")
-    List<User> findDuplicateUsernameOrEmail(@Param("username") String username,
-                                            @Param("email") String email,
-                                            @Param("excludeId") Long excludeId);
+    @Query("SELECT u FROM User u WHERE u.role = 'ADMIN' ORDER BY u.createdAt ASC")
+    List<User> findAdminUsers();
+
+    /**
+     * Kiểm tra có ít nhất một admin đang hoạt động không
+     * @return true nếu có admin hoạt động
+     */
+    @Query("SELECT CASE WHEN COUNT(u) > 0 THEN true ELSE false END " +
+            "FROM User u WHERE u.role = 'ADMIN' AND u.isActive = true")
+    boolean hasActiveAdmin();
 }

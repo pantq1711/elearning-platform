@@ -1,18 +1,18 @@
 package com.coursemanagement.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
+import java.time.Duration;
 
 /**
  * Entity đại diện cho bảng quiz_results trong database
- * Lưu thông tin kết quả bài kiểm tra của học viên
- * Mỗi học viên chỉ có thể làm mỗi bài kiểm tra 1 lần
+ * Lưu kết quả bài kiểm tra của học viên
  */
 @Entity
-@Table(name = "quiz_results",
-        uniqueConstraints = @UniqueConstraint(columnNames = {"quiz_id", "user_id"}))
+@Table(name = "quiz_results")
 public class QuizResult {
 
     /**
@@ -23,22 +23,30 @@ public class QuizResult {
     private Long id;
 
     /**
-     * Điểm đạt được (từ 0 đến maxScore của Quiz)
+     * Điểm số đạt được
      */
     @Column(nullable = false)
+    @Min(value = 0, message = "Điểm số không được nhỏ hơn 0")
+    @Max(value = 1000, message = "Điểm số không được lớn hơn 1000")
     private Double score;
 
     /**
      * Số câu trả lời đúng
      */
     @Column(name = "correct_answers")
-    private Integer correctAnswers = 0;
+    private Integer correctAnswers;
 
     /**
-     * Tổng số câu hỏi trong bài kiểm tra
+     * Tổng số câu hỏi
      */
     @Column(name = "total_questions")
-    private Integer totalQuestions = 0;
+    private Integer totalQuestions;
+
+    /**
+     * Trạng thái có đạt hay không
+     */
+    @Column(name = "is_passed")
+    private Boolean isPassed;
 
     /**
      * Thời gian bắt đầu làm bài
@@ -53,16 +61,66 @@ public class QuizResult {
     private LocalDateTime submittedAt;
 
     /**
-     * Thời gian thực tế làm bài (tính bằng giây)
+     * Thời gian làm bài (giây)
      */
     @Column(name = "time_taken")
-    private Long timeTaken;
+    private Integer timeTaken;
 
     /**
-     * Trạng thái đạt hay không đạt bài kiểm tra
+     * Đáp án của học viên (JSON format)
      */
-    @Column(name = "is_passed")
-    private boolean isPassed = false;
+    @Column(name = "answers", columnDefinition = "TEXT")
+    private String answers;
+
+    /**
+     * Ghi chú về kết quả
+     */
+    @Column(columnDefinition = "TEXT")
+    private String notes;
+
+    /**
+     * IP address của học viên khi làm bài
+     */
+    @Column(name = "ip_address")
+    private String ipAddress;
+
+    /**
+     * User agent (trình duyệt) của học viên
+     */
+    @Column(name = "user_agent")
+    private String userAgent;
+
+    /**
+     * Số lần thử (attempt number)
+     */
+    @Column(name = "attempt_number")
+    private Integer attemptNumber = 1;
+
+    /**
+     * Trạng thái review bài làm
+     */
+    @Column(name = "is_reviewed")
+    private boolean isReviewed = false;
+
+    /**
+     * Feedback từ giảng viên
+     */
+    @Column(name = "instructor_feedback", columnDefinition = "TEXT")
+    private String instructorFeedback;
+
+    /**
+     * Điểm thưởng (nếu có)
+     */
+    @Column(name = "bonus_points")
+    private Double bonusPoints = 0.0;
+
+    /**
+     * Quan hệ Many-to-One với User (Student)
+     * Một kết quả thuộc về một học viên
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "student_id", nullable = false)
+    private User student;
 
     /**
      * Quan hệ Many-to-One với Quiz
@@ -73,186 +131,278 @@ public class QuizResult {
     private Quiz quiz;
 
     /**
-     * Quan hệ Many-to-One với User (Student)
-     * Một kết quả thuộc về một học viên
-     */
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User student;
-
-    /**
      * Constructor mặc định
      */
     public QuizResult() {
-        this.startedAt = LocalDateTime.now();
+        this.submittedAt = LocalDateTime.now();
+        this.attemptNumber = 1;
+        this.bonusPoints = 0.0;
+        this.isReviewed = false;
     }
 
     /**
      * Constructor với thông tin cơ bản
      */
-    public QuizResult(Quiz quiz, User student) {
+    public QuizResult(User student, Quiz quiz, Double score, Integer correctAnswers,
+                      Integer totalQuestions, Boolean isPassed) {
         this();
-        this.quiz = quiz;
         this.student = student;
-        this.totalQuestions = quiz.getQuestionCount();
-    }
-
-    /**
-     * Hoàn thành bài kiểm tra và tính điểm
-     * @param correctAnswers Số câu trả lời đúng
-     */
-    public void complete(int correctAnswers) {
-        this.submittedAt = LocalDateTime.now();
+        this.quiz = quiz;
+        this.score = score;
         this.correctAnswers = correctAnswers;
-
-        // Tính thời gian làm bài
-        if (startedAt != null && submittedAt != null) {
-            this.timeTaken = java.time.Duration.between(startedAt, submittedAt).getSeconds();
-        }
-
-        // Tính điểm
-        calculateScore();
-
-        // Kiểm tra đạt hay không
-        if (quiz != null) {
-            this.isPassed = quiz.isPassing(this.score);
-        }
+        this.totalQuestions = totalQuestions;
+        this.isPassed = isPassed;
     }
 
     /**
-     * Tính điểm dựa trên số câu đúng và tổng số câu
+     * Constructor đầy đủ
      */
-    private void calculateScore() {
-        if (totalQuestions > 0 && quiz != null) {
-            double percentage = (double) correctAnswers / totalQuestions;
-            this.score = percentage * quiz.getMaxScore();
-        } else {
-            this.score = 0.0;
+    public QuizResult(User student, Quiz quiz, Double score, Integer correctAnswers,
+                      Integer totalQuestions, Boolean isPassed, LocalDateTime startedAt,
+                      String answers, Integer attemptNumber) {
+        this(student, quiz, score, correctAnswers, totalQuestions, isPassed);
+        this.startedAt = startedAt;
+        this.answers = answers;
+        this.attemptNumber = attemptNumber;
+
+        // Tính thời gian làm bài nếu có startedAt
+        if (startedAt != null) {
+            this.timeTaken = (int) Duration.between(startedAt, submittedAt).getSeconds();
         }
     }
 
+    // === Helper methods ===
+
     /**
-     * Lấy phần trăm điểm
-     * @return Phần trăm điểm (0-100)
+     * Tính phần trăm điểm số
      */
-    public double getPercentage() {
-        if (quiz == null || quiz.getMaxScore() == 0) {
+    public double getScorePercentage() {
+        if (quiz == null || quiz.getMaxScore() == null || score == null) {
             return 0.0;
         }
-        return (score / quiz.getMaxScore()) * 100;
+        return (score / quiz.getMaxScore()) * 100.0;
     }
 
     /**
-     * Lấy điểm dạng text với 1 chữ số thập phân
-     * @return Chuỗi điểm, VD: "85.5"
+     * Lấy grade letter dựa trên phần trăm điểm
      */
-    public String getScoreText() {
-        return String.format("%.1f", score);
+    public String getGradeLetter() {
+        double percentage = getScorePercentage();
+
+        if (percentage >= 90) return "A";
+        if (percentage >= 80) return "B";
+        if (percentage >= 70) return "C";
+        if (percentage >= 60) return "D";
+        return "F";
     }
 
     /**
-     * Lấy phần trăm dạng text với 1 chữ số thập phân
-     * @return Chuỗi phần trăm, VD: "85.5%"
+     * Lấy màu sắc grade
      */
-    public String getPercentageText() {
-        return String.format("%.1f%%", getPercentage());
+    public String getGradeColor() {
+        String grade = getGradeLetter();
+        switch (grade) {
+            case "A": return "#28a745"; // Green
+            case "B": return "#17a2b8"; // Blue
+            case "C": return "#ffc107"; // Yellow
+            case "D": return "#fd7e14"; // Orange
+            case "F": return "#dc3545"; // Red
+            default: return "#6c757d"; // Gray
+        }
     }
 
     /**
-     * Lấy kết quả dạng text
-     * @return "ĐẠT" hoặc "KHÔNG ĐẠT"
+     * Kiểm tra có đạt yêu cầu không
      */
-    public String getResultText() {
-        return isPassed ? "ĐẠT" : "KHÔNG ĐẠT";
+    public boolean isPassedQuiz() {
+        return isPassed != null && isPassed;
     }
 
     /**
-     * Lấy màu sắc cho kết quả (để hiển thị trên UI)
-     * @return Tên class CSS cho màu
+     * Tính tỷ lệ trả lời đúng
      */
-    public String getResultColor() {
-        return isPassed ? "text-success" : "text-danger";
+    public double getAccuracyRate() {
+        if (totalQuestions == null || totalQuestions == 0 || correctAnswers == null) {
+            return 0.0;
+        }
+        return ((double) correctAnswers / totalQuestions) * 100.0;
     }
 
     /**
-     * Lấy thời gian làm bài dạng text
-     * @return Chuỗi thời gian, VD: "15 phút 30 giây"
+     * Lấy thời gian làm bài dưới dạng text
      */
-    public String getTimeTakenText() {
-        if (timeTaken == null || timeTaken == 0) {
+    public String getDisplayTimeTaken() {
+        if (timeTaken == null || timeTaken <= 0) {
             return "Không xác định";
         }
 
-        long minutes = timeTaken / 60;
-        long seconds = timeTaken % 60;
+        int hours = timeTaken / 3600;
+        int minutes = (timeTaken % 3600) / 60;
+        int seconds = timeTaken % 60;
 
-        if (minutes == 0) {
-            return seconds + " giây";
-        } else if (seconds == 0) {
-            return minutes + " phút";
+        if (hours > 0) {
+            return String.format("%d giờ %d phút %d giây", hours, minutes, seconds);
+        } else if (minutes > 0) {
+            return String.format("%d phút %d giây", minutes, seconds);
         } else {
-            return minutes + " phút " + seconds + " giây";
+            return String.format("%d giây", seconds);
         }
     }
 
     /**
-     * Lấy thời gian nộp bài dạng text
-     * @return Chuỗi thời gian định dạng dd/MM/yyyy HH:mm
+     * Kiểm tra có làm bài nhanh bất thường không
      */
-    public String getSubmittedAtText() {
+    public boolean isSuspiciouslyFast() {
+        if (timeTaken == null || totalQuestions == null || totalQuestions == 0) {
+            return false;
+        }
+
+        // Nếu làm bài dưới 10 giây/câu thì có thể đáng nghi
+        double secondsPerQuestion = (double) timeTaken / totalQuestions;
+        return secondsPerQuestion < 10;
+    }
+
+    /**
+     * Kiểm tra có làm bài chậm bất thường không
+     */
+    public boolean isSuspiciouslySlow() {
+        if (quiz == null || quiz.getDuration() == null || timeTaken == null) {
+            return false;
+        }
+
+        // Nếu làm bài vượt quá 150% thời gian quy định
+        int allowedSeconds = quiz.getDuration() * 60;
+        return timeTaken > allowedSeconds * 1.5;
+    }
+
+    /**
+     * Lấy trạng thái chi tiết
+     */
+    public String getDetailedStatus() {
+        if (isPassedQuiz()) {
+            return "Đạt (" + String.format("%.1f", getScorePercentage()) + "%)";
+        } else {
+            return "Không đạt (" + String.format("%.1f", getScorePercentage()) + "%)";
+        }
+    }
+
+    /**
+     * Tính điểm cuối cùng (bao gồm bonus)
+     */
+    public Double getFinalScore() {
+        if (score == null) {
+            return null;
+        }
+
+        double finalScore = score;
+        if (bonusPoints != null && bonusPoints > 0) {
+            finalScore += bonusPoints;
+        }
+
+        // Không vượt quá điểm tối đa của quiz
+        if (quiz != null && quiz.getMaxScore() != null) {
+            finalScore = Math.min(finalScore, quiz.getMaxScore());
+        }
+
+        return finalScore;
+    }
+
+    /**
+     * Kiểm tra có điểm thưởng không
+     */
+    public boolean hasBonus() {
+        return bonusPoints != null && bonusPoints > 0;
+    }
+
+    /**
+     * Lấy thông tin tóm tắt
+     */
+    public String getSummary() {
+        return String.format("Điểm: %.1f/%.1f (%.1f%%) - %s - %d/%d câu đúng",
+                getFinalScore(),
+                quiz != null ? quiz.getMaxScore() : 0,
+                getScorePercentage(),
+                isPassedQuiz() ? "ĐẠT" : "KHÔNG ĐẠT",
+                correctAnswers != null ? correctAnswers : 0,
+                totalQuestions != null ? totalQuestions : 0);
+    }
+
+    /**
+     * Kiểm tra có feedback từ giảng viên không
+     */
+    public boolean hasInstructorFeedback() {
+        return instructorFeedback != null && !instructorFeedback.trim().isEmpty();
+    }
+
+    /**
+     * Lấy số ngày từ khi nộp bài
+     */
+    public long getDaysSinceSubmission() {
         if (submittedAt == null) {
-            return "Chưa nộp bài";
+            return 0;
+        }
+        return Duration.between(submittedAt, LocalDateTime.now()).toDays();
+    }
+
+    /**
+     * Kiểm tra kết quả có mới không (trong vòng X ngày)
+     */
+    public boolean isRecentResult(int days) {
+        return getDaysSinceSubmission() <= days;
+    }
+
+    /**
+     * Lấy thời gian bắt đầu hiển thị
+     */
+    public String getDisplayStartTime() {
+        if (startedAt == null) {
+            return "Không xác định";
+        }
+        return startedAt.toString(); // Có thể format theo ý muốn
+    }
+
+    /**
+     * Lấy thời gian nộp bài hiển thị
+     */
+    public String getDisplaySubmissionTime() {
+        if (submittedAt == null) {
+            return "Không xác định";
+        }
+        return submittedAt.toString(); // Có thể format theo ý muốn
+    }
+
+    /**
+     * Kiểm tra có đúng giờ làm bài không
+     */
+    public boolean isWithinTimeLimit() {
+        if (quiz == null || quiz.getDuration() == null || timeTaken == null) {
+            return true; // Không có giới hạn thời gian
         }
 
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
-        return submittedAt.format(formatter);
+        int allowedSeconds = quiz.getDuration() * 60;
+        return timeTaken <= allowedSeconds;
     }
 
     /**
-     * Kiểm tra có hoàn thành bài kiểm tra chưa
-     * @return true nếu đã hoàn thành, false nếu chưa
+     * Lấy icon trạng thái
      */
-    public boolean isCompleted() {
-        return submittedAt != null;
-    }
-
-    /**
-     * Lấy tỷ lệ câu đúng
-     * @return Tỷ lệ câu đúng (0.0 - 1.0)
-     */
-    public double getCorrectRatio() {
-        if (totalQuestions == 0) {
-            return 0.0;
+    public String getStatusIcon() {
+        if (isPassedQuiz()) {
+            return "fas fa-check-circle";
+        } else {
+            return "fas fa-times-circle";
         }
-        return (double) correctAnswers / totalQuestions;
     }
 
     /**
-     * Lấy số câu sai
-     * @return Số câu trả lời sai
+     * Lấy màu trạng thái
      */
-    public int getWrongAnswers() {
-        return totalQuestions - correctAnswers;
-    }
-
-    /**
-     * Lấy thông tin chi tiết kết quả
-     * @return Chuỗi mô tả chi tiết, VD: "8/10 câu đúng (80%)"
-     */
-    public String getDetailText() {
-        return String.format("%d/%d câu đúng (%.1f%%)",
-                correctAnswers, totalQuestions, getPercentage());
-    }
-
-    /**
-     * So sánh với điểm pass để lấy chênh lệch
-     * @return Số điểm chênh lệch với điểm pass (dương nếu vượt, âm nếu thiếu)
-     */
-    public double getScoreDifferenceFromPass() {
-        if (quiz == null) {
-            return 0.0;
+    public String getStatusColor() {
+        if (isPassedQuiz()) {
+            return "#28a745"; // Green
+        } else {
+            return "#dc3545"; // Red
         }
-        return score - quiz.getPassScore();
     }
 
     // === Getters và Setters ===
@@ -289,6 +439,14 @@ public class QuizResult {
         this.totalQuestions = totalQuestions;
     }
 
+    public Boolean getIsPassed() {
+        return isPassed;
+    }
+
+    public void setIsPassed(Boolean isPassed) {
+        this.isPassed = isPassed;
+    }
+
     public LocalDateTime getStartedAt() {
         return startedAt;
     }
@@ -305,28 +463,76 @@ public class QuizResult {
         this.submittedAt = submittedAt;
     }
 
-    public Long getTimeTaken() {
+    public Integer getTimeTaken() {
         return timeTaken;
     }
 
-    public void setTimeTaken(Long timeTaken) {
+    public void setTimeTaken(Integer timeTaken) {
         this.timeTaken = timeTaken;
     }
 
-    public boolean isPassed() {
-        return isPassed;
+    public String getAnswers() {
+        return answers;
     }
 
-    public void setPassed(boolean passed) {
-        isPassed = passed;
+    public void setAnswers(String answers) {
+        this.answers = answers;
     }
 
-    public Quiz getQuiz() {
-        return quiz;
+    public String getNotes() {
+        return notes;
     }
 
-    public void setQuiz(Quiz quiz) {
-        this.quiz = quiz;
+    public void setNotes(String notes) {
+        this.notes = notes;
+    }
+
+    public String getIpAddress() {
+        return ipAddress;
+    }
+
+    public void setIpAddress(String ipAddress) {
+        this.ipAddress = ipAddress;
+    }
+
+    public String getUserAgent() {
+        return userAgent;
+    }
+
+    public void setUserAgent(String userAgent) {
+        this.userAgent = userAgent;
+    }
+
+    public Integer getAttemptNumber() {
+        return attemptNumber;
+    }
+
+    public void setAttemptNumber(Integer attemptNumber) {
+        this.attemptNumber = attemptNumber;
+    }
+
+    public boolean isReviewed() {
+        return isReviewed;
+    }
+
+    public void setReviewed(boolean reviewed) {
+        isReviewed = reviewed;
+    }
+
+    public String getInstructorFeedback() {
+        return instructorFeedback;
+    }
+
+    public void setInstructorFeedback(String instructorFeedback) {
+        this.instructorFeedback = instructorFeedback;
+    }
+
+    public Double getBonusPoints() {
+        return bonusPoints;
+    }
+
+    public void setBonusPoints(Double bonusPoints) {
+        this.bonusPoints = bonusPoints;
     }
 
     public User getStudent() {
@@ -337,6 +543,14 @@ public class QuizResult {
         this.student = student;
     }
 
+    public Quiz getQuiz() {
+        return quiz;
+    }
+
+    public void setQuiz(Quiz quiz) {
+        this.quiz = quiz;
+    }
+
     /**
      * Override toString để debug dễ dàng
      */
@@ -344,12 +558,29 @@ public class QuizResult {
     public String toString() {
         return "QuizResult{" +
                 "id=" + id +
+                ", score=" + score +
+                ", correctAnswers=" + correctAnswers +
+                ", totalQuestions=" + totalQuestions +
+                ", isPassed=" + isPassed +
+                ", attemptNumber=" + attemptNumber +
                 ", student=" + (student != null ? student.getUsername() : "null") +
                 ", quiz=" + (quiz != null ? quiz.getTitle() : "null") +
-                ", score=" + score +
-                ", correctAnswers=" + correctAnswers + "/" + totalQuestions +
-                ", isPassed=" + isPassed +
-                ", timeTaken=" + getTimeTakenText() +
                 '}';
+    }
+
+    /**
+     * Override equals và hashCode cho JPA
+     */
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof QuizResult)) return false;
+        QuizResult that = (QuizResult) o;
+        return id != null && id.equals(that.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
     }
 }

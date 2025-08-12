@@ -1,0 +1,187 @@
+# ===================================================================
+# SPRING BOOT APPLICATION PROPERTIES - H? TH?NG QU?N LÝ KHÓA H?C
+# ===================================================================
+
+# ===================================================================
+# SERVER CONFIGURATION
+# ===================================================================
+server.port=8080
+server.servlet.context-path=/
+server.servlet.encoding.charset=UTF-8
+server.servlet.encoding.enabled=true
+server.servlet.encoding.force=true
+
+# ===================================================================
+# DATABASE CONFIGURATION - MYSQL
+# ===================================================================
+spring.datasource.url=jdbc:mysql://localhost:3306/course_management?useSSL=false&serverTimezone=Asia/Ho_Chi_Minh&allowPublicKeyRetrieval=true&useUnicode=true&characterEncoding=UTF-8
+spring.datasource.username=root
+spring.datasource.password=
+
+# Connection Pool Configuration (HikariCP - m?c ??nh c?a Spring Boot)
+spring.datasource.hikari.maximum-pool-size=20
+spring.datasource.hikari.minimum-idle=5
+spring.datasource.hikari.idle-timeout=300000
+spring.datasource.hikari.connection-timeout=30000
+spring.datasource.hikari.max-lifetime=1800000
+
+# ===================================================================
+# JPA/HIBERNATE CONFIGURATION
+# ===================================================================
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.database-platform=org.hibernate.dialect.MySQL8Dialect
+spring.jpa.show-sql=false
+spring.jpa.properties.hibernate.format_sql=true
+spring.jpa.properties.hibernate.use_sql_comments=true
+spring.jpa.properties.hibernate.jdbc.batch_size=20
+spring.jpa.properties.hibernate.order_inserts=true
+spring.jpa.properties.hibernate.order_updates=true
+spring.jpa.properties.hibernate.jdbc.batch_versioned_data=true
+
+# Hibernate L2 Cache (n?u c?n)
+spring.jpa.properties.hibernate.cache.use_second_level_cache=false
+spring.jpa.properties.hibernate.cache.use_query_cache=false
+
+# ===================================================================
+# SPRING MVC CONFIGURATION
+# ===================================================================
+spring.mvc.view.prefix=/WEB-INF/views/
+spring.mvc.view.suffix=.jsp
+
+# Static Resources
+spring.web.resources.static-locations=classpath:/static/
+spring.web.resources.cache.period=3600
+
+# File Upload Configuration
+spring.servlet.multipart.enabled=true
+spring.servlet.multipart.max-file-size=10MB
+spring.servlet.multipart.max-request-size=10MB
+
+# ===================================================================
+# SECURITY CONFIGURATION
+# ===================================================================
+# Session Configuration
+server.servlet.session.timeout=30m
+server.servlet.session.cookie.name=COURSE_MGMT_SESSION
+server.servlet.session.cookie.http-only=true
+server.servlet.session.cookie.secure=false
+
+# Remember Me (n?u c?n)
+spring.security.remember-me.key=myUniqueRememberMeKey
+spring.security.remember-me.token-validity-seconds=1209600
+
+# ===================================================================
+# LOGGING CONFIGURATION
+# ===================================================================
+logging.level.root=INFO
+logging.level.com.coursemanagement=DEBUG
+logging.level.org.springframework.security=DEBUG
+logging.level.org.hibernate.SQL=DEBUG
+logging.level.org.hibernate.type.descriptor.sql.BasicBinder=TRACE
+
+# Log File Configuration
+logging.file.name=logs/course-management.log
+logging.file.max-size=10MB
+logging.file.max-history=30
+logging.pattern.file=%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n
+logging.pattern.console=%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n
+
+# ===================================================================
+# SPRING BOOT ACTUATOR (cho monitoring)
+# ===================================================================
+management.endpoints.web.exposure.include=health,info,metrics
+management.endpoint.health.show-details=when-authorized
+management.info.env.enabled=true
+
+# Application Info
+info.app.name=Course Management System
+info.app.description=H? th?ng qu?n lý khóa h?c và ki?m tra tr?c tuy?n
+info.app.version=1.0.0
+info.app.author=Your Name
+
+# ===================================================================
+# INTERNATIONALIZATION (i18n)
+# ===================================================================
+spring.messages.basename=messages
+spring.messages.encoding=UTF-8
+spring.messages.cache-duration=3600
+
+# ===================================================================
+# EMAIL CONFIGURATION (n?u c?n g?i email)
+# ===================================================================
+# Gmail SMTP Configuration (uncomment n?u c?n)
+# spring.mail.host=smtp.gmail.com
+# spring.mail.port=587
+# spring.mail.username=your-email@gmail.com
+# spring.mail.password=your-app-password
+# spring.mail.properties.mail.smtp.auth=true
+# spring.mail.properties.mail.smtp.starttls.enable=true
+
+# ===================================================================
+# THYMELEAF CONFIGURATION (n?u dùng Thymeleaf thay vì JSP)
+# ===================================================================
+# spring.thymeleaf.cache=false
+# spring.thymeleaf.enabled=true
+# spring.thymeleaf.prefix=classpath:/templates/
+# spring.thymeleaf.suffix=.html
+
+# ===================================================================
+# DEVTOOLS CONFIGURATION (ch? cho development)
+# ===================================================================
+spring.devtools.restart.enabled=true
+spring.devtools.livereload.enabled=true
+
+# ===================================================================
+# VALIDATION CONFIGURATION
+# ===================================================================
+spring.jpa.properties.hibernate.validator.fail_fast=false
+
+# ===================================================================
+# CUSTOM APPLICATION PROPERTIES
+# ===================================================================
+# C?u hình cho ?ng d?ng
+app.name=Course Management System
+app.version=1.0.0
+app.upload.dir=uploads/
+app.default.page.size=10
+app.max.file.size=10MB
+
+# C?u hình b?o m?t
+app.security.password.min-length=6
+app.security.session.timeout=1800
+app.security.max.login.attempts=3
+
+# C?u hình email template
+app.email.from=noreply@coursemanagement.com
+app.email.support=support@coursemanagement.com
+
+# ===================================================================
+# PROFILE SPECIFIC CONFIGURATION
+# ===================================================================
+# S? d?ng profile cho các môi tr??ng khác nhau
+spring.profiles.active=development
+
+# Development Profile
+---
+spring.config.activate.on-profile=development
+logging.level.org.springframework.web=DEBUG
+spring.jpa.show-sql=true
+spring.devtools.restart.enabled=true
+
+# Production Profile
+---
+spring.config.activate.on-profile=production
+logging.level.root=WARN
+logging.level.com.coursemanagement=INFO
+spring.jpa.show-sql=false
+spring.devtools.restart.enabled=false
+server.servlet.session.cookie.secure=true
+
+# ===================================================================
+# NOTES
+# ===================================================================
+# 1. ??i spring.datasource.password thành m?t kh?u MySQL c?a b?n
+# 2. T?o database 'course_management' trong MySQL tr??c khi ch?y
+# 3. Uncomment email configuration n?u c?n g?i email
+# 4. ??i app.upload.dir thành ???ng d?n th?c t? n?u c?n upload file
+# 5. Trong production, ??t spring.profiles.active=production

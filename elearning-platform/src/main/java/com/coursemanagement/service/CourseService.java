@@ -4,12 +4,15 @@ import com.coursemanagement.entity.Course;
 import com.coursemanagement.entity.User;
 import com.coursemanagement.entity.Category;
 import com.coursemanagement.repository.CourseRepository;
+import com.coursemanagement.repository.EnrollmentRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Map;
+import java.util.HashMap;
 
 /**
  * Service class để xử lý business logic liên quan đến Course
@@ -20,6 +23,9 @@ public class CourseService {
 
     @Autowired
     private CourseRepository courseRepository;
+
+    @Autowired
+    private EnrollmentRepository enrollmentRepository;
 
     /**
      * Tạo khóa học mới
@@ -62,7 +68,7 @@ public class CourseService {
     }
 
     /**
-     * Xóa khóa học
+     * Xóa khóa học (chỉ khi chưa có học viên đăng ký)
      * @param id ID của khóa học cần xóa
      * @throws RuntimeException Nếu không tìm thấy khóa học hoặc không thể xóa
      */
@@ -70,9 +76,10 @@ public class CourseService {
         Course course = courseRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học với ID: " + id));
 
-        // Kiểm tra có thể xóa khóa học không (chưa có học viên đăng ký)
-        if (!courseRepository.canDeleteCourse(id)) {
-            throw new RuntimeException("Không thể xóa khóa học vì đã có học viên đăng ký");
+        // Kiểm tra có học viên đăng ký không
+        long enrollmentCount = enrollmentRepository.countByCourse(course);
+        if (enrollmentCount > 0) {
+            throw new RuntimeException("Không thể xóa khóa học đã có học viên đăng ký");
         }
 
         courseRepository.delete(course);
@@ -88,25 +95,7 @@ public class CourseService {
     }
 
     /**
-     * Tìm khóa học theo ID và giảng viên (để đảm bảo quyền truy cập)
-     * @param id ID của khóa học
-     * @param instructor Giảng viên
-     * @return Optional<Course>
-     */
-    public Optional<Course> findByIdAndInstructor(Long id, User instructor) {
-        return courseRepository.findByIdAndInstructor(id, instructor);
-    }
-
-    /**
-     * Lấy tất cả khóa học
-     * @return Danh sách tất cả khóa học
-     */
-    public List<Course> findAll() {
-        return courseRepository.findAll();
-    }
-
-    /**
-     * Lấy tất cả khóa học đang hoạt động
+     * Tìm tất cả khóa học đang hoạt động
      * @return Danh sách khóa học đang hoạt động
      */
     public List<Course> findAllActiveCourses() {
@@ -114,46 +103,26 @@ public class CourseService {
     }
 
     /**
-     * Lấy khóa học đang hoạt động sắp xếp theo ngày tạo mới nhất
-     * @return Danh sách khóa học mới nhất
-     */
-    public List<Course> findActiveCoursesOrderByLatest() {
-        return courseRepository.findAllActiveOrderByCreatedAtDesc();
-    }
-
-    /**
-     * Lấy khóa học của giảng viên
+     * Tìm khóa học theo giảng viên
      * @param instructor Giảng viên
-     * @return Danh sách khóa học của giảng viên đó
+     * @return Danh sách khóa học của giảng viên
      */
-    public List<Course> findCoursesByInstructor(User instructor) {
+    public List<Course> findByInstructor(User instructor) {
+        if (instructor == null || instructor.getRole() != User.Role.INSTRUCTOR) {
+            throw new RuntimeException("Giảng viên không hợp lệ");
+        }
         return courseRepository.findByInstructor(instructor);
     }
 
     /**
-     * Lấy khóa học đang hoạt động của giảng viên
-     * @param instructor Giảng viên
-     * @return Danh sách khóa học đang hoạt động của giảng viên
-     */
-    public List<Course> findActiveCoursesByInstructor(User instructor) {
-        return courseRepository.findByInstructorAndIsActive(instructor, true);
-    }
-
-    /**
-     * Lấy khóa học theo danh mục
+     * Tìm khóa học theo danh mục
      * @param category Danh mục
      * @return Danh sách khóa học trong danh mục
      */
-    public List<Course> findCoursesByCategory(Category category) {
-        return courseRepository.findByCategory(category);
-    }
-
-    /**
-     * Lấy khóa học đang hoạt động theo danh mục
-     * @param category Danh mục
-     * @return Danh sách khóa học đang hoạt động trong danh mục
-     */
-    public List<Course> findActiveCoursesByCategory(Category category) {
+    public List<Course> findByCategory(Category category) {
+        if (category == null) {
+            throw new RuntimeException("Danh mục không hợp lệ");
+        }
         return courseRepository.findByCategoryAndIsActive(category, true);
     }
 
@@ -164,117 +133,14 @@ public class CourseService {
      */
     public List<Course> searchCourses(String keyword) {
         if (keyword == null || keyword.trim().isEmpty()) {
-            return courseRepository.findAllActiveOrderByCreatedAtDesc();
+            return findAllActiveCourses();
         }
-        return courseRepository.findByNameOrDescriptionContaining(keyword.trim());
-    }
-
-    /**
-     * Tìm kiếm khóa học theo tên
-     * @param keyword Từ khóa tìm kiếm trong tên
-     * @return Danh sách khóa học có tên chứa từ khóa
-     */
-    public List<Course> searchCoursesByName(String keyword) {
-        if (keyword == null || keyword.trim().isEmpty()) {
-            return courseRepository.findAllActiveOrderByCreatedAtDesc();
-        }
-        return courseRepository.findByNameContainingIgnoreCase(keyword.trim());
-    }
-
-    /**
-     * Lấy khóa học phổ biến nhất
-     * @return Danh sách khóa học sắp xếp theo số lượng đăng ký giảm dần
-     */
-    public List<Course> findPopularCourses() {
-        return courseRepository.findPopularCourses();
-    }
-
-    /**
-     * Lấy top khóa học phổ biến nhất
-     * @param limit Số lượng khóa học cần lấy
-     * @return Danh sách top khóa học phổ biến
-     */
-    public List<Course> findTopPopularCourses(int limit) {
-        return courseRepository.findTopPopularCourses(limit);
-    }
-
-    /**
-     * Lấy khóa học mà học viên đã đăng ký
-     * @param studentId ID của học viên
-     * @return Danh sách khóa học đã đăng ký
-     */
-    public List<Course> findEnrolledCoursesByStudent(Long studentId) {
-        return courseRepository.findEnrolledCoursesByStudentId(studentId);
-    }
-
-    /**
-     * Lấy khóa học mà học viên chưa đăng ký
-     * @param studentId ID của học viên
-     * @return Danh sách khóa học chưa đăng ký
-     */
-    public List<Course> findAvailableCoursesForStudent(Long studentId) {
-        return courseRepository.findAvailableCoursesForStudent(studentId);
-    }
-
-    /**
-     * Kiểm tra học viên đã đăng ký khóa học chưa
-     * @param courseId ID của khóa học
-     * @param studentId ID của học viên
-     * @return true nếu đã đăng ký, false nếu chưa đăng ký
-     */
-    public boolean isStudentEnrolled(Long courseId, Long studentId) {
-        return courseRepository.isStudentEnrolled(courseId, studentId);
-    }
-
-    /**
-     * Đếm số học viên đăng ký khóa học
-     * @param courseId ID của khóa học
-     * @return Số lượng học viên đăng ký
-     */
-    public long countEnrollmentsByCourse(Long courseId) {
-        return courseRepository.countEnrollmentsByCourseId(courseId);
-    }
-
-    /**
-     * Đếm số bài giảng trong khóa học
-     * @param courseId ID của khóa học
-     * @return Số lượng bài giảng
-     */
-    public long countLessonsByCourse(Long courseId) {
-        return courseRepository.countLessonsByCourseId(courseId);
-    }
-
-    /**
-     * Đếm số bài kiểm tra trong khóa học
-     * @param courseId ID của khóa học
-     * @return Số lượng bài kiểm tra
-     */
-    public long countQuizzesByCourse(Long courseId) {
-        return courseRepository.countQuizzesByCourseId(courseId);
-    }
-
-    /**
-     * Kiểm tra khóa học có thể xóa được không
-     * @param id ID của khóa học
-     * @return true nếu có thể xóa, false nếu không thể
-     */
-    public boolean canDelete(Long id) {
-        return courseRepository.canDeleteCourse(id);
-    }
-
-    /**
-     * Lấy khóa học mới nhất của giảng viên
-     * @param instructorId ID của giảng viên
-     * @param limit Số lượng khóa học cần lấy
-     * @return Danh sách khóa học mới nhất
-     */
-    public List<Course> findLatestCoursesByInstructor(Long instructorId, int limit) {
-        return courseRepository.findLatestCoursesByInstructor(instructorId, limit);
+        return courseRepository.findByNameContainingIgnoreCaseAndIsActive(keyword.trim(), true);
     }
 
     /**
      * Đếm tổng số khóa học
-     * @return Tổng số khóa học
+     * @return Số lượng khóa học
      */
     public long countAllCourses() {
         return courseRepository.count();
@@ -289,59 +155,61 @@ public class CourseService {
     }
 
     /**
-     * Đếm số khóa học của giảng viên
-     * @param instructor Giảng viên
-     * @return Số lượng khóa học
+     * Lấy khóa học phổ biến nhất (theo số lượng đăng ký)
+     * @param limit Số lượng khóa học cần lấy
+     * @return Danh sách khóa học phổ biến
      */
-    public long countCoursesByInstructor(User instructor) {
-        return courseRepository.countByInstructor(instructor);
+    public List<Course> findTopPopularCourses(int limit) {
+        return courseRepository.findTopPopularCourses(limit);
     }
 
     /**
      * Lấy thống kê khóa học theo danh mục
-     * @return Danh sách Object[] với [Category, số lượng khóa học]
+     * @return Map<CategoryName, CourseCount>
      */
-    public List<Object[]> getCourseStatisticsByCategory() {
-        return courseRepository.getCourseStatisticsByCategory();
+    public Map<String, Long> getCourseStatisticsByCategory() {
+        List<Object[]> results = courseRepository.getCourseCountByCategory();
+        Map<String, Long> stats = new HashMap<>();
+
+        for (Object[] result : results) {
+            String categoryName = (String) result[0];
+            Long courseCount = (Long) result[1];
+            stats.put(categoryName, courseCount);
+        }
+
+        return stats;
     }
 
     /**
-     * Lấy thống kê khóa học theo giảng viên
-     * @return Danh sách Object[] với [User, số lượng khóa học]
+     * Kiểm tra học viên có thể đăng ký khóa học không
+     * @param courseId ID khóa học
+     * @param student Học viên
+     * @return true nếu có thể đăng ký, false nếu không thể
      */
-    public List<Object[]> getCourseStatisticsByInstructor() {
-        return courseRepository.getCourseStatisticsByInstructor();
-    }
+    public boolean canStudentEnroll(Long courseId, User student) {
+        if (student == null || student.getRole() != User.Role.STUDENT) {
+            return false;
+        }
 
-    /**
-     * Lấy khóa học có nhiều bài giảng nhất
-     * @param limit Số lượng khóa học cần lấy
-     * @return Danh sách khóa học có nhiều bài giảng nhất
-     */
-    public List<Course> findCoursesWithMostLessons(int limit) {
-        return courseRepository.findCoursesWithMostLessons(limit);
-    }
+        Optional<Course> courseOpt = findById(courseId);
+        if (courseOpt.isEmpty() || !courseOpt.get().isActive()) {
+            return false;
+        }
 
-    /**
-     * Kích hoạt/vô hiệu hóa khóa học
-     * @param courseId ID của khóa học
-     * @param isActive Trạng thái kích hoạt
-     */
-    public void toggleCourseStatus(Long courseId, boolean isActive) {
-        Course course = courseRepository.findById(courseId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học"));
-
-        course.setActive(isActive);
-        courseRepository.save(course);
+        // Kiểm tra đã đăng ký chưa
+        return !enrollmentRepository.existsByStudentAndCourse(student, courseOpt.get());
     }
 
     /**
      * Validate thông tin khóa học
      * @param course Khóa học cần validate
-     * @throws RuntimeException Nếu có lỗi validation
+     * @throws RuntimeException Nếu validation fail
      */
     private void validateCourse(Course course) {
-        // Kiểm tra tên khóa học
+        if (course == null) {
+            throw new RuntimeException("Thông tin khóa học không được để trống");
+        }
+
         if (course.getName() == null || course.getName().trim().isEmpty()) {
             throw new RuntimeException("Tên khóa học không được để trống");
         }
@@ -354,58 +222,24 @@ public class CourseService {
             throw new RuntimeException("Tên khóa học không được vượt quá 200 ký tự");
         }
 
-        // Kiểm tra danh mục
+        if (course.getDescription() == null || course.getDescription().trim().isEmpty()) {
+            throw new RuntimeException("Mô tả khóa học không được để trống");
+        }
+
+        if (course.getDescription().trim().length() < 10) {
+            throw new RuntimeException("Mô tả khóa học phải có ít nhất 10 ký tự");
+        }
+
         if (course.getCategory() == null) {
-            throw new RuntimeException("Phải chọn danh mục cho khóa học");
+            throw new RuntimeException("Danh mục khóa học không được để trống");
         }
 
-        // Kiểm tra giảng viên
         if (course.getInstructor() == null) {
-            throw new RuntimeException("Phải có giảng viên cho khóa học");
+            throw new RuntimeException("Giảng viên không được để trống");
         }
 
-        // Kiểm tra vai trò của giảng viên
         if (course.getInstructor().getRole() != User.Role.INSTRUCTOR) {
-            throw new RuntimeException("Chỉ có giảng viên mới có thể tạo khóa học");
+            throw new RuntimeException("Người được chỉ định phải có vai trò Giảng viên");
         }
-
-        // Trim các trường text
-        course.setName(course.getName().trim());
-        if (course.getDescription() != null) {
-            course.setDescription(course.getDescription().trim());
-        }
-    }
-
-    /**
-     * Kiểm tra quyền truy cập khóa học
-     * @param courseId ID khóa học
-     * @param userId ID người dùng
-     * @param role Vai trò người dùng
-     * @return true nếu có quyền truy cập, false nếu không có
-     */
-    public boolean hasAccessToCourse(Long courseId, Long userId, User.Role role) {
-        Optional<Course> courseOpt = courseRepository.findById(courseId);
-        if (courseOpt.isEmpty()) {
-            return false;
-        }
-
-        Course course = courseOpt.get();
-
-        // Admin có quyền truy cập tất cả
-        if (role == User.Role.ADMIN) {
-            return true;
-        }
-
-        // Giảng viên chỉ truy cập được khóa học của mình
-        if (role == User.Role.INSTRUCTOR) {
-            return course.getInstructor().getId().equals(userId);
-        }
-
-        // Học viên chỉ truy cập được khóa học đã đăng ký và đang hoạt động
-        if (role == User.Role.STUDENT) {
-            return course.isActive() && isStudentEnrolled(courseId, userId);
-        }
-
-        return false;
     }
 }

@@ -79,6 +79,60 @@ public class Quiz {
     private boolean isActive = true;
 
     /**
+     * Hướng dẫn làm bài
+     */
+    @Column(name = "instructions", columnDefinition = "TEXT")
+    private String instructions;
+
+    /**
+     * Số lần làm bài tối đa (mặc định là 1)
+     */
+    @Column(name = "max_attempts")
+    private Integer maxAttempts = 1;
+
+    /**
+     * Hiển thị kết quả ngay sau khi nộp bài
+     */
+    @Column(name = "show_result_immediately")
+    private boolean showResultImmediately = true;
+
+    /**
+     * Hiển thị đáp án đúng
+     */
+    @Column(name = "show_correct_answers")
+    private boolean showCorrectAnswers = true;
+
+    /**
+     * Xáo trộn thứ tự câu hỏi
+     */
+    @Column(name = "shuffle_questions")
+    private boolean shuffleQuestions = false;
+
+    /**
+     * Xáo trộn thứ tự đáp án
+     */
+    @Column(name = "shuffle_answers")
+    private boolean shuffleAnswers = false;
+
+    /**
+     * Yêu cầu đăng nhập để làm bài
+     */
+    @Column(name = "require_login")
+    private boolean requireLogin = true;
+
+    /**
+     * Thời gian mở bài kiểm tra
+     */
+    @Column(name = "available_from")
+    private LocalDateTime availableFrom;
+
+    /**
+     * Thời gian đóng bài kiểm tra
+     */
+    @Column(name = "available_until")
+    private LocalDateTime availableUntil;
+
+    /**
      * Quan hệ Many-to-One với Course
      * Một bài kiểm tra thuộc về một khóa học
      */
@@ -92,11 +146,10 @@ public class Quiz {
      * cascade = CascadeType.ALL nghĩa là khi xóa Quiz thì xóa luôn các Question
      */
     @OneToMany(mappedBy = "quiz", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @OrderBy("id ASC") // Sắp xếp câu hỏi theo thứ tự tạo
     private List<Question> questions = new ArrayList<>();
 
     /**
-     * Danh sách kết quả bài kiểm tra của học viên
+     * Danh sách kết quả bài kiểm tra
      * Quan hệ One-to-Many với QuizResult
      */
     @OneToMany(mappedBy = "quiz", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
@@ -108,6 +161,13 @@ public class Quiz {
     public Quiz() {
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
+        this.maxScore = 100.0;
+        this.passScore = 60.0;
+        this.isActive = true;
+        this.maxAttempts = 1;
+        this.showResultImmediately = true;
+        this.showCorrectAnswers = true;
+        this.requireLogin = true;
     }
 
     /**
@@ -122,6 +182,16 @@ public class Quiz {
     }
 
     /**
+     * Callback được gọi trước khi persist entity
+     */
+    @PrePersist
+    public void prePersist() {
+        LocalDateTime now = LocalDateTime.now();
+        this.createdAt = now;
+        this.updatedAt = now;
+    }
+
+    /**
      * Callback được gọi trước khi update entity
      */
     @PreUpdate
@@ -129,135 +199,290 @@ public class Quiz {
         this.updatedAt = LocalDateTime.now();
     }
 
+    // === Helper methods ===
+
     /**
      * Thêm câu hỏi vào bài kiểm tra
-     * @param question Câu hỏi cần thêm
      */
     public void addQuestion(Question question) {
+        if (questions == null) {
+            questions = new ArrayList<>();
+        }
         questions.add(question);
         question.setQuiz(this);
     }
 
     /**
      * Xóa câu hỏi khỏi bài kiểm tra
-     * @param question Câu hỏi cần xóa
      */
     public void removeQuestion(Question question) {
-        questions.remove(question);
+        if (questions != null) {
+            questions.remove(question);
+        }
         question.setQuiz(null);
     }
 
     /**
      * Thêm kết quả bài kiểm tra
-     * @param quizResult Kết quả bài kiểm tra
      */
     public void addQuizResult(QuizResult quizResult) {
+        if (quizResults == null) {
+            quizResults = new ArrayList<>();
+        }
         quizResults.add(quizResult);
         quizResult.setQuiz(this);
     }
 
     /**
-     * Lấy số lượng câu hỏi trong bài kiểm tra
-     * @return Số lượng câu hỏi
+     * Lấy số lượng câu hỏi
      */
     public int getQuestionCount() {
-        return questions.size();
+        return questions != null ? questions.size() : 0;
     }
 
     /**
-     * Lấy số lượng học viên đã làm bài
-     * @return Số lượng học viên
+     * Lấy số lượng kết quả bài kiểm tra
      */
-    public int getAttemptCount() {
-        return quizResults.size();
+    public int getResultCount() {
+        return quizResults != null ? quizResults.size() : 0;
     }
 
     /**
-     * Tính điểm cho mỗi câu hỏi
-     * @return Điểm của mỗi câu hỏi
+     * Kiểm tra bài kiểm tra có thể xóa không
+     * Chỉ có thể xóa khi chưa có ai làm bài
      */
-    public double getPointsPerQuestion() {
-        if (questions.isEmpty()) {
+    public boolean canBeDeleted() {
+        return quizResults == null || quizResults.isEmpty();
+    }
+
+    /**
+     * Kiểm tra pass score có hợp lệ không
+     */
+    public boolean isValidPassScore() {
+        return passScore != null && passScore >= 0 &&
+                maxScore != null && passScore <= maxScore;
+    }
+
+    /**
+     * Lấy tỷ lệ pass score (%)
+     */
+    public double getPassScorePercentage() {
+        if (maxScore == null || maxScore <= 0 || passScore == null) {
             return 0.0;
         }
-        return maxScore / questions.size();
+        return (passScore / maxScore) * 100.0;
     }
 
     /**
-     * Kiểm tra điểm có đạt hay không
-     * @param score Điểm cần kiểm tra
-     * @return true nếu đạt, false nếu không đạt
+     * Kiểm tra bài kiểm tra có đang mở không
      */
-    public boolean isPassing(double score) {
-        return score >= passScore;
+    public boolean isAvailable() {
+        if (!isActive) {
+            return false;
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+
+        if (availableFrom != null && now.isBefore(availableFrom)) {
+            return false;
+        }
+
+        if (availableUntil != null && now.isAfter(availableUntil)) {
+            return false;
+        }
+
+        return true;
     }
 
     /**
-     * Lấy phần trăm điểm đạt
-     * @return Phần trăm cần để pass
+     * Kiểm tra học viên có thể làm bài không
      */
-    public double getPassPercentage() {
-        return (passScore / maxScore) * 100;
+    public boolean canStudentTakeQuiz(User student) {
+        if (!isAvailable()) {
+            return false;
+        }
+
+        if (requireLogin && student == null) {
+            return false;
+        }
+
+        if (student != null && !course.isEnrolledByStudent(student)) {
+            return false;
+        }
+
+        // Kiểm tra số lần làm bài
+        if (student != null && maxAttempts > 0) {
+            long attemptCount = getAttemptCountByStudent(student);
+            return attemptCount < maxAttempts;
+        }
+
+        return true;
     }
 
     /**
-     * Lấy thời gian làm bài dạng text
-     * @return Chuỗi mô tả thời gian (VD: "30 phút", "1 giờ 15 phút")
+     * Lấy số lần học viên đã làm bài
      */
-    public String getDurationText() {
+    public long getAttemptCountByStudent(User student) {
+        if (quizResults == null || student == null) {
+            return 0;
+        }
+
+        return quizResults.stream()
+                .filter(qr -> qr.getStudent().getId().equals(student.getId()))
+                .count();
+    }
+
+    /**
+     * Lấy kết quả tốt nhất của học viên
+     */
+    public QuizResult getBestResultByStudent(User student) {
+        if (quizResults == null || student == null) {
+            return null;
+        }
+
+        return quizResults.stream()
+                .filter(qr -> qr.getStudent().getId().equals(student.getId()))
+                .max((qr1, qr2) -> Double.compare(qr1.getScore(), qr2.getScore()))
+                .orElse(null);
+    }
+
+    /**
+     * Tính điểm trung bình của bài kiểm tra
+     */
+    public Double getAverageScore() {
+        if (quizResults == null || quizResults.isEmpty()) {
+            return null;
+        }
+
+        return quizResults.stream()
+                .filter(qr -> qr.getScore() != null)
+                .mapToDouble(QuizResult::getScore)
+                .average()
+                .orElse(0.0);
+    }
+
+    /**
+     * Tính tỷ lệ đạt của bài kiểm tra
+     */
+    public double getPassRate() {
+        if (quizResults == null || quizResults.isEmpty()) {
+            return 0.0;
+        }
+
+        long passedCount = quizResults.stream()
+                .filter(QuizResult::isPassedQuiz)
+                .count();
+
+        return (double) passedCount / quizResults.size() * 100.0;
+    }
+
+    /**
+     * Lấy điểm cao nhất
+     */
+    public Double getHighestScore() {
+        if (quizResults == null || quizResults.isEmpty()) {
+            return null;
+        }
+
+        return quizResults.stream()
+                .filter(qr -> qr.getScore() != null)
+                .mapToDouble(QuizResult::getScore)
+                .max()
+                .orElse(0.0);
+    }
+
+    /**
+     * Lấy điểm thấp nhất
+     */
+    public Double getLowestScore() {
+        if (quizResults == null || quizResults.isEmpty()) {
+            return null;
+        }
+
+        return quizResults.stream()
+                .filter(qr -> qr.getScore() != null)
+                .mapToDouble(QuizResult::getScore)
+                .min()
+                .orElse(0.0);
+    }
+
+    /**
+     * Kiểm tra có câu hỏi nào chưa
+     */
+    public boolean hasQuestions() {
+        return questions != null && !questions.isEmpty();
+    }
+
+    /**
+     * Lấy thời gian hiển thị
+     */
+    public String getDisplayDuration() {
+        if (duration == null || duration <= 0) {
+            return "Không giới hạn";
+        }
+
         if (duration < 60) {
             return duration + " phút";
         } else {
             int hours = duration / 60;
             int minutes = duration % 60;
-            if (minutes == 0) {
-                return hours + " giờ";
-            } else {
+
+            if (minutes > 0) {
                 return hours + " giờ " + minutes + " phút";
+            } else {
+                return hours + " giờ";
             }
         }
     }
 
     /**
-     * Kiểm tra bài kiểm tra có thể bắt đầu được không
-     * Cần có ít nhất 1 câu hỏi và bài kiểm tra phải active
-     * @return true nếu có thể bắt đầu, false nếu không thể
+     * Lấy trạng thái hiển thị
      */
-    public boolean canStart() {
-        return isActive && !questions.isEmpty();
+    public String getDisplayStatus() {
+        if (!isActive) {
+            return "Không hoạt động";
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+
+        if (availableFrom != null && now.isBefore(availableFrom)) {
+            return "Chưa mở";
+        }
+
+        if (availableUntil != null && now.isAfter(availableUntil)) {
+            return "Đã đóng";
+        }
+
+        return "Đang mở";
     }
 
     /**
-     * Lấy điểm trung bình của tất cả học viên đã làm bài
-     * @return Điểm trung bình hoặc 0 nếu chưa có ai làm
+     * Kiểm tra bài kiểm tra có được tạo trong X ngày qua không
      */
-    public double getAverageScore() {
-        if (quizResults.isEmpty()) {
-            return 0.0;
-        }
-
-        double totalScore = quizResults.stream()
-                .mapToDouble(QuizResult::getScore)
-                .sum();
-
-        return totalScore / quizResults.size();
+    public boolean isNewWithinDays(int days) {
+        LocalDateTime cutoff = LocalDateTime.now().minusDays(days);
+        return createdAt.isAfter(cutoff);
     }
 
     /**
-     * Lấy tỷ lệ học viên đạt bài kiểm tra
-     * @return Tỷ lệ phần trăm học viên đạt
+     * Lấy độ khó ước tính dựa trên số câu hỏi và thời gian
      */
-    public double getPassRate() {
-        if (quizResults.isEmpty()) {
-            return 0.0;
+    public String getEstimatedDifficulty() {
+        int questionCount = getQuestionCount();
+
+        if (questionCount == 0 || duration == null) {
+            return "Chưa xác định";
         }
 
-        long passCount = quizResults.stream()
-                .mapToDouble(QuizResult::getScore)
-                .filter(this::isPassing)
-                .count();
+        double minutesPerQuestion = (double) duration / questionCount;
 
-        return (double) passCount / quizResults.size() * 100;
+        if (minutesPerQuestion >= 3) {
+            return "Dễ";
+        } else if (minutesPerQuestion >= 1.5) {
+            return "Trung bình";
+        } else {
+            return "Khó";
+        }
     }
 
     // === Getters và Setters ===
@@ -334,6 +559,78 @@ public class Quiz {
         isActive = active;
     }
 
+    public String getInstructions() {
+        return instructions;
+    }
+
+    public void setInstructions(String instructions) {
+        this.instructions = instructions;
+    }
+
+    public Integer getMaxAttempts() {
+        return maxAttempts;
+    }
+
+    public void setMaxAttempts(Integer maxAttempts) {
+        this.maxAttempts = maxAttempts;
+    }
+
+    public boolean isShowResultImmediately() {
+        return showResultImmediately;
+    }
+
+    public void setShowResultImmediately(boolean showResultImmediately) {
+        this.showResultImmediately = showResultImmediately;
+    }
+
+    public boolean isShowCorrectAnswers() {
+        return showCorrectAnswers;
+    }
+
+    public void setShowCorrectAnswers(boolean showCorrectAnswers) {
+        this.showCorrectAnswers = showCorrectAnswers;
+    }
+
+    public boolean isShuffleQuestions() {
+        return shuffleQuestions;
+    }
+
+    public void setShuffleQuestions(boolean shuffleQuestions) {
+        this.shuffleQuestions = shuffleQuestions;
+    }
+
+    public boolean isShuffleAnswers() {
+        return shuffleAnswers;
+    }
+
+    public void setShuffleAnswers(boolean shuffleAnswers) {
+        this.shuffleAnswers = shuffleAnswers;
+    }
+
+    public boolean isRequireLogin() {
+        return requireLogin;
+    }
+
+    public void setRequireLogin(boolean requireLogin) {
+        this.requireLogin = requireLogin;
+    }
+
+    public LocalDateTime getAvailableFrom() {
+        return availableFrom;
+    }
+
+    public void setAvailableFrom(LocalDateTime availableFrom) {
+        this.availableFrom = availableFrom;
+    }
+
+    public LocalDateTime getAvailableUntil() {
+        return availableUntil;
+    }
+
+    public void setAvailableUntil(LocalDateTime availableUntil) {
+        this.availableUntil = availableUntil;
+    }
+
     public Course getCourse() {
         return course;
     }
@@ -367,10 +664,28 @@ public class Quiz {
                 "id=" + id +
                 ", title='" + title + '\'' +
                 ", duration=" + duration +
+                ", maxScore=" + maxScore +
+                ", passScore=" + passScore +
                 ", questionCount=" + getQuestionCount() +
-                ", attemptCount=" + getAttemptCount() +
-                ", course=" + (course != null ? course.getName() : "null") +
+                ", resultCount=" + getResultCount() +
                 ", isActive=" + isActive +
+                ", course=" + (course != null ? course.getName() : "null") +
                 '}';
+    }
+
+    /**
+     * Override equals và hashCode cho JPA
+     */
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Quiz)) return false;
+        Quiz quiz = (Quiz) o;
+        return id != null && id.equals(quiz.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
     }
 }

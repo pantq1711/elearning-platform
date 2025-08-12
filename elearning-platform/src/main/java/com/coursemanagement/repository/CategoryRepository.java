@@ -24,6 +24,14 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
     Optional<Category> findByName(String name);
 
     /**
+     * Tìm danh mục theo tên (không phân biệt hoa thường)
+     * @param name Tên danh mục
+     * @return Optional<Category>
+     */
+    @Query("SELECT c FROM Category c WHERE LOWER(c.name) = LOWER(:name)")
+    Optional<Category> findByNameIgnoreCase(@Param("name") String name);
+
+    /**
      * Kiểm tra tên danh mục có tồn tại hay không
      * @param name Tên danh mục cần kiểm tra
      * @return true nếu tồn tại, false nếu không tồn tại
@@ -46,81 +54,122 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
     List<Category> findAllOrderByName();
 
     /**
-     * Lấy tất cả danh mục sắp xếp theo ngày tạo mới nhất
-     * @return Danh sách danh mục sắp xếp theo ngày tạo
-     */
-    @Query("SELECT c FROM Category c ORDER BY c.createdAt DESC")
-    List<Category> findAllOrderByCreatedAtDesc();
-
-    /**
      * Lấy danh mục có nhiều khóa học nhất
-     * Sử dụng LEFT JOIN để đếm số khóa học trong mỗi danh mục
-     * @return Danh sách danh mục sắp xếp theo số khóa học giảm dần
-     */
-    @Query("SELECT c FROM Category c LEFT JOIN c.courses co GROUP BY c.id ORDER BY COUNT(co) DESC")
-    List<Category> findCategoriesOrderByCourseCount();
-
-    /**
-     * Đếm số khóa học trong một danh mục
-     * @param categoryId ID của danh mục
-     * @return Số lượng khóa học
-     */
-    @Query("SELECT COUNT(co) FROM Course co WHERE co.category.id = :categoryId")
-    long countCoursesByCategoryId(@Param("categoryId") Long categoryId);
-
-    /**
-     * Tìm danh mục có ít nhất một khóa học
-     * @return Danh sách danh mục có khóa học
-     */
-    @Query("SELECT DISTINCT c FROM Category c INNER JOIN c.courses")
-    List<Category> findCategoriesWithCourses();
-
-    /**
-     * Tìm danh mục không có khóa học nào
-     * @return Danh sách danh mục trống
-     */
-    @Query("SELECT c FROM Category c WHERE c.id NOT IN (SELECT DISTINCT co.category.id FROM Course co)")
-    List<Category> findCategoriesWithoutCourses();
-
-    /**
-     * Tìm top N danh mục có nhiều khóa học nhất
      * @param limit Số lượng danh mục cần lấy
-     * @return Danh sách top danh mục
+     * @return Danh sách danh mục phổ biến
      */
-    @Query("SELECT c FROM Category c LEFT JOIN c.courses co GROUP BY c.id ORDER BY COUNT(co) DESC LIMIT :limit")
+    @Query("SELECT cat FROM Category cat " +
+            "LEFT JOIN cat.courses c " +
+            "GROUP BY cat " +
+            "ORDER BY COUNT(c) DESC " +
+            "LIMIT :limit")
     List<Category> findTopCategoriesByCourseCount(@Param("limit") int limit);
 
     /**
-     * Kiểm tra danh mục có thể xóa được không
-     * Chỉ có thể xóa khi không có khóa học nào
-     * @param categoryId ID của danh mục
-     * @return true nếu có thể xóa, false nếu không thể xóa
+     * Tìm danh mục theo mô tả có chứa từ khóa
+     * @param keyword Từ khóa tìm kiếm
+     * @return Danh sách danh mục có mô tả chứa từ khóa
      */
-    @Query("SELECT CASE WHEN COUNT(co) = 0 THEN true ELSE false END FROM Course co WHERE co.category.id = :categoryId")
-    boolean canDeleteCategory(@Param("categoryId") Long categoryId);
+    @Query("SELECT c FROM Category c WHERE LOWER(c.description) LIKE LOWER(CONCAT('%', :keyword, '%'))")
+    List<Category> findByDescriptionContainingIgnoreCase(@Param("keyword") String keyword);
 
     /**
-     * Tìm danh mục theo tên chính xác (không phân biệt hoa thường)
-     * @param name Tên danh mục
-     * @return Optional<Category>
+     * Tìm danh mục theo tên hoặc mô tả có chứa từ khóa
+     * @param keyword Từ khóa tìm kiếm
+     * @return Danh sách danh mục chứa từ khóa trong tên hoặc mô tả
      */
-    @Query("SELECT c FROM Category c WHERE LOWER(c.name) = LOWER(:name)")
-    Optional<Category> findByNameIgnoreCase(@Param("name") String name);
+    @Query("SELECT c FROM Category c WHERE " +
+            "LOWER(c.name) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(c.description) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+            "ORDER BY c.name ASC")
+    List<Category> searchCategories(@Param("keyword") String keyword);
 
     /**
-     * Tìm danh mục trùng tên khi update (loại trừ danh mục hiện tại)
-     * @param name Tên danh mục cần kiểm tra
-     * @param excludeId ID của danh mục hiện tại (để loại trừ)
-     * @return Optional<Category> - có thể null nếu không trùng
+     * Lấy danh mục được tạo gần đây nhất
+     * @param limit Số lượng danh mục cần lấy
+     * @return Danh sách danh mục mới nhất
      */
-    @Query("SELECT c FROM Category c WHERE LOWER(c.name) = LOWER(:name) AND c.id != :excludeId")
-    Optional<Category> findDuplicateName(@Param("name") String name, @Param("excludeId") Long excludeId);
+    @Query("SELECT c FROM Category c ORDER BY c.createdAt DESC LIMIT :limit")
+    List<Category> findRecentCategories(@Param("limit") int limit);
 
     /**
-     * Lấy thống kê số khóa học cho mỗi danh mục
-     * Trả về danh sách Object[] với format: [Category, Long courseCount]
-     * @return Danh sách thống kê
+     * Đếm số khóa học theo danh mục
+     * @param categoryId ID danh mục
+     * @return Số lượng khóa học trong danh mục
      */
-    @Query("SELECT c, COUNT(co) as courseCount FROM Category c LEFT JOIN c.courses co GROUP BY c.id ORDER BY courseCount DESC")
+    @Query("SELECT COUNT(c) FROM Course c WHERE c.category.id = :categoryId")
+    long countCoursesByCategoryId(@Param("categoryId") Long categoryId);
+
+    /**
+     * Đếm số khóa học đang hoạt động theo danh mục
+     * @param categoryId ID danh mục
+     * @return Số lượng khóa học đang hoạt động trong danh mục
+     */
+    @Query("SELECT COUNT(c) FROM Course c WHERE c.category.id = :categoryId AND c.isActive = true")
+    long countActiveCoursesByCategoryId(@Param("categoryId") Long categoryId);
+
+    /**
+     * Lấy thống kê danh mục với số lượng khóa học
+     * @return Danh sách [CategoryId, CategoryName, CourseCount]
+     */
+    @Query("SELECT cat.id, cat.name, COUNT(c) FROM Category cat " +
+            "LEFT JOIN cat.courses c " +
+            "GROUP BY cat.id, cat.name " +
+            "ORDER BY COUNT(c) DESC")
     List<Object[]> getCategoryStatistics();
+
+    /**
+     * Tìm danh mục có khóa học đang hoạt động
+     * @return Danh sách danh mục có ít nhất 1 khóa học đang hoạt động
+     */
+    @Query("SELECT DISTINCT cat FROM Category cat " +
+            "INNER JOIN cat.courses c " +
+            "WHERE c.isActive = true " +
+            "ORDER BY cat.name ASC")
+    List<Category> findCategoriesWithActiveCourses();
+
+    /**
+     * Tìm danh mục không có khóa học nào
+     * @return Danh sách danh mục rỗng
+     */
+    @Query("SELECT cat FROM Category cat " +
+            "WHERE cat.id NOT IN (SELECT DISTINCT c.category.id FROM Course c) " +
+            "ORDER BY cat.name ASC")
+    List<Category> findEmptyCategories();
+
+    /**
+     * Kiểm tra danh mục có thể xóa không (không có khóa học nào)
+     * @param categoryId ID danh mục
+     * @return true nếu có thể xóa
+     */
+    @Query("SELECT CASE WHEN COUNT(c) = 0 THEN true ELSE false END " +
+            "FROM Course c WHERE c.category.id = :categoryId")
+    boolean canCategoryBeDeleted(@Param("categoryId") Long categoryId);
+
+    /**
+     * Tìm danh mục theo khoảng thời gian tạo
+     * @param startDate Ngày bắt đầu
+     * @param endDate Ngày kết thúc
+     * @return Danh sách danh mục trong khoảng thời gian
+     */
+    @Query("SELECT c FROM Category c WHERE c.createdAt BETWEEN :startDate AND :endDate " +
+            "ORDER BY c.createdAt DESC")
+    List<Category> findCategoriesByDateRange(@Param("startDate") java.time.LocalDateTime startDate,
+                                             @Param("endDate") java.time.LocalDateTime endDate);
+
+    /**
+     * Lấy số lượng danh mục được tạo trong tháng hiện tại
+     * @return Số lượng danh mục mới
+     */
+    @Query("SELECT COUNT(c) FROM Category c WHERE " +
+            "YEAR(c.createdAt) = YEAR(CURRENT_DATE) AND " +
+            "MONTH(c.createdAt) = MONTH(CURRENT_DATE)")
+    long countCategoriesCreatedThisMonth();
+
+    /**
+     * Lấy tổng số khóa học trong tất cả danh mục
+     * @return Tổng số khóa học
+     */
+    @Query("SELECT COUNT(c) FROM Course c")
+    long countTotalCourses();
 }

@@ -3,6 +3,7 @@ package com.coursemanagement.controller;
 import com.coursemanagement.entity.User;
 import com.coursemanagement.service.UserService;
 import com.coursemanagement.service.CategoryService;
+import com.coursemanagement.service.CourseService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -26,6 +27,9 @@ public class AuthController {
     @Autowired
     private CategoryService categoryService;
 
+    @Autowired
+    private CourseService courseService;
+
     /**
      * Trang chủ - hiển thị danh sách khóa học công khai
      */
@@ -33,7 +37,14 @@ public class AuthController {
     public String home(Model model) {
         try {
             // Thêm danh sách danh mục để hiển thị
-            model.addAttribute("categories", categoryService.findAllOrderByName());
+            model.addAttribute("categories", categoryService.findAll());
+
+            // Thêm khóa học phổ biến
+            model.addAttribute("popularCourses", courseService.findTopPopularCourses(8));
+
+            // Thêm thống kê tổng quan
+            model.addAttribute("totalCourses", courseService.countActiveCourses());
+            model.addAttribute("totalCategories", categoryService.countAllCategories());
 
             // Kiểm tra user đã đăng nhập chưa
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -66,6 +77,7 @@ public class AuthController {
     @GetMapping("/login")
     public String login(@RequestParam(value = "error", required = false) String error,
                         @RequestParam(value = "logout", required = false) String logout,
+                        @RequestParam(value = "expired", required = false) String expired,
                         Model model) {
 
         // Kiểm tra đã đăng nhập chưa
@@ -79,55 +91,59 @@ public class AuthController {
             model.addAttribute("error", "Tên đăng nhập hoặc mật khẩu không đúng!");
         }
 
-        // Thêm thông báo logout thành công
+        // Thêm thông báo đăng xuất thành công
         if (logout != null) {
             model.addAttribute("message", "Đăng xuất thành công!");
         }
 
-        return "login";
+        // Thêm thông báo session hết hạn
+        if (expired != null) {
+            model.addAttribute("warning", "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!");
+        }
+
+        return "auth/login";
     }
 
     /**
-     * Trang đăng ký (nếu cho phép public registration)
+     * Trang đăng ký
      */
     @GetMapping("/register")
-    public String showRegistrationForm(Model model) {
+    public String register(Model model) {
         // Kiểm tra đã đăng nhập chưa
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth != null && auth.isAuthenticated() && !auth.getPrincipal().equals("anonymousUser")) {
-            return "redirect:/";
+            return "redirect:/"; // Chuyển về trang chủ nếu đã đăng nhập
         }
 
         model.addAttribute("user", new User());
-        return "register";
+        return "auth/register";
     }
 
     /**
-     * Xử lý đăng ký tài khoản mới
+     * Xử lý đăng ký
      */
     @PostMapping("/register")
-    public String processRegistration(@Valid @ModelAttribute("user") User user,
-                                      BindingResult bindingResult,
-                                      @RequestParam("confirmPassword") String confirmPassword,
-                                      Model model,
-                                      RedirectAttributes redirectAttributes) {
+    public String processRegister(@Valid @ModelAttribute("user") User user,
+                                  BindingResult bindingResult,
+                                  @RequestParam("confirmPassword") String confirmPassword,
+                                  Model model,
+                                  RedirectAttributes redirectAttributes) {
         try {
-            // Kiểm tra validation errors
+            // Kiểm tra lỗi validation
             if (bindingResult.hasErrors()) {
-                return "register";
+                return "auth/register";
             }
 
-            // Kiểm tra mật khẩu xác nhận
+            // Kiểm tra mật khẩu và xác nhận có khớp không
             if (!user.getPassword().equals(confirmPassword)) {
-                model.addAttribute("error", "Mật khẩu xác nhận không khớp");
-                return "register";
+                model.addAttribute("error", "Mật khẩu và xác nhận mật khẩu không khớp");
+                return "auth/register";
             }
 
-            // Đặt role mặc định là STUDENT cho đăng ký công khai
+            // Mặc định role là STUDENT cho user đăng ký mới
             user.setRole(User.Role.STUDENT);
 
-            // Validate và tạo user
-            userService.validateUser(user, false);
+            // Tạo user mới
             User createdUser = userService.createUser(user);
 
             redirectAttributes.addFlashAttribute("message",
@@ -137,10 +153,10 @@ public class AuthController {
 
         } catch (RuntimeException e) {
             model.addAttribute("error", e.getMessage());
-            return "register";
+            return "auth/register";
         } catch (Exception e) {
             model.addAttribute("error", "Có lỗi xảy ra trong quá trình đăng ký");
-            return "register";
+            return "auth/register";
         }
     }
 
@@ -224,7 +240,7 @@ public class AuthController {
     }
 
     /**
-     * Cập nhật thông tin tài khoản
+     * Xử lý cập nhật thông tin tài khoản
      */
     @PostMapping("/profile")
     public String updateProfile(@Valid @ModelAttribute("user") User user,
@@ -239,13 +255,12 @@ public class AuthController {
 
             User currentUser = (User) authentication.getPrincipal();
 
-            // Chỉ cho phép cập nhật email (không cho đổi username và role)
-            User existingUser = userService.findById(currentUser.getId())
-                    .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
+            // Chỉ cho phép cập nhật một số thông tin nhất định
+            user.setId(currentUser.getId());
+            user.setRole(currentUser.getRole()); // Không cho đổi role
+            user.setActive(currentUser.isActive()); // Không cho đổi trạng thái
 
-            existingUser.setEmail(user.getEmail());
-
-            userService.updateUser(existingUser.getId(), existingUser);
+            userService.updateUser(currentUser.getId(), user);
 
             redirectAttributes.addFlashAttribute("message", "Cập nhật thông tin thành công!");
             return "redirect:/profile";
@@ -265,7 +280,9 @@ public class AuthController {
      * Trang đổi mật khẩu
      */
     @GetMapping("/change-password")
-    public String changePasswordForm() {
+    public String changePasswordForm(Model model, Authentication authentication) {
+        User currentUser = (User) authentication.getPrincipal();
+        model.addAttribute("currentUser", currentUser);
         return "change-password";
     }
 
@@ -306,6 +323,65 @@ public class AuthController {
         } catch (Exception e) {
             model.addAttribute("error", "Có lỗi xảy ra khi đổi mật khẩu");
             return "change-password";
+        }
+    }
+
+    /**
+     * Trang giới thiệu về website
+     */
+    @GetMapping("/about")
+    public String about(Model model) {
+        // Thêm thống kê tổng quan cho trang about
+        try {
+            model.addAttribute("totalCourses", courseService.countAllCourses());
+            model.addAttribute("totalCategories", categoryService.countAllCategories());
+            model.addAttribute("totalInstructors", userService.countByRole(User.Role.INSTRUCTOR));
+            model.addAttribute("totalStudents", userService.countByRole(User.Role.STUDENT));
+        } catch (Exception e) {
+            // Không làm gì nếu có lỗi, chỉ hiển thị trang about bình thường
+        }
+
+        return "about";
+    }
+
+    /**
+     * Trang liên hệ
+     */
+    @GetMapping("/contact")
+    public String contact() {
+        return "contact";
+    }
+
+    /**
+     * Trang tìm kiếm khóa học công khai
+     */
+    @GetMapping("/courses")
+    public String publicCourses(@RequestParam(value = "search", required = false) String search,
+                                @RequestParam(value = "category", required = false) Long categoryId,
+                                Model model) {
+        try {
+            model.addAttribute("categories", categoryService.findAll());
+
+            if (search != null && !search.trim().isEmpty()) {
+                model.addAttribute("courses", courseService.searchCourses(search));
+                model.addAttribute("searchKeyword", search);
+            } else if (categoryId != null) {
+                var category = categoryService.findById(categoryId);
+                if (category.isPresent()) {
+                    model.addAttribute("courses", courseService.findByCategory(category.get()));
+                    model.addAttribute("selectedCategory", category.get());
+                } else {
+                    model.addAttribute("courses", courseService.findAllActiveCourses());
+                }
+            } else {
+                model.addAttribute("courses", courseService.findAllActiveCourses());
+            }
+
+            return "public/courses";
+
+        } catch (Exception e) {
+            model.addAttribute("error", "Có lỗi xảy ra khi tải danh sách khóa học");
+            return "error/500";
         }
     }
 

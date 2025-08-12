@@ -2,11 +2,13 @@ package com.coursemanagement.repository;
 
 import com.coursemanagement.entity.Quiz;
 import com.coursemanagement.entity.Course;
+import com.coursemanagement.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -50,173 +52,205 @@ public interface QuizRepository extends JpaRepository<Quiz, Long> {
      * @param keyword Từ khóa tìm kiếm
      * @return Danh sách bài kiểm tra chứa từ khóa
      */
-    @Query("SELECT q FROM Quiz q WHERE q.course = :course AND q.isActive = true " +
-            "AND LOWER(q.title) LIKE LOWER(CONCAT('%', :keyword, '%')) ORDER BY q.createdAt ASC")
-    List<Quiz> findByCourseAndTitleContaining(@Param("course") Course course,
-                                              @Param("keyword") String keyword);
+    @Query("SELECT q FROM Quiz q WHERE q.course = :course " +
+            "AND LOWER(q.title) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+            "ORDER BY q.createdAt ASC")
+    List<Quiz> findByCourseAndTitleContainingIgnoreCase(@Param("course") Course course,
+                                                        @Param("keyword") String keyword);
 
     /**
-     * Đếm số bài kiểm tra trong khóa học
+     * Tìm quiz theo giảng viên
+     * @param instructor Giảng viên
+     * @return Danh sách quiz
+     */
+    @Query("SELECT q FROM Quiz q WHERE q.course.instructor = :instructor " +
+            "ORDER BY q.createdAt DESC")
+    List<Quiz> findQuizzesByInstructor(@Param("instructor") User instructor);
+
+    /**
+     * Đếm số quiz theo giảng viên
+     * @param instructor Giảng viên
+     * @return Số lượng quiz
+     */
+    @Query("SELECT COUNT(q) FROM Quiz q WHERE q.course.instructor = :instructor")
+    long countQuizzesByInstructor(@Param("instructor") User instructor);
+
+    /**
+     * Tìm quiz đang hoạt động theo giảng viên
+     * @param instructor Giảng viên
+     * @return Danh sách quiz đang hoạt động
+     */
+    @Query("SELECT q FROM Quiz q WHERE q.course.instructor = :instructor AND q.isActive = true " +
+            "ORDER BY q.createdAt DESC")
+    List<Quiz> findActiveQuizzesByInstructor(@Param("instructor") User instructor);
+
+    /**
+     * Đếm số quiz theo khóa học
      * @param course Khóa học
-     * @return Số lượng bài kiểm tra
+     * @return Số lượng quiz
      */
     long countByCourse(Course course);
 
     /**
-     * Đếm số bài kiểm tra đang hoạt động trong khóa học
+     * Đếm số quiz đang hoạt động theo khóa học
      * @param course Khóa học
      * @param isActive Trạng thái hoạt động
-     * @return Số lượng bài kiểm tra đang hoạt động
+     * @return Số lượng quiz đang hoạt động
      */
     long countByCourseAndIsActive(Course course, boolean isActive);
 
     /**
-     * Tìm bài kiểm tra có thể làm được (đang hoạt động và có câu hỏi)
-     * @param course Khóa học
-     * @return Danh sách bài kiểm tra có thể làm
-     */
-    @Query("SELECT q FROM Quiz q WHERE q.course = :course AND q.isActive = true " +
-            "AND EXISTS (SELECT 1 FROM Question qu WHERE qu.quiz = q) " +
-            "ORDER BY q.createdAt ASC")
-    List<Quiz> findAvailableQuizzesByCourse(@Param("course") Course course);
-
-    /**
-     * Tìm bài kiểm tra chưa có câu hỏi
-     * @param course Khóa học
-     * @return Danh sách bài kiểm tra chưa có câu hỏi
-     */
-    @Query("SELECT q FROM Quiz q WHERE q.course = :course " +
-            "AND NOT EXISTS (SELECT 1 FROM Question qu WHERE qu.quiz = q) " +
-            "ORDER BY q.createdAt ASC")
-    List<Quiz> findQuizzesWithoutQuestions(@Param("course") Course course);
-
-    /**
-     * Tìm bài kiểm tra theo khoảng thời gian làm bài
-     * @param course Khóa học
+     * Tìm quiz có thời gian làm bài trong khoảng
      * @param minDuration Thời gian tối thiểu (phút)
      * @param maxDuration Thời gian tối đa (phút)
-     * @return Danh sách bài kiểm tra trong khoảng thời gian
+     * @return Danh sách quiz trong khoảng thời gian
      */
-    @Query("SELECT q FROM Quiz q WHERE q.course = :course AND q.isActive = true " +
-            "AND q.duration BETWEEN :minDuration AND :maxDuration ORDER BY q.duration ASC")
-    List<Quiz> findByCourseAndDurationBetween(@Param("course") Course course,
-                                              @Param("minDuration") Integer minDuration,
-                                              @Param("maxDuration") Integer maxDuration);
+    @Query("SELECT q FROM Quiz q WHERE q.duration BETWEEN :minDuration AND :maxDuration " +
+            "AND q.isActive = true ORDER BY q.duration ASC")
+    List<Quiz> findQuizzesByDurationRange(@Param("minDuration") Integer minDuration,
+                                          @Param("maxDuration") Integer maxDuration);
 
     /**
-     * Lấy bài kiểm tra có nhiều câu hỏi nhất trong khóa học
-     * @param course Khóa học
-     * @return Optional<Quiz> - bài kiểm tra có nhiều câu hỏi nhất
+     * Tìm quiz có điểm đạt trong khoảng
+     * @param minPassScore Điểm đạt tối thiểu
+     * @param maxPassScore Điểm đạt tối đa
+     * @return Danh sách quiz trong khoảng điểm đạt
      */
-    @Query("SELECT q FROM Quiz q LEFT JOIN q.questions qu WHERE q.course = :course AND q.isActive = true " +
-            "GROUP BY q.id ORDER BY COUNT(qu) DESC LIMIT 1")
-    Optional<Quiz> findQuizWithMostQuestionsByCourse(@Param("course") Course course);
+    @Query("SELECT q FROM Quiz q WHERE q.passScore BETWEEN :minPassScore AND :maxPassScore " +
+            "AND q.isActive = true ORDER BY q.passScore ASC")
+    List<Quiz> findQuizzesByPassScoreRange(@Param("minPassScore") Double minPassScore,
+                                           @Param("maxPassScore") Double maxPassScore);
 
     /**
-     * Lấy bài kiểm tra có ít câu hỏi nhất trong khóa học
-     * @param course Khóa học
-     * @return Optional<Quiz> - bài kiểm tra có ít câu hỏi nhất
+     * Tìm quiz được tạo gần đây nhất
+     * @param limit Số lượng quiz cần lấy
+     * @return Danh sách quiz mới nhất
      */
-    @Query("SELECT q FROM Quiz q LEFT JOIN q.questions qu WHERE q.course = :course AND q.isActive = true " +
-            "GROUP BY q.id ORDER BY COUNT(qu) ASC LIMIT 1")
-    Optional<Quiz> findQuizWithLeastQuestionsByCourse(@Param("course") Course course);
+    @Query("SELECT q FROM Quiz q WHERE q.isActive = true " +
+            "ORDER BY q.createdAt DESC LIMIT :limit")
+    List<Quiz> findRecentQuizzes(@Param("limit") int limit);
 
     /**
-     * Tìm bài kiểm tra theo điểm pass
-     * @param course Khóa học
-     * @param minPassScore Điểm pass tối thiểu
-     * @return Danh sách bài kiểm tra có điểm pass >= minPassScore
+     * Tìm quiz có nhiều câu hỏi nhất
+     * @param limit Số lượng quiz cần lấy
+     * @return Danh sách quiz có nhiều câu hỏi
      */
-    @Query("SELECT q FROM Quiz q WHERE q.course = :course AND q.isActive = true " +
-            "AND q.passScore >= :minPassScore ORDER BY q.passScore ASC")
-    List<Quiz> findByCourseAndPassScoreGreaterThanEqual(@Param("course") Course course,
-                                                        @Param("minPassScore") Double minPassScore);
+    @Query("SELECT q FROM Quiz q " +
+            "LEFT JOIN q.questions qu " +
+            "WHERE q.isActive = true " +
+            "GROUP BY q " +
+            "ORDER BY COUNT(qu) DESC " +
+            "LIMIT :limit")
+    List<Quiz> findQuizzesWithMostQuestions(@Param("limit") int limit);
 
     /**
-     * Lấy thống kê số lượng câu hỏi cho mỗi bài kiểm tra
-     * @param course Khóa học
-     * @return Danh sách Object[] với format: [Quiz, Long questionCount]
+     * Tìm quiz có nhiều lần làm bài nhất
+     * @param limit Số lượng quiz cần lấy
+     * @return Danh sách quiz phổ biến nhất
      */
-    @Query("SELECT q, COUNT(qu) as questionCount FROM Quiz q LEFT JOIN q.questions qu " +
-            "WHERE q.course = :course GROUP BY q.id ORDER BY questionCount DESC")
-    List<Object[]> getQuizQuestionStatistics(@Param("course") Course course);
+    @Query("SELECT q FROM Quiz q " +
+            "LEFT JOIN q.quizResults qr " +
+            "WHERE q.isActive = true " +
+            "GROUP BY q " +
+            "ORDER BY COUNT(qr) DESC " +
+            "LIMIT :limit")
+    List<Quiz> findMostAttemptedQuizzes(@Param("limit") int limit);
 
     /**
-     * Lấy thống kê số lượng học viên đã làm bài cho mỗi bài kiểm tra
-     * @param course Khóa học
-     * @return Danh sách Object[] với format: [Quiz, Long attemptCount]
+     * Tìm quiz theo khoảng thời gian tạo
+     * @param startDate Ngày bắt đầu
+     * @param endDate Ngày kết thúc
+     * @return Danh sách quiz trong khoảng thời gian
      */
-    @Query("SELECT q, COUNT(qr) as attemptCount FROM Quiz q LEFT JOIN q.quizResults qr " +
-            "WHERE q.course = :course GROUP BY q.id ORDER BY attemptCount DESC")
-    List<Object[]> getQuizAttemptStatistics(@Param("course") Course course);
+    @Query("SELECT q FROM Quiz q WHERE q.createdAt BETWEEN :startDate AND :endDate " +
+            "ORDER BY q.createdAt DESC")
+    List<Quiz> findQuizzesByDateRange(@Param("startDate") LocalDateTime startDate,
+                                      @Param("endDate") LocalDateTime endDate);
 
     /**
-     * Tìm bài kiểm tra có điểm trung bình cao nhất
-     * @param course Khóa học
-     * @return Danh sách bài kiểm tra sắp xếp theo điểm trung bình
+     * Tìm quiz theo danh mục khóa học
+     * @param categoryId ID danh mục
+     * @return Danh sách quiz theo danh mục
      */
-    @Query("SELECT q FROM Quiz q LEFT JOIN q.quizResults qr WHERE q.course = :course AND q.isActive = true " +
-            "GROUP BY q.id HAVING COUNT(qr) > 0 ORDER BY AVG(qr.score) DESC")
-    List<Quiz> findQuizzesOrderByAverageScore(@Param("course") Course course);
+    @Query("SELECT q FROM Quiz q WHERE q.course.category.id = :categoryId " +
+            "AND q.isActive = true ORDER BY q.createdAt DESC")
+    List<Quiz> findQuizzesByCategoryId(@Param("categoryId") Long categoryId);
 
     /**
-     * Tìm bài kiểm tra có tỷ lệ đạt cao nhất
-     * @param course Khóa học
-     * @return Danh sách bài kiểm tra sắp xếp theo tỷ lệ đạt
+     * Đếm số quiz theo danh mục
+     * @param categoryId ID danh mục
+     * @return Số lượng quiz
      */
-    @Query("SELECT q FROM Quiz q LEFT JOIN q.quizResults qr WHERE q.course = :course AND q.isActive = true " +
-            "GROUP BY q.id HAVING COUNT(qr) > 0 " +
-            "ORDER BY (COUNT(CASE WHEN qr.isPassed = true THEN 1 END) * 100.0 / COUNT(qr)) DESC")
-    List<Quiz> findQuizzesOrderByPassRate(@Param("course") Course course);
+    @Query("SELECT COUNT(q) FROM Quiz q WHERE q.course.category.id = :categoryId")
+    long countQuizzesByCategoryId(@Param("categoryId") Long categoryId);
 
     /**
-     * Kiểm tra học viên đã làm bài kiểm tra chưa
-     * @param quizId ID bài kiểm tra
-     * @param studentId ID học viên
-     * @return true nếu đã làm, false nếu chưa làm
+     * Tính điểm trung bình của tất cả quiz
+     * @return Điểm trung bình
      */
-    @Query("SELECT CASE WHEN COUNT(qr) > 0 THEN true ELSE false END FROM QuizResult qr " +
-            "WHERE qr.quiz.id = :quizId AND qr.student.id = :studentId")
-    boolean hasStudentTakenQuiz(@Param("quizId") Long quizId, @Param("studentId") Long studentId);
+    @Query("SELECT AVG(qr.score) FROM Quiz q " +
+            "LEFT JOIN q.quizResults qr " +
+            "WHERE qr.score IS NOT NULL")
+    Double calculateAverageScore();
 
     /**
-     * Tìm bài kiểm tra học viên chưa làm trong khóa học
-     * @param course Khóa học
-     * @param studentId ID học viên
-     * @return Danh sách bài kiểm tra chưa làm
+     * Tính điểm trung bình của quiz
+     * @param quiz Quiz
+     * @return Điểm trung bình của quiz
      */
-    @Query("SELECT q FROM Quiz q WHERE q.course = :course AND q.isActive = true " +
-            "AND NOT EXISTS (SELECT 1 FROM QuizResult qr WHERE qr.quiz = q AND qr.student.id = :studentId) " +
-            "AND EXISTS (SELECT 1 FROM Question qu WHERE qu.quiz = q) " +
-            "ORDER BY q.createdAt ASC")
-    List<Quiz> findAvailableQuizzesForStudent(@Param("course") Course course,
-                                              @Param("studentId") Long studentId);
+    @Query("SELECT AVG(qr.score) FROM QuizResult qr WHERE qr.quiz = :quiz")
+    Double calculateAverageScoreByQuiz(@Param("quiz") Quiz quiz);
 
     /**
-     * Tìm bài kiểm tra học viên đã làm trong khóa học
-     * @param course Khóa học
-     * @param studentId ID học viên
-     * @return Danh sách bài kiểm tra đã làm
+     * Tìm quiz có tỷ lệ đạt cao nhất
+     * @param limit Số lượng quiz cần lấy
+     * @return Danh sách quiz có tỷ lệ đạt cao
      */
-    @Query("SELECT q FROM Quiz q WHERE q.course = :course " +
-            "AND EXISTS (SELECT 1 FROM QuizResult qr WHERE qr.quiz = q AND qr.student.id = :studentId) " +
-            "ORDER BY q.createdAt ASC")
-    List<Quiz> findCompletedQuizzesForStudent(@Param("course") Course course,
-                                              @Param("studentId") Long studentId);
+    @Query("SELECT q FROM Quiz q " +
+            "LEFT JOIN q.quizResults qr " +
+            "WHERE q.isActive = true " +
+            "GROUP BY q " +
+            "HAVING COUNT(qr) > 0 " +
+            "ORDER BY " +
+            "(CAST(SUM(CASE WHEN qr.isPassed = true THEN 1 ELSE 0 END) AS DOUBLE) / COUNT(qr)) DESC " +
+            "LIMIT :limit")
+    List<Quiz> findQuizzesWithHighestPassRate(@Param("limit") int limit);
 
     /**
-     * Lấy thời gian làm bài trung bình của bài kiểm tra
-     * @param quiz Bài kiểm tra
-     * @return Thời gian trung bình (giây)
+     * Lấy số lượng quiz được tạo trong tháng hiện tại
+     * @return Số lượng quiz mới
      */
-    @Query("SELECT AVG(qr.timeTaken) FROM QuizResult qr WHERE qr.quiz = :quiz AND qr.timeTaken IS NOT NULL")
-    Double getAverageTimeTaken(@Param("quiz") Quiz quiz);
+    @Query("SELECT COUNT(q) FROM Quiz q WHERE " +
+            "YEAR(q.createdAt) = YEAR(CURRENT_DATE) AND " +
+            "MONTH(q.createdAt) = MONTH(CURRENT_DATE)")
+    long countQuizzesCreatedThisMonth();
 
     /**
-     * Đếm số bài kiểm tra theo khoảng thời gian
-     * @param minDuration Thời gian tối thiểu
-     * @param maxDuration Thời gian tối đa
-     * @return Số lượng bài kiểm tra
+     * Tìm quiz không có câu hỏi nào
+     * @return Danh sách quiz rỗng
      */
-    long countByDurationBetween(Integer minDuration, Integer maxDuration);
+    @Query("SELECT q FROM Quiz q " +
+            "WHERE q.id NOT IN (SELECT DISTINCT qu.quiz.id FROM Question qu) " +
+            "ORDER BY q.createdAt DESC")
+    List<Quiz> findEmptyQuizzes();
+
+    /**
+     * Lấy thống kê quiz theo tháng
+     * @param year Năm cần thống kê
+     * @return Danh sách [Month, QuizCount]
+     */
+    @Query("SELECT MONTH(q.createdAt), COUNT(q) FROM Quiz q " +
+            "WHERE YEAR(q.createdAt) = :year " +
+            "GROUP BY MONTH(q.createdAt) " +
+            "ORDER BY MONTH(q.createdAt)")
+    List<Object[]> getQuizStatisticsByMonth(@Param("year") int year);
+
+    /**
+     * Tìm quiz theo mô tả có chứa từ khóa
+     * @param keyword Từ khóa tìm kiếm
+     * @return Danh sách quiz có mô tả chứa từ khóa
+     */
+    @Query("SELECT q FROM Quiz q WHERE LOWER(q.description) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+            "AND q.isActive = true ORDER BY q.title ASC")
+    List<Quiz> findQuizzesByDescriptionContaining(@Param("keyword") String keyword);
 }

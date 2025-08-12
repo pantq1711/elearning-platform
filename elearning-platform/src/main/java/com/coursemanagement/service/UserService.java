@@ -10,12 +10,13 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
 /**
  * Service class để xử lý business logic liên quan đến User
- * Implement UserDetailsService để tích hợp với Spring Security
+ * Triển khai UserDetailsService để tích hợp với Spring Security
  */
 @Service
 @Transactional
@@ -28,27 +29,33 @@ public class UserService implements UserDetailsService {
     private PasswordEncoder passwordEncoder;
 
     /**
-     * Load user để đăng nhập (implement từ UserDetailsService)
+     * Load user cho Spring Security authentication
      * @param username Tên đăng nhập
-     * @return UserDetails cho Spring Security
+     * @return UserDetails object
      * @throws UsernameNotFoundException Nếu không tìm thấy user
      */
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        // Tìm user theo username và phải đang hoạt động
-        User user = userRepository.findByUsernameAndIsActive(username, true)
-                .orElseThrow(() -> new UsernameNotFoundException("Không tìm thấy user: " + username));
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("Không tìm thấy người dùng: " + username));
 
-        return user; // User entity đã implement UserDetails
+        // Cập nhật thời gian đăng nhập cuối
+        user.updateLastLogin();
+        userRepository.save(user);
+
+        return user;
     }
 
     /**
      * Tạo user mới
      * @param user User cần tạo
      * @return User đã được tạo
-     * @throws RuntimeException Nếu username hoặc email đã tồn tại
+     * @throws RuntimeException Nếu có lỗi validation
      */
     public User createUser(User user) {
+        // Validate thông tin user
+        validateUser(user, true);
+
         // Kiểm tra username đã tồn tại chưa
         if (userRepository.existsByUsername(user.getUsername())) {
             throw new RuntimeException("Tên đăng nhập đã tồn tại: " + user.getUsername());
@@ -59,7 +66,7 @@ public class UserService implements UserDetailsService {
             throw new RuntimeException("Email đã tồn tại: " + user.getEmail());
         }
 
-        // Mã hóa mật khẩu trước khi lưu
+        // Mã hóa mật khẩu
         user.setPassword(passwordEncoder.encode(user.getPassword()));
 
         // Đảm bảo user được kích hoạt
@@ -78,43 +85,98 @@ public class UserService implements UserDetailsService {
     public User updateUser(Long id, User updatedUser) {
         // Tìm user hiện tại
         User existingUser = userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy user với ID: " + id));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng với ID: " + id));
 
-        // Kiểm tra username trùng lặp (loại trừ user hiện tại)
-        List<User> duplicateUsers = userRepository.findDuplicateUsernameOrEmail(
-                updatedUser.getUsername(),
-                updatedUser.getEmail(),
-                id
-        );
+        // Validate thông tin user mới (không cần validate password nếu không đổi)
+        validateUser(updatedUser, false);
 
-        if (!duplicateUsers.isEmpty()) {
-            throw new RuntimeException("Username hoặc email đã tồn tại");
+        // Kiểm tra username trùng lặp (loại trừ chính nó)
+        Optional<User> duplicateUsername = userRepository.findByUsername(updatedUser.getUsername());
+        if (duplicateUsername.isPresent() && !duplicateUsername.get().getId().equals(id)) {
+            throw new RuntimeException("Tên đăng nhập đã tồn tại: " + updatedUser.getUsername());
         }
 
-        // Cập nhật thông tin
+        // Kiểm tra email trùng lặp (loại trừ chính nó)
+        Optional<User> duplicateEmail = userRepository.findByEmail(updatedUser.getEmail());
+        if (duplicateEmail.isPresent() && !duplicateEmail.get().getId().equals(id)) {
+            throw new RuntimeException("Email đã tồn tại: " + updatedUser.getEmail());
+        }
+
+        // Cập nhật thông tin (không cập nhật password ở đây)
         existingUser.setUsername(updatedUser.getUsername());
         existingUser.setEmail(updatedUser.getEmail());
+        existingUser.setFullName(updatedUser.getFullName());
         existingUser.setRole(updatedUser.getRole());
         existingUser.setActive(updatedUser.isActive());
-
-        // Chỉ cập nhật password nếu có password mới
-        if (updatedUser.getPassword() != null && !updatedUser.getPassword().trim().isEmpty()) {
-            existingUser.setPassword(passwordEncoder.encode(updatedUser.getPassword()));
-        }
 
         return userRepository.save(existingUser);
     }
 
     /**
-     * Xóa user
+     * Đổi mật khẩu cho user
+     * @param userId ID của user
+     * @param oldPassword Mật khẩu cũ
+     * @param newPassword Mật khẩu mới
+     * @throws RuntimeException Nếu mật khẩu cũ không đúng hoặc validation fail
+     */
+    public void changePassword(Long userId, String oldPassword, String newPassword) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng với ID: " + userId));
+
+        // Kiểm tra mật khẩu cũ
+        if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
+            throw new RuntimeException("Mật khẩu cũ không chính xác");
+        }
+
+        // Validate mật khẩu mới
+        validatePassword(newPassword);
+
+        // Cập nhật mật khẩu mới
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+    }
+
+    /**
+     * Reset mật khẩu cho user (dành cho admin)
+     * @param userId ID của user
+     * @param newPassword Mật khẩu mới
+     */
+    public void resetPassword(Long userId, String newPassword) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng với ID: " + userId));
+
+        // Validate mật khẩu mới
+        validatePassword(newPassword);
+
+        // Cập nhật mật khẩu mới
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+    }
+
+    /**
+     * Xóa user (soft delete - chuyển trạng thái thành inactive)
      * @param id ID của user cần xóa
      * @throws RuntimeException Nếu không tìm thấy user
      */
     public void deleteUser(Long id) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy user với ID: " + id));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng với ID: " + id));
 
-        userRepository.delete(user);
+        // Soft delete - chuyển trạng thái thành inactive thay vì xóa hẳn
+        user.setActive(false);
+        userRepository.save(user);
+    }
+
+    /**
+     * Khôi phục user (kích hoạt lại)
+     * @param id ID của user cần khôi phục
+     */
+    public void restoreUser(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng với ID: " + id));
+
+        user.setActive(true);
+        userRepository.save(user);
     }
 
     /**
@@ -132,7 +194,10 @@ public class UserService implements UserDetailsService {
      * @return Optional<User>
      */
     public Optional<User> findByUsername(String username) {
-        return userRepository.findByUsername(username);
+        if (username == null || username.trim().isEmpty()) {
+            return Optional.empty();
+        }
+        return userRepository.findByUsername(username.trim());
     }
 
     /**
@@ -141,11 +206,14 @@ public class UserService implements UserDetailsService {
      * @return Optional<User>
      */
     public Optional<User> findByEmail(String email) {
-        return userRepository.findByEmail(email);
+        if (email == null || email.trim().isEmpty()) {
+            return Optional.empty();
+        }
+        return userRepository.findByEmail(email.trim());
     }
 
     /**
-     * Lấy tất cả user
+     * Tìm tất cả user
      * @return Danh sách tất cả user
      */
     public List<User> findAll() {
@@ -153,37 +221,35 @@ public class UserService implements UserDetailsService {
     }
 
     /**
-     * Lấy user theo role
+     * Tìm user theo vai trò
      * @param role Vai trò
      * @return Danh sách user có vai trò đó
      */
     public List<User> findByRole(User.Role role) {
+        if (role == null) {
+            throw new RuntimeException("Vai trò không hợp lệ");
+        }
         return userRepository.findByRole(role);
     }
 
     /**
-     * Lấy user đang hoạt động theo role
+     * Tìm user đang hoạt động theo vai trò
      * @param role Vai trò
      * @return Danh sách user đang hoạt động có vai trò đó
      */
-    public List<User> findActiveUsersByRole(User.Role role) {
+    public List<User> findActiveByRole(User.Role role) {
+        if (role == null) {
+            throw new RuntimeException("Vai trò không hợp lệ");
+        }
         return userRepository.findByRoleAndIsActive(role, true);
     }
 
     /**
-     * Lấy tất cả giảng viên đang hoạt động
-     * @return Danh sách giảng viên đang hoạt động
+     * Tìm user đang hoạt động
+     * @return Danh sách user đang hoạt động
      */
-    public List<User> findActiveInstructors() {
-        return userRepository.findActiveInstructors();
-    }
-
-    /**
-     * Lấy tất cả học viên đang hoạt động
-     * @return Danh sách học viên đang hoạt động
-     */
-    public List<User> findActiveStudents() {
-        return userRepository.findActiveStudents();
+    public List<User> findActiveUsers() {
+        return userRepository.findByIsActive(true);
     }
 
     /**
@@ -193,156 +259,143 @@ public class UserService implements UserDetailsService {
      */
     public List<User> searchUsers(String keyword) {
         if (keyword == null || keyword.trim().isEmpty()) {
-            return userRepository.findAll();
+            return findAll();
         }
-        return userRepository.findByUsernameOrEmailContaining(keyword.trim());
-    }
-
-    /**
-     * Đổi mật khẩu user
-     * @param userId ID của user
-     * @param currentPassword Mật khẩu hiện tại
-     * @param newPassword Mật khẩu mới
-     * @throws RuntimeException Nếu mật khẩu hiện tại không đúng
-     */
-    public void changePassword(Long userId, String currentPassword, String newPassword) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy user"));
-
-        // Kiểm tra mật khẩu hiện tại
-        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
-            throw new RuntimeException("Mật khẩu hiện tại không đúng");
-        }
-
-        // Cập nhật mật khẩu mới
-        user.setPassword(passwordEncoder.encode(newPassword));
-        userRepository.save(user);
-    }
-
-    /**
-     * Reset mật khẩu user (chỉ admin)
-     * @param userId ID của user
-     * @param newPassword Mật khẩu mới
-     */
-    public void resetPassword(Long userId, String newPassword) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy user"));
-
-        user.setPassword(passwordEncoder.encode(newPassword));
-        userRepository.save(user);
-    }
-
-    /**
-     * Kích hoạt/vô hiệu hóa tài khoản user
-     * @param userId ID của user
-     * @param isActive Trạng thái kích hoạt
-     */
-    public void toggleUserStatus(Long userId, boolean isActive) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy user"));
-
-        user.setActive(isActive);
-        userRepository.save(user);
-    }
-
-    /**
-     * Kiểm tra username có tồn tại không
-     * @param username Tên đăng nhập
-     * @return true nếu tồn tại, false nếu không
-     */
-    public boolean existsByUsername(String username) {
-        return userRepository.existsByUsername(username);
-    }
-
-    /**
-     * Kiểm tra email có tồn tại không
-     * @param email Email
-     * @return true nếu tồn tại, false nếu không
-     */
-    public boolean existsByEmail(String email) {
-        return userRepository.existsByEmail(email);
-    }
-
-    /**
-     * Đếm số lượng user theo role
-     * @param role Vai trò
-     * @return Số lượng user
-     */
-    public long countByRole(User.Role role) {
-        return userRepository.countByRole(role);
-    }
-
-    /**
-     * Đếm số lượng user đang hoạt động
-     * @return Số lượng user đang hoạt động
-     */
-    public long countActiveUsers() {
-        return userRepository.countByIsActive(true);
+        return userRepository.findByUsernameContainingIgnoreCaseOrEmailContainingIgnoreCase(keyword.trim());
     }
 
     /**
      * Đếm tổng số user
-     * @return Tổng số user
+     * @return Số lượng user
      */
     public long countAllUsers() {
         return userRepository.count();
     }
 
     /**
-     * Lấy user mới đăng ký gần đây
-     * @param limit Số lượng user cần lấy
-     * @return Danh sách user mới nhất
+     * Đếm số user theo vai trò
+     * @param role Vai trò
+     * @return Số lượng user
      */
-    public List<User> getRecentUsers(int limit) {
-        return userRepository.findTopNewestUsers(limit);
+    public long countByRole(User.Role role) {
+        if (role == null) {
+            return 0;
+        }
+        return userRepository.countByRole(role);
     }
 
     /**
-     * Validate thông tin user trước khi tạo/cập nhật
-     * @param user User cần validate
-     * @param isUpdate Có phải là update không (true) hay tạo mới (false)
-     * @throws RuntimeException Nếu có lỗi validation
+     * Lấy user mới đăng ký gần đây
+     * @param limit Số lượng user cần lấy
+     * @return Danh sách user mới
      */
-    public void validateUser(User user, boolean isUpdate) {
-        // Kiểm tra username
-        if (user.getUsername() == null || user.getUsername().trim().length() < 3) {
+    public List<User> getRecentUsers(int limit) {
+        return userRepository.findTopByOrderByCreatedAtDesc(limit);
+    }
+
+    /**
+     * Kiểm tra username có tồn tại không
+     * @param username Tên đăng nhập
+     * @return true nếu tồn tại, false nếu không tồn tại
+     */
+    public boolean existsByUsername(String username) {
+        if (username == null || username.trim().isEmpty()) {
+            return false;
+        }
+        return userRepository.existsByUsername(username.trim());
+    }
+
+    /**
+     * Kiểm tra email có tồn tại không
+     * @param email Email
+     * @return true nếu tồn tại, false nếu không tồn tại
+     */
+    public boolean existsByEmail(String email) {
+        if (email == null || email.trim().isEmpty()) {
+            return false;
+        }
+        return userRepository.existsByEmail(email.trim());
+    }
+
+    /**
+     * Validate thông tin user
+     * @param user User cần validate
+     * @param isCreation true nếu đang tạo mới, false nếu đang cập nhật
+     * @throws RuntimeException Nếu validation fail
+     */
+    private void validateUser(User user, boolean isCreation) {
+        if (user == null) {
+            throw new RuntimeException("Thông tin người dùng không được để trống");
+        }
+
+        // Validate username
+        if (user.getUsername() == null || user.getUsername().trim().isEmpty()) {
+            throw new RuntimeException("Tên đăng nhập không được để trống");
+        }
+
+        String username = user.getUsername().trim();
+        if (username.length() < 3) {
             throw new RuntimeException("Tên đăng nhập phải có ít nhất 3 ký tự");
         }
 
-        // Kiểm tra email
-        if (user.getEmail() == null || !user.getEmail().contains("@")) {
+        if (username.length() > 50) {
+            throw new RuntimeException("Tên đăng nhập không được vượt quá 50 ký tự");
+        }
+
+        if (!username.matches("^[a-zA-Z0-9_]+$")) {
+            throw new RuntimeException("Tên đăng nhập chỉ được chứa chữ cái, số và dấu gạch dưới");
+        }
+
+        // Validate email
+        if (user.getEmail() == null || user.getEmail().trim().isEmpty()) {
+            throw new RuntimeException("Email không được để trống");
+        }
+
+        String email = user.getEmail().trim();
+        if (!email.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")) {
             throw new RuntimeException("Email không hợp lệ");
         }
 
-        // Kiểm tra password (chỉ khi tạo mới hoặc có thay đổi password)
-        if (!isUpdate && (user.getPassword() == null || user.getPassword().length() < 6)) {
-            throw new RuntimeException("Mật khẩu phải có ít nhất 6 ký tự");
+        // Validate password (chỉ khi tạo mới)
+        if (isCreation) {
+            validatePassword(user.getPassword());
         }
 
-        // Kiểm tra role
+        // Validate role
         if (user.getRole() == null) {
-            throw new RuntimeException("Phải chọn vai trò cho người dùng");
+            throw new RuntimeException("Vai trò không được để trống");
+        }
+
+        // Validate full name nếu có
+        if (user.getFullName() != null && !user.getFullName().trim().isEmpty()) {
+            String fullName = user.getFullName().trim();
+            if (fullName.length() > 100) {
+                throw new RuntimeException("Họ tên không được vượt quá 100 ký tự");
+            }
         }
     }
 
     /**
-     * Tạo user admin mặc định nếu chưa có
-     * Gọi khi khởi động ứng dụng
+     * Validate mật khẩu
+     * @param password Mật khẩu cần validate
+     * @throws RuntimeException Nếu validation fail
      */
-    public void createDefaultAdminIfNotExists() {
-        // Kiểm tra đã có admin chưa
-        List<User> admins = userRepository.findByRole(User.Role.ADMIN);
+    private void validatePassword(String password) {
+        if (password == null || password.trim().isEmpty()) {
+            throw new RuntimeException("Mật khẩu không được để trống");
+        }
 
-        if (admins.isEmpty()) {
-            User admin = new User();
-            admin.setUsername("admin");
-            admin.setPassword("admin123"); // Sẽ được mã hóa trong createUser()
-            admin.setEmail("admin@coursemanagement.com");
-            admin.setRole(User.Role.ADMIN);
-            admin.setActive(true);
+        if (password.length() < 6) {
+            throw new RuntimeException("Mật khẩu phải có ít nhất 6 ký tự");
+        }
 
-            createUser(admin);
-            System.out.println("Đã tạo tài khoản admin mặc định: admin/admin123");
+        if (password.length() > 100) {
+            throw new RuntimeException("Mật khẩu không được vượt quá 100 ký tự");
+        }
+
+        // Kiểm tra mật khẩu có chứa ít nhất một chữ cái và một số
+        if (!password.matches(".*[a-zA-Z].*") || !password.matches(".*\\d.*")) {
+            throw new RuntimeException("Mật khẩu phải chứa ít nhất một chữ cái và một số");
         }
     }
 }

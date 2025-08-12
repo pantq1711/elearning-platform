@@ -28,6 +28,14 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
     Optional<Enrollment> findByStudentAndCourse(User student, Course course);
 
     /**
+     * Kiểm tra học viên đã đăng ký khóa học chưa
+     * @param student Học viên
+     * @param course Khóa học
+     * @return true nếu đã đăng ký, false nếu chưa
+     */
+    boolean existsByStudentAndCourse(User student, Course course);
+
+    /**
      * Tìm tất cả đăng ký của học viên
      * @param student Học viên
      * @return Danh sách đăng ký sắp xếp theo ngày đăng ký mới nhất
@@ -61,170 +69,186 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
     List<Enrollment> findActiveEnrollmentsByStudent(@Param("student") User student);
 
     /**
-     * Tìm đăng ký đã hoàn thành của học viên
-     * @param student Học viên
-     * @return Danh sách đăng ký đã hoàn thành
-     */
-    @Query("SELECT e FROM Enrollment e WHERE e.student = :student AND e.isCompleted = true " +
-            "ORDER BY e.completedAt DESC")
-    List<Enrollment> findCompletedEnrollmentsByStudent(@Param("student") User student);
-
-    /**
-     * Kiểm tra học viên đã đăng ký khóa học chưa
-     * @param student Học viên
+     * Đếm số enrollment theo khóa học
      * @param course Khóa học
-     * @return true nếu đã đăng ký, false nếu chưa đăng ký
-     */
-    boolean existsByStudentAndCourse(User student, Course course);
-
-    /**
-     * Đếm số học viên đã đăng ký khóa học
-     * @param course Khóa học
-     * @return Số lượng học viên đăng ký
+     * @return Số lượng enrollment
      */
     long countByCourse(Course course);
 
     /**
-     * Đếm số khóa học học viên đã đăng ký
+     * Đếm số enrollment theo học viên
      * @param student Học viên
-     * @return Số lượng khóa học đã đăng ký
+     * @return Số lượng enrollment
      */
     long countByStudent(User student);
 
     /**
-     * Đếm số khóa học học viên đã hoàn thành
+     * Đếm số enrollment theo học viên và trạng thái hoàn thành
      * @param student Học viên
-     * @return Số lượng khóa học đã hoàn thành
+     * @param isCompleted Trạng thái hoàn thành
+     * @return Số lượng enrollment
      */
     long countByStudentAndIsCompleted(User student, boolean isCompleted);
 
     /**
-     * Tìm học viên đăng ký gần đây nhất của khóa học
-     * @param course Khóa học
-     * @param limit Số lượng học viên cần lấy
-     * @return Danh sách học viên đăng ký gần đây
-     */
-    @Query("SELECT e FROM Enrollment e WHERE e.course = :course " +
-            "ORDER BY e.enrolledAt DESC LIMIT :limit")
-    List<Enrollment> findRecentEnrollmentsByCourse(@Param("course") Course course,
-                                                   @Param("limit") int limit);
-
-    /**
-     * Tìm khóa học phổ biến nhất (có nhiều đăng ký nhất)
-     * @param limit Số lượng khóa học cần lấy
-     * @return Danh sách khóa học phổ biến
-     */
-    @Query("SELECT e.course, COUNT(e) as enrollmentCount FROM Enrollment e " +
-            "GROUP BY e.course ORDER BY enrollmentCount DESC LIMIT :limit")
-    List<Object[]> findMostPopularCourses(@Param("limit") int limit);
-
-    /**
-     * Tìm học viên tích cực nhất (đăng ký nhiều khóa học nhất)
-     * @param limit Số lượng học viên cần lấy
-     * @return Danh sách học viên tích cực
-     */
-    @Query("SELECT e.student, COUNT(e) as enrollmentCount FROM Enrollment e " +
-            "GROUP BY e.student ORDER BY enrollmentCount DESC LIMIT :limit")
-    List<Object[]> findMostActiveStudents(@Param("limit") int limit);
-
-    /**
-     * Tìm đăng ký trong khoảng thời gian
-     * @param startDate Ngày bắt đầu
-     * @param endDate Ngày kết thúc
-     * @return Danh sách đăng ký trong khoảng thời gian
-     */
-    @Query("SELECT e FROM Enrollment e WHERE e.enrolledAt BETWEEN :startDate AND :endDate " +
-            "ORDER BY e.enrolledAt DESC")
-    List<Enrollment> findByEnrolledAtBetween(@Param("startDate") LocalDateTime startDate,
-                                             @Param("endDate") LocalDateTime endDate);
-
-    /**
-     * Đếm số đăng ký trong khoảng thời gian
-     * @param startDate Ngày bắt đầu
-     * @param endDate Ngày kết thúc
-     * @return Số lượng đăng ký
-     */
-    long countByEnrolledAtBetween(LocalDateTime startDate, LocalDateTime endDate);
-
-    /**
-     * Tìm học viên có điểm cao nhất trong khóa học
-     * @param course Khóa học
-     * @return Danh sách đăng ký sắp xếp theo điểm cao nhất
-     */
-    @Query("SELECT e FROM Enrollment e WHERE e.course = :course AND e.highestScore IS NOT NULL " +
-            "ORDER BY e.highestScore DESC")
-    List<Enrollment> findByCourseOrderByHighestScoreDesc(@Param("course") Course course);
-
-    /**
-     * Lấy điểm trung bình của khóa học
-     * @param course Khóa học
-     * @return Điểm trung bình hoặc 0 nếu không có điểm
-     */
-    @Query("SELECT COALESCE(AVG(e.highestScore), 0) FROM Enrollment e " +
-            "WHERE e.course = :course AND e.highestScore IS NOT NULL")
-    Double getAverageScoreByCourse(@Param("course") Course course);
-
-    /**
-     * Tìm đăng ký theo khóa học của giảng viên
+     * Đếm số học viên theo giảng viên
      * @param instructor Giảng viên
-     * @return Danh sách đăng ký của tất cả khóa học do giảng viên tạo
+     * @return Số lượng học viên
      */
-    @Query("SELECT e FROM Enrollment e WHERE e.course.instructor = :instructor " +
-            "ORDER BY e.enrolledAt DESC")
-    List<Enrollment> findByInstructor(@Param("instructor") User instructor);
-
-    /**
-     * Đếm tổng số học viên của giảng viên
-     * @param instructor Giảng viên
-     * @return Tổng số học viên đăng ký khóa học của giảng viên
-     */
-    @Query("SELECT COUNT(e) FROM Enrollment e WHERE e.course.instructor = :instructor")
+    @Query("SELECT COUNT(DISTINCT e.student) FROM Enrollment e WHERE e.course.instructor = :instructor")
     long countStudentsByInstructor(@Param("instructor") User instructor);
 
     /**
-     * Tìm khóa học học viên đã có điểm
+     * Tìm enrollment theo giảng viên
+     * @param instructor Giảng viên
+     * @return Danh sách enrollment
+     */
+    @Query("SELECT e FROM Enrollment e WHERE e.course.instructor = :instructor " +
+            "ORDER BY e.enrolledAt DESC")
+    List<Enrollment> findEnrollmentsByInstructor(@Param("instructor") User instructor);
+
+    /**
+     * Lấy enrollment gần đây nhất
+     * @param limit Số lượng enrollment cần lấy
+     * @return Danh sách enrollment gần đây
+     */
+    @Query("SELECT e FROM Enrollment e ORDER BY e.enrolledAt DESC LIMIT :limit")
+    List<Enrollment> findTopByOrderByEnrolledAtDesc(@Param("limit") int limit);
+
+    /**
+     * Tìm enrollment theo khoảng thời gian đăng ký
+     * @param startDate Ngày bắt đầu
+     * @param endDate Ngày kết thúc
+     * @return Danh sách enrollment trong khoảng thời gian
+     */
+    @Query("SELECT e FROM Enrollment e WHERE e.enrolledAt BETWEEN :startDate AND :endDate " +
+            "ORDER BY e.enrolledAt DESC")
+    List<Enrollment> findEnrollmentsByDateRange(@Param("startDate") LocalDateTime startDate,
+                                                @Param("endDate") LocalDateTime endDate);
+
+    /**
+     * Lấy enrollment đã hoàn thành gần đây
+     * @param limit Số lượng enrollment cần lấy
+     * @return Danh sách enrollment đã hoàn thành gần đây
+     */
+    @Query("SELECT e FROM Enrollment e WHERE e.isCompleted = true " +
+            "ORDER BY e.completedAt DESC LIMIT :limit")
+    List<Enrollment> findRecentlyCompletedEnrollments(@Param("limit") int limit);
+
+    /**
+     * Tìm enrollment có điểm cao nhất
+     * @param limit Số lượng enrollment cần lấy
+     * @return Danh sách enrollment có điểm cao nhất
+     */
+    @Query("SELECT e FROM Enrollment e WHERE e.highestScore IS NOT NULL " +
+            "ORDER BY e.highestScore DESC LIMIT :limit")
+    List<Enrollment> findTopScoringEnrollments(@Param("limit") int limit);
+
+    /**
+     * Tính điểm trung bình của tất cả enrollment
+     * @return Điểm trung bình
+     */
+    @Query("SELECT AVG(e.highestScore) FROM Enrollment e WHERE e.highestScore IS NOT NULL")
+    Double calculateAverageScore();
+
+    /**
+     * Tính điểm trung bình của học viên
      * @param student Học viên
-     * @return Danh sách đăng ký có điểm
+     * @return Điểm trung bình của học viên
      */
-    @Query("SELECT e FROM Enrollment e WHERE e.student = :student AND e.highestScore IS NOT NULL " +
+    @Query("SELECT AVG(e.highestScore) FROM Enrollment e WHERE e.student = :student " +
+            "AND e.highestScore IS NOT NULL")
+    Double calculateAverageScoreByStudent(@Param("student") User student);
+
+    /**
+     * Tính điểm trung bình của khóa học
+     * @param course Khóa học
+     * @return Điểm trung bình của khóa học
+     */
+    @Query("SELECT AVG(e.highestScore) FROM Enrollment e WHERE e.course = :course " +
+            "AND e.highestScore IS NOT NULL")
+    Double calculateAverageScoreByCourse(@Param("course") Course course);
+
+    /**
+     * Đếm số enrollment đã hoàn thành theo khóa học
+     * @param course Khóa học
+     * @return Số lượng enrollment đã hoàn thành
+     */
+    @Query("SELECT COUNT(e) FROM Enrollment e WHERE e.course = :course AND e.isCompleted = true")
+    long countCompletedEnrollmentsByCourse(@Param("course") Course course);
+
+    /**
+     * Tính tỷ lệ hoàn thành của khóa học
+     * @param course Khóa học
+     * @return Tỷ lệ hoàn thành (0-1)
+     */
+    @Query("SELECT CASE WHEN COUNT(e) > 0 THEN " +
+            "CAST(SUM(CASE WHEN e.isCompleted = true THEN 1 ELSE 0 END) AS DOUBLE) / COUNT(e) " +
+            "ELSE 0 END FROM Enrollment e WHERE e.course = :course")
+    Double calculateCompletionRateByCourse(@Param("course") Course course);
+
+    /**
+     * Tìm enrollment theo khóa học và trạng thái hoàn thành
+     * @param course Khóa học
+     * @param isCompleted Trạng thái hoàn thành
+     * @return Danh sách enrollment
+     */
+    List<Enrollment> findByCourseAndIsCompleted(Course course, boolean isCompleted);
+
+    /**
+     * Lấy số lượng đăng ký mới trong tháng hiện tại
+     * @return Số lượng đăng ký mới
+     */
+    @Query("SELECT COUNT(e) FROM Enrollment e WHERE " +
+            "YEAR(e.enrolledAt) = YEAR(CURRENT_DATE) AND " +
+            "MONTH(e.enrolledAt) = MONTH(CURRENT_DATE)")
+    long countEnrollmentsThisMonth();
+
+    /**
+     * Lấy số lượng hoàn thành trong tháng hiện tại
+     * @return Số lượng hoàn thành mới
+     */
+    @Query("SELECT COUNT(e) FROM Enrollment e WHERE e.isCompleted = true AND " +
+            "YEAR(e.completedAt) = YEAR(CURRENT_DATE) AND " +
+            "MONTH(e.completedAt) = MONTH(CURRENT_DATE)")
+    long countCompletionsThisMonth();
+
+    /**
+     * Tìm enrollment theo danh mục khóa học
+     * @param categoryId ID danh mục
+     * @return Danh sách enrollment theo danh mục
+     */
+    @Query("SELECT e FROM Enrollment e WHERE e.course.category.id = :categoryId " +
+            "ORDER BY e.enrolledAt DESC")
+    List<Enrollment> findEnrollmentsByCategoryId(@Param("categoryId") Long categoryId);
+
+    /**
+     * Đếm số học viên duy nhất theo danh mục
+     * @param categoryId ID danh mục
+     * @return Số lượng học viên duy nhất
+     */
+    @Query("SELECT COUNT(DISTINCT e.student) FROM Enrollment e WHERE e.course.category.id = :categoryId")
+    long countUniqueStudentsByCategoryId(@Param("categoryId") Long categoryId);
+
+    /**
+     * Tìm enrollment có điểm trong khoảng
+     * @param minScore Điểm tối thiểu
+     * @param maxScore Điểm tối đa
+     * @return Danh sách enrollment trong khoảng điểm
+     */
+    @Query("SELECT e FROM Enrollment e WHERE e.highestScore BETWEEN :minScore AND :maxScore " +
             "ORDER BY e.highestScore DESC")
-    List<Enrollment> findByStudentWithScores(@Param("student") User student);
+    List<Enrollment> findEnrollmentsByScoreRange(@Param("minScore") Double minScore,
+                                                 @Param("maxScore") Double maxScore);
 
     /**
-     * Tìm học viên chưa có điểm trong khóa học
-     * @param course Khóa học
-     * @return Danh sách đăng ký chưa có điểm
-     */
-    @Query("SELECT e FROM Enrollment e WHERE e.course = :course AND e.highestScore IS NULL " +
-            "ORDER BY e.enrolledAt ASC")
-    List<Enrollment> findByCourseWithoutScores(@Param("course") Course course);
-
-    /**
-     * Lấy thống kê đăng ký theo tháng
+     * Lấy thống kê enrollment theo tháng
      * @param year Năm cần thống kê
-     * @return Danh sách Object[] với format: [Month, Long enrollmentCount]
+     * @return Danh sách [Month, EnrollmentCount]
      */
-    @Query("SELECT MONTH(e.enrolledAt) as month, COUNT(e) as enrollmentCount " +
-            "FROM Enrollment e WHERE YEAR(e.enrolledAt) = :year " +
-            "GROUP BY MONTH(e.enrolledAt) ORDER BY month")
+    @Query("SELECT MONTH(e.enrolledAt), COUNT(e) FROM Enrollment e " +
+            "WHERE YEAR(e.enrolledAt) = :year " +
+            "GROUP BY MONTH(e.enrolledAt) " +
+            "ORDER BY MONTH(e.enrolledAt)")
     List<Object[]> getEnrollmentStatisticsByMonth(@Param("year") int year);
-
-    /**
-     * Tìm top học viên có điểm trung bình cao nhất
-     * @param limit Số lượng học viên cần lấy
-     * @return Danh sách học viên với điểm trung bình cao nhất
-     */
-    @Query("SELECT e.student, AVG(e.highestScore) as avgScore FROM Enrollment e " +
-            "WHERE e.highestScore IS NOT NULL GROUP BY e.student " +
-            "ORDER BY avgScore DESC LIMIT :limit")
-    List<Object[]> findTopStudentsByAverageScore(@Param("limit") int limit);
-
-    /**
-     * Tính tỷ lệ hoàn thành khóa học
-     * @param course Khóa học
-     * @return Tỷ lệ hoàn thành (0-100)
-     */
-    @Query("SELECT (COUNT(CASE WHEN e.isCompleted = true THEN 1 END) * 100.0 / COUNT(e)) " +
-            "FROM Enrollment e WHERE e.course = :course")
-    Double getCompletionRateByCourse(@Param("course") Course course);
 }

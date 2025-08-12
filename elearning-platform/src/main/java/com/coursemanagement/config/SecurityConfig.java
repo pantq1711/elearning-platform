@@ -10,11 +10,17 @@ import org.springframework.security.config.annotation.authentication.configurati
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
 
 /**
  * Cấu hình bảo mật cho ứng dụng
@@ -45,15 +51,16 @@ public class SecurityConfig {
     @Bean
     public DaoAuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
-        authProvider.setUserDetailsService(userService); // Service load user details
-        authProvider.setPasswordEncoder(passwordEncoder()); // Encoder để so sánh password
+        authProvider.setUserDetailsService(userService); // Sử dụng UserService để load user
+        authProvider.setPasswordEncoder(passwordEncoder()); // Sử dụng BCrypt để verify password
         return authProvider;
     }
 
     /**
-     * Cấu hình Authentication Manager
-     * @param config Authentication configuration
+     * Cấu hình AuthenticationManager
+     * @param config AuthenticationConfiguration
      * @return AuthenticationManager
+     * @throws Exception Nếu có lỗi cấu hình
      */
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
@@ -61,115 +68,139 @@ public class SecurityConfig {
     }
 
     /**
-     * Xử lý sau khi đăng nhập thành công
-     * Chuyển hướng user đến trang phù hợp theo role
+     * Custom Authentication Success Handler
+     * Chuyển hướng user đến trang phù hợp sau khi đăng nhập thành công
      * @return AuthenticationSuccessHandler
      */
     @Bean
-    public AuthenticationSuccessHandler successHandler() {
-        return (request, response, authentication) -> {
-            // Lấy authorities (quyền) của user
-            String redirectURL = "/";
+    public AuthenticationSuccessHandler authenticationSuccessHandler() {
+        return new AuthenticationSuccessHandler() {
+            @Override
+            public void onAuthenticationSuccess(HttpServletRequest request,
+                                                HttpServletResponse response,
+                                                Authentication authentication)
+                    throws IOException, ServletException {
 
-            if (authentication.getAuthorities().stream()
-                    .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"))) {
-                // Admin -> trang quản trị
-                redirectURL = "/admin/dashboard";
-            } else if (authentication.getAuthorities().stream()
-                    .anyMatch(a -> a.getAuthority().equals("ROLE_INSTRUCTOR"))) {
-                // Giảng viên -> trang giảng viên
-                redirectURL = "/instructor/dashboard";
-            } else if (authentication.getAuthorities().stream()
-                    .anyMatch(a -> a.getAuthority().equals("ROLE_STUDENT"))) {
-                // Học viên -> trang học viên
-                redirectURL = "/student/dashboard";
+                String redirectUrl = "/";
+
+                // Xác định URL chuyển hướng dựa trên role của user
+                if (authentication.getAuthorities().stream()
+                        .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"))) {
+                    redirectUrl = "/admin/dashboard";
+                } else if (authentication.getAuthorities().stream()
+                        .anyMatch(a -> a.getAuthority().equals("ROLE_INSTRUCTOR"))) {
+                    redirectUrl = "/instructor/dashboard";
+                } else if (authentication.getAuthorities().stream()
+                        .anyMatch(a -> a.getAuthority().equals("ROLE_STUDENT"))) {
+                    redirectUrl = "/student/dashboard";
+                }
+
+                response.sendRedirect(redirectUrl);
             }
-
-            response.sendRedirect(redirectURL);
         };
     }
 
     /**
-     * Cấu hình chính cho Spring Security
-     * Định nghĩa quyền truy cập, form đăng nhập, logout...
+     * Cấu hình Security Filter Chain
+     * Định nghĩa các quy tắc phân quyền và xử lý authentication
      * @param http HttpSecurity object
      * @return SecurityFilterChain
+     * @throws Exception Nếu có lỗi cấu hình
      */
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                // Tắt CSRF cho development (có thể bật lại nếu cần)
-                .csrf(csrf -> csrf.disable())
-
-                // Cấu hình phân quyền cho các URL
+                // Cấu hình authorization (phân quyền)
                 .authorizeHttpRequests(authz -> authz
-                        // Các trang public - không cần đăng nhập
+                        // Cho phép truy cập không cần đăng nhập
                         .requestMatchers(
                                 "/",
                                 "/login",
                                 "/register",
+                                "/api/check-username",
+                                "/api/check-email",
                                 "/css/**",
                                 "/js/**",
                                 "/images/**",
-                                "/webjars/**",
-                                "/favicon.ico"
+                                "/favicon.ico",
+                                "/error/**",
+                                "/404",
+                                "/500"
                         ).permitAll()
 
-                        // Trang admin - chỉ admin mới truy cập được
+                        // Phân quyền theo role
                         .requestMatchers("/admin/**").hasRole("ADMIN")
-
-                        // Trang instructor - chỉ giảng viên mới truy cập được
                         .requestMatchers("/instructor/**").hasRole("INSTRUCTOR")
-
-                        // Trang student - chỉ học viên mới truy cập được
                         .requestMatchers("/student/**").hasRole("STUDENT")
 
-                        // API endpoints - cần đăng nhập
-                        .requestMatchers("/api/**").authenticated()
+                        // Các endpoint chung cho user đã đăng nhập
+                        .requestMatchers("/profile/**", "/change-password/**").authenticated()
 
-                        // Tất cả các request khác đều cần đăng nhập
+                        // Tất cả request khác cần authentication
                         .anyRequest().authenticated()
                 )
 
-                // Cấu hình form đăng nhập
+                // Cấu hình form login
                 .formLogin(form -> form
-                        .loginPage("/login") // Trang đăng nhập custom
-                        .loginProcessingUrl("/perform_login") // URL xử lý đăng nhập
-                        .usernameParameter("username") // Tên field username trong form
-                        .passwordParameter("password") // Tên field password trong form
-                        .successHandler(successHandler()) // Handler sau khi đăng nhập thành công
-                        .failureUrl("/login?error=true") // URL khi đăng nhập thất bại
-                        .permitAll() // Cho phép tất cả truy cập trang login
+                        .loginPage("/login") // Trang login custom
+                        .loginProcessingUrl("/perform_login") // URL xử lý login
+                        .usernameParameter("username") // Tên field username
+                        .passwordParameter("password") // Tên field password
+                        .successHandler(authenticationSuccessHandler()) // Custom success handler
+                        .failureUrl("/login?error=true") // URL khi login fail
+                        .permitAll()
                 )
 
                 // Cấu hình logout
                 .logout(logout -> logout
-                        .logoutRequestMatcher(new AntPathRequestMatcher("/logout"))
-                        .logoutSuccessUrl("/login?logout=true") // URL sau khi logout
-                        .deleteCookies("JSESSIONID") // Xóa session cookie
+                        .logoutRequestMatcher(new AntPathRequestMatcher("/logout")) // URL logout
+                        .logoutSuccessUrl("/login?logout=true") // URL sau khi logout thành công
                         .invalidateHttpSession(true) // Hủy session
-                        .clearAuthentication(true) // Xóa thông tin xác thực
+                        .deleteCookies("JSESSIONID") // Xóa cookie session
                         .permitAll()
-                )
-
-                // Cấu hình session management
-                .sessionManagement(session -> session
-                        .maximumSessions(1) // Giới hạn 1 session/user
-                        .maxSessionsPreventsLogin(false) // Cho phép đăng nhập mới (đẩy session cũ)
-                )
-
-                // Cấu hình remember-me (ghi nhớ đăng nhập)
-                .rememberMe(remember -> remember
-                        .key("courseManagementRememberMe") // Secret key
-                        .tokenValiditySeconds(86400 * 7) // 7 ngày
-                        .userDetailsService(userService) // Service load user details
                 )
 
                 // Cấu hình exception handling
                 .exceptionHandling(ex -> ex
-                        .accessDeniedPage("/access-denied") // Trang báo lỗi khi không có quyền
+                        .accessDeniedPage("/access-denied") // Trang lỗi 403
+                )
+
+                // Cấu hình session management
+                .sessionManagement(session -> session
+                        .maximumSessions(1) // Giới hạn 1 session per user
+                        .maxSessionsPreventsLogin(false) // Cho phép login mới kick session cũ
+                        .expiredUrl("/login?expired=true") // URL khi session hết hạn
+                )
+
+                // Tắt CSRF cho API endpoints (nếu cần)
+                .csrf(csrf -> csrf
+                        .ignoringRequestMatchers("/api/**") // Bỏ qua CSRF cho API
+                )
+
+                // Cấu hình headers security
+                .headers(headers -> headers
+                        .frameOptions().DENY // Ngăn clickjacking
+                        .contentTypeOptions().and() // Ngăn MIME type sniffing
+                        .httpStrictTransportSecurity(hstsConfig -> hstsConfig
+                                .maxAgeInSeconds(31536000) // HSTS 1 năm
+                                .includeSubdomains(true)
+                        )
                 );
 
         return http.build();
     }
+
+    /**
+     * Bean để bypass security cho static resources trong development
+     * Chỉ nên sử dụng trong môi trường development
+     */
+    /*
+    @Bean
+    @Profile("dev")
+    public WebSecurityCustomizer webSecurityCustomizer() {
+        return (web) -> web.ignoring()
+                .requestMatchers("/h2-console/**") // H2 console trong dev
+                .requestMatchers("/actuator/**"); // Actuator endpoints trong dev
+    }
+    */
 }
