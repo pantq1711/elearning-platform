@@ -1,72 +1,116 @@
 package com.coursemanagement.dto;
 
 import com.coursemanagement.entity.User;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
+import com.coursemanagement.entity.Course;
+import com.coursemanagement.utils.CourseUtils;
+import jakarta.validation.constraints.*;
+
+import java.time.LocalDateTime;
+import java.util.List;
 
 /**
- * DTO cho User - dùng để transfer data và validation
+ * DTO Classes cho việc transfer data an toàn giữa các layer
+ * Tránh expose entity trực tiếp và cung cấp validation
+ */
+
+/**
+ * DTO cho User registration và update
  */
 public class UserDto {
 
-    private Long id;
-
     @NotBlank(message = "Tên đăng nhập không được để trống")
-    @Size(min = 3, max = 50, message = "Tên đăng nhập phải từ 3-50 ký tự")
+    @Size(min = 3, max = 20, message = "Tên đăng nhập phải từ 3-20 ký tự")
+    @Pattern(regexp = "^[a-zA-Z0-9._-]+$", message = "Tên đăng nhập chỉ chứa chữ, số và ký tự ._-")
     private String username;
 
-    @NotBlank(message = "Mật khẩu không được để trống")
-    @Size(min = 6, message = "Mật khẩu phải có ít nhất 6 ký tự")
-    private String password;
-
-    @Email(message = "Email không đúng định dạng")
     @NotBlank(message = "Email không được để trống")
+    @Email(message = "Email không đúng định dạng")
     private String email;
 
-    private User.Role role;
-    private boolean isActive;
+    @NotBlank(message = "Họ tên không được để trống")
+    @Size(min = 2, max = 100, message = "Họ tên phải từ 2-100 ký tự")
+    private String fullName;
+
+    @Size(min = 6, max = 100, message = "Mật khẩu phải từ 6-100 ký tự")
+    private String password;
+
+    private String confirmPassword;
+
+    @Pattern(regexp = "^(\\+84|0)[0-9]{9,10}$", message = "Số điện thoại không đúng định dạng")
+    private String phoneNumber;
+
+    @Size(max = 500, message = "Giới thiệu không được vượt quá 500 ký tự")
+    private String bio;
+
+    private String role; // ADMIN, INSTRUCTOR, STUDENT
+    private boolean active = true;
+    private LocalDateTime lastLogin;
+    private String profileImageUrl;
 
     // Constructors
     public UserDto() {}
 
-    public UserDto(User user) {
-        this.id = user.getId();
-        this.username = user.getUsername();
-        this.email = user.getEmail();
-        this.role = user.getRole();
-        this.isActive = user.isActive();
-        // Không copy password vì lý do bảo mật
+    public UserDto(String username, String email, String fullName) {
+        this.username = username;
+        this.email = email;
+        this.fullName = fullName;
     }
 
-    // Convert to Entity
-    public User toEntity() {
-        User user = new User();
-        user.setId(this.id);
-        user.setUsername(this.username);
-        user.setPassword(this.password);
-        user.setEmail(this.email);
-        user.setRole(this.role);
-        user.setActive(this.isActive);
-        return user;
+    // Factory method để tạo từ Entity
+    public static UserDto fromEntity(com.coursemanagement.entity.User user) {
+        UserDto dto = new UserDto();
+        dto.setUsername(user.getUsername());
+        dto.setEmail(user.getEmail());
+        dto.setFullName(user.getFullName());
+        dto.setPhoneNumber(user.getPhoneNumber());
+        dto.setBio(user.getBio());
+        dto.setRole(user.getRole().name());
+        dto.setActive(user.isActive());
+        dto.setLastLogin(user.getLastLogin());
+        dto.setProfileImageUrl(user.getProfileImageUrl());
+        // Không include password
+        return dto;
     }
 
-    // Getters and Setters
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    // Custom validation method
+    public boolean isValidForRegistration() {
+        return CourseUtils.ValidationUtils.isValidUsername(username) &&
+                CourseUtils.ValidationUtils.isValidEmail(email) &&
+                CourseUtils.ValidationUtils.isValidPassword(password) &&
+                password.equals(confirmPassword);
+    }
 
+    // Getters và Setters
     public String getUsername() { return username; }
     public void setUsername(String username) { this.username = username; }
-
-    public String getPassword() { return password; }
-    public void setPassword(String password) { this.password = password; }
 
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
 
-    public User.Role getRole() { return role; }
-    public void setRole(User.Role role) { this.role = role; }
+    public String getFullName() { return fullName; }
+    public void setFullName(String fullName) { this.fullName = fullName; }
 
-    public boolean isActive() { return isActive; }
-    public void setActive(boolean active) { isActive = active; }
+    public String getPassword() { return password; }
+    public void setPassword(String password) { this.password = password; }
+
+    public String getConfirmPassword() { return confirmPassword; }
+    public void setConfirmPassword(String confirmPassword) { this.confirmPassword = confirmPassword; }
+
+    public String getPhoneNumber() { return phoneNumber; }
+    public void setPhoneNumber(String phoneNumber) { this.phoneNumber = phoneNumber; }
+
+    public String getBio() { return bio; }
+    public void setBio(String bio) { this.bio = bio; }
+
+    public String getRole() { return role; }
+    public void setRole(String role) { this.role = role; }
+
+    public boolean isActive() { return active; }
+    public void setActive(boolean active) { this.active = active; }
+
+    public LocalDateTime getLastLogin() { return lastLogin; }
+    public void setLastLogin(LocalDateTime lastLogin) { this.lastLogin = lastLogin; }
+
+    public String getProfileImageUrl() { return profileImageUrl; }
+    public void setProfileImageUrl(String profileImageUrl) { this.profileImageUrl = profileImageUrl; }
 }
