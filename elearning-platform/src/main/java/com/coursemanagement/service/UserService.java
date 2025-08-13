@@ -64,49 +64,39 @@ public class UserService implements UserDetailsService {
     }
 
     /**
-     * Kiểm tra username đã tồn tại chưa
-     * @param username Tên đăng nhập
-     * @return true nếu đã tồn tại
+     * Tìm user theo username
+     * @param username Username của user
+     * @return Optional chứa User nếu tìm thấy
      */
-    public boolean existsByUsername(String username) {
-        return userRepository.existsByUsername(username);
+    public Optional<User> findByUsername(String username) {
+        return userRepository.findByUsername(username);
     }
 
     /**
-     * Kiểm tra email đã tồn tại chưa
-     * @param email Email
-     * @return true nếu đã tồn tại
+     * Tìm user theo email
+     * @param email Email của user
+     * @return Optional chứa User nếu tìm thấy
      */
-    public boolean existsByEmail(String email) {
-        return userRepository.existsByEmail(email);
+    public Optional<User> findByEmail(String email) {
+        return userRepository.findByEmail(email);
     }
 
     /**
-     * Tạo user mới
-     * @param user User cần tạo
+     * Đăng ký user mới
+     * @param user User cần đăng ký
      * @return User đã được tạo
-     * @throws RuntimeException Nếu có lỗi validation
      */
-    public User createUser(User user) {
-        // Validate thông tin user
-        validateUser(user, true);
-
-        // Kiểm tra username đã tồn tại chưa
-        if (userRepository.existsByUsername(user.getUsername())) {
-            throw new RuntimeException("Tên đăng nhập đã tồn tại: " + user.getUsername());
-        }
-
-        // Kiểm tra email đã tồn tại chưa
-        if (userRepository.existsByEmail(user.getEmail())) {
-            throw new RuntimeException("Email đã tồn tại: " + user.getEmail());
-        }
+    public User registerUser(User user) {
+        // Validate thông tin đầu vào
+        validateUserForRegistration(user);
 
         // Mã hóa mật khẩu
         user.setPassword(passwordEncoder.encode(user.getPassword()));
 
-        // Set thời gian tạo
-        user.setCreatedAt(LocalDateTime.now());
+        // Set các thông tin mặc định
         user.setActive(true);
+        user.setCreatedAt(LocalDateTime.now());
+        user.setUpdatedAt(LocalDateTime.now());
 
         return userRepository.save(user);
     }
@@ -124,77 +114,60 @@ public class UserService implements UserDetailsService {
         User existingUser = userRepository.findById(user.getId())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy user với ID: " + user.getId()));
 
-        // Validate thông tin user (không check password)
-        validateUser(user, false);
+        // Cập nhật các thông tin được phép thay đổi
+        existingUser.setFullName(user.getFullName());
+        existingUser.setEmail(user.getEmail());
+        existingUser.setPhoneNumber(user.getPhoneNumber());
+        existingUser.setBio(user.getBio());
+        existingUser.setProfileImageUrl(user.getProfileImageUrl());
+        existingUser.setUpdatedAt(LocalDateTime.now());
 
-        // Kiểm tra username conflict (trừ chính user đó)
-        if (!existingUser.getUsername().equals(user.getUsername()) &&
-                userRepository.existsByUsername(user.getUsername())) {
-            throw new RuntimeException("Tên đăng nhập đã tồn tại: " + user.getUsername());
-        }
-
-        // Kiểm tra email conflict (trừ chính user đó)
-        if (!existingUser.getEmail().equals(user.getEmail()) &&
-                userRepository.existsByEmail(user.getEmail())) {
-            throw new RuntimeException("Email đã tồn tại: " + user.getEmail());
-        }
-
-        // Giữ nguyên mật khẩu và thời gian tạo
-        user.setPassword(existingUser.getPassword());
-        user.setCreatedAt(existingUser.getCreatedAt());
-
-        return userRepository.save(user);
+        return userRepository.save(existingUser);
     }
 
     /**
-     * Cập nhật last login time
+     * Đổi mật khẩu user
      * @param userId ID của user
-     */
-    public void updateLastLogin(Long userId) {
-        userRepository.findById(userId).ifPresent(user -> {
-            user.setLastLogin(LocalDateTime.now());
-            userRepository.save(user);
-        });
-    }
-
-    /**
-     * Thay đổi mật khẩu
-     * @param userId ID user
-     * @param currentPassword Mật khẩu hiện tại
+     * @param oldPassword Mật khẩu cũ
      * @param newPassword Mật khẩu mới
-     * @return true nếu thành công
+     * @return true nếu đổi thành công
      */
-    public boolean changePassword(Long userId, String currentPassword, String newPassword) {
+    public boolean changePassword(Long userId, String oldPassword, String newPassword) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy user"));
 
-        // Kiểm tra mật khẩu hiện tại
-        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
-            return false;
+        // Kiểm tra mật khẩu cũ
+        if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
+            throw new RuntimeException("Mật khẩu cũ không đúng");
         }
-
-        // Validate mật khẩu mới
-        validatePassword(newPassword);
 
         // Cập nhật mật khẩu mới
         user.setPassword(passwordEncoder.encode(newPassword));
+        user.setUpdatedAt(LocalDateTime.now());
         userRepository.save(user);
 
         return true;
     }
 
-    // ===== ADMIN MANAGEMENT METHODS =====
+    /**
+     * Đếm số users theo role
+     * @param role Role cần đếm
+     * @return Số lượng users
+     */
+    public Long countByRole(User.Role role) {
+        return userRepository.countByRole(role);
+    }
 
     /**
-     * Đếm tổng số users
-     * @return Số lượng users
+     * Đếm tất cả users
+     * @return Tổng số users
      */
     public Long countAllUsers() {
         return userRepository.count();
     }
 
     /**
-     * Đếm số users active trong tháng trước
+     * Đếm users active trong tháng qua
      * @return Số lượng active users
      */
     public Long countActiveUsersInLastMonth() {
@@ -203,12 +176,13 @@ public class UserService implements UserDetailsService {
     }
 
     /**
-     * Đếm users theo role
+     * Đếm users theo role và status active
      * @param role Role cần đếm
+     * @param active Status active
      * @return Số lượng users
      */
-    public Long countUsersByRole(User.Role role) {
-        return userRepository.countByRole(role);
+    public Long countByRoleAndActive(User.Role role, boolean active) {
+        return userRepository.countByRoleAndActive(role, active);
     }
 
     /**
@@ -226,6 +200,26 @@ public class UserService implements UserDetailsService {
     public Long countNewUsersThisMonth() {
         LocalDateTime startOfMonth = LocalDateTime.now().withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0);
         return userRepository.countByCreatedAtAfter(startOfMonth);
+    }
+
+    /**
+     * Tìm users theo role và status active
+     * @param role Role
+     * @param active Status active
+     * @return Danh sách users
+     */
+    public List<User> findByRoleAndActive(User.Role role, boolean active) {
+        return userRepository.findByRoleAndActiveOrderByFullName(role, active);
+    }
+
+    /**
+     * Tìm instructors theo số lượng courses
+     * @param limit Số lượng giới hạn
+     * @return Danh sách instructors
+     */
+    public List<User> findTopInstructorsByCourseCount(int limit) {
+        Pageable pageable = PageRequest.of(0, limit);
+        return userRepository.findInstructorsOrderByCourseCount(User.Role.INSTRUCTOR, true, pageable);
     }
 
     /**
@@ -265,9 +259,9 @@ public class UserService implements UserDetailsService {
 
             // Status filter
             if (StringUtils.hasText(status) && !"all".equals(status)) {
-                boolean isActive = "active".equals(status);
+                boolean activeStatus = "active".equals(status);
                 predicates = criteriaBuilder.and(predicates,
-                        criteriaBuilder.equal(root.get("active"), isActive));
+                        criteriaBuilder.equal(root.get("active"), activeStatus));
             }
 
             return predicates;
@@ -275,33 +269,107 @@ public class UserService implements UserDetailsService {
     }
 
     /**
-     * Cập nhật trạng thái active của user
-     * @param userId ID user
-     * @param active Trạng thái mới
+     * Tìm users theo keyword trong multiple fields
+     * @param keyword Từ khóa tìm kiếm
+     * @param pageable Pagination info
+     * @return Danh sách users
      */
-    public void updateUserStatus(Long userId, boolean active) {
+    public List<User> searchUsersByKeyword(String keyword, Pageable pageable) {
+        return userRepository.findByKeyword(keyword, pageable);
+    }
+
+    /**
+     * Active/Deactive user
+     * @param userId ID của user
+     * @param active Status active mới
+     * @return User đã được cập nhật
+     */
+    public User updateUserStatus(Long userId, boolean active) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy user với ID: " + userId));
 
         user.setActive(active);
+        user.setUpdatedAt(LocalDateTime.now());
+
+        return userRepository.save(user);
+    }
+
+    /**
+     * Xóa user (soft delete)
+     * @param userId ID của user
+     */
+    public void deleteUser(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy user với ID: " + userId));
+
+        // Soft delete - chỉ set active = false
+        user.setActive(false);
+        user.setUpdatedAt(LocalDateTime.now());
         userRepository.save(user);
+    }
+
+    /**
+     * Lấy thống kê users theo tháng
+     * @return Map chứa thống kê theo tháng
+     */
+    public Map<String, Object> getUserStatisticsByMonth() {
+        LocalDateTime oneYearAgo = LocalDateTime.now().minusYears(1);
+        List<Object[]> stats = userRepository.getUserStatsByMonth(oneYearAgo);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("monthlyStats", stats);
+        result.put("totalUsers", countAllUsers());
+        result.put("activeUsers", countActiveUsers());
+        result.put("newUsersThisMonth", countNewUsersThisMonth());
+
+        return result;
+    }
+
+    /**
+     * Đếm users theo role (alias cho countByRole)
+     * @param role Role cần đếm
+     * @return Số lượng users
+     */
+    public Long countUsersByRole(User.Role role) {
+        return countByRole(role);
+    }
+
+    /**
+     * Tìm users theo role
+     * @param role Role cần tìm
+     * @return Danh sách users
+     */
+    public List<User> findByRole(User.Role role) {
+        return userRepository.findByRoleAndActiveOrderByFullName(role, true);
+    }
+
+    /**
+     * Tạo user mới
+     * @param user User cần tạo
+     * @return User đã được tạo
+     */
+    public User createUser(User user) {
+        return registerUser(user);
     }
 
     /**
      * Cập nhật role của user
-     * @param userId ID user
-     * @param role Role mới
+     * @param userId ID của user
+     * @param newRole Role mới
+     * @return User đã được cập nhật
      */
-    public void updateUserRole(Long userId, User.Role role) {
+    public User updateUserRole(Long userId, User.Role newRole) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy user với ID: " + userId));
 
-        user.setRole(role);
-        userRepository.save(user);
+        user.setRole(newRole);
+        user.setUpdatedAt(LocalDateTime.now());
+
+        return userRepository.save(user);
     }
 
     /**
-     * Tìm instructors active
+     * Tìm active instructors
      * @return Danh sách active instructors
      */
     public List<User> findActiveInstructors() {
@@ -309,136 +377,55 @@ public class UserService implements UserDetailsService {
     }
 
     /**
-     * Tìm instructors hoạt động tích cực nhất
-     * @param limit Số lượng cần lấy
-     * @return Danh sách top instructors
-     */
-    public List<User> findMostActiveInstructors(int limit) {
-        Pageable pageable = PageRequest.of(0, limit, Sort.by("lastLogin").descending());
-        return userRepository.findByRoleAndActive(User.Role.INSTRUCTOR, true, pageable);
-    }
-
-    /**
-     * Lấy top instructors theo số enrollment
-     * @param limit Số lượng cần lấy
-     * @return Danh sách top instructors
-     */
-    public List<User> getTopInstructorsByEnrollments(int limit) {
-        // Có thể implement query phức tạp hơn để đếm enrollments
-        // Hiện tại trả về instructors active gần đây
-        return findMostActiveInstructors(limit);
-    }
-
-    /**
-     * Lấy thống kê tăng trưởng users theo tháng
-     * @return Map chứa thống kê theo tháng
-     */
-    public Map<String, Long> getUserGrowthStats() {
-        Map<String, Long> stats = new HashMap<>();
-
-        LocalDateTime now = LocalDateTime.now();
-
-        for (int i = 11; i >= 0; i--) {
-            LocalDateTime monthStart = now.minusMonths(i).withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0);
-            LocalDateTime monthEnd = monthStart.plusMonths(1).minusSeconds(1);
-
-            Long count = userRepository.countByCreatedAtBetween(monthStart, monthEnd);
-            String monthKey = monthStart.getMonth().toString() + " " + monthStart.getYear();
-            stats.put(monthKey, count);
-        }
-
-        return stats;
-    }
-
-    /**
-     * Lấy tất cả students active
-     * @return Số lượng students active
+     * Đếm active students
+     * @return Số lượng active students
      */
     public Long countActiveStudents() {
         return userRepository.countByRoleAndActive(User.Role.STUDENT, true);
     }
 
     /**
-     * Lấy tất cả instructors active
-     * @return Số lượng instructors active
+     * Đếm active instructors
+     * @return Số lượng active instructors
      */
     public Long countActiveInstructors() {
         return userRepository.countByRoleAndActive(User.Role.INSTRUCTOR, true);
     }
 
-    // ===== PRIVATE HELPER METHODS =====
+    /**
+     * Đếm tất cả active courses (alias method)
+     * @return Số lượng active courses
+     */
+    public Long countAllActiveCourses() {
+        // This method should be in CourseService, but adding here for compatibility
+        return 0L; // Placeholder - should call courseService.countActiveCourses()
+    }
 
     /**
-     * Validate thông tin user
+     * Validation tổng thể
      * @param user User cần validate
-     * @param checkPassword Có check password hay không
      */
-    private void validateUser(User user, boolean checkPassword) {
-        if (user == null) {
-            throw new RuntimeException("Thông tin user không được để trống");
-        }
-
-        // Validate username
+    private void validateUserForRegistration(User user) {
         if (!StringUtils.hasText(user.getUsername())) {
-            throw new RuntimeException("Tên đăng nhập không được để trống");
-        }
-        if (user.getUsername().length() < 3) {
-            throw new RuntimeException("Tên đăng nhập phải có ít nhất 3 ký tự");
-        }
-        if (user.getUsername().length() > 50) {
-            throw new RuntimeException("Tên đăng nhập không được vượt quá 50 ký tự");
+            throw new RuntimeException("Username không được để trống");
         }
 
-        // Validate email
         if (!StringUtils.hasText(user.getEmail())) {
             throw new RuntimeException("Email không được để trống");
         }
-        if (!isValidEmail(user.getEmail())) {
-            throw new RuntimeException("Định dạng email không hợp lệ");
+
+        if (!StringUtils.hasText(user.getPassword())) {
+            throw new RuntimeException("Password không được để trống");
         }
 
-        // Validate full name
-        if (!StringUtils.hasText(user.getFullName())) {
-            throw new RuntimeException("Họ tên không được để trống");
-        }
-        if (user.getFullName().length() > 100) {
-            throw new RuntimeException("Họ tên không được vượt quá 100 ký tự");
+        // Kiểm tra username đã tồn tại
+        if (userRepository.existsByUsername(user.getUsername())) {
+            throw new RuntimeException("Username đã tồn tại: " + user.getUsername());
         }
 
-        // Validate password nếu cần
-        if (checkPassword) {
-            validatePassword(user.getPassword());
+        // Kiểm tra email đã tồn tại
+        if (userRepository.existsByEmail(user.getEmail())) {
+            throw new RuntimeException("Email đã tồn tại: " + user.getEmail());
         }
-
-        // Validate role
-        if (user.getRole() == null) {
-            user.setRole(User.Role.STUDENT); // Default role
-        }
-    }
-
-    /**
-     * Validate password
-     * @param password Mật khẩu cần validate
-     */
-    private void validatePassword(String password) {
-        if (!StringUtils.hasText(password)) {
-            throw new RuntimeException("Mật khẩu không được để trống");
-        }
-        if (password.length() < 6) {
-            throw new RuntimeException("Mật khẩu phải có ít nhất 6 ký tự");
-        }
-        if (password.length() > 100) {
-            throw new RuntimeException("Mật khẩu không được vượt quá 100 ký tự");
-        }
-    }
-
-    /**
-     * Kiểm tra email format
-     * @param email Email cần kiểm tra
-     * @return true nếu valid
-     */
-    private boolean isValidEmail(String email) {
-        String emailRegex = "^[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*@(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,7}$";
-        return email.matches(emailRegex);
     }
 }

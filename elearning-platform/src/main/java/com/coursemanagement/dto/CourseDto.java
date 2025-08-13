@@ -1,11 +1,16 @@
+package com.coursemanagement.dto;
+
+import com.coursemanagement.entity.Course;
 import com.coursemanagement.utils.CourseUtils;
+import jakarta.validation.constraints.*;
+import org.hibernate.validator.constraints.URL;
 
 import java.time.LocalDateTime;
 
 /**
  * DTO cho Course creation và update
  */
-class CourseDto {
+public class CourseDto {
 
     @NotBlank(message = "Tên khóa học không được để trống")
     @Size(min = 5, max = 200, message = "Tên khóa học phải từ 5-200 ký tự")
@@ -41,7 +46,10 @@ class CourseDto {
     private String learningObjectives;
 
     private String language = "Vietnamese";
+
+    @URL(message = "URL hình ảnh không đúng định dạng")
     private String imageUrl;
+
     private String slug;
 
     // Thông tin runtime (không save vào DB)
@@ -72,7 +80,7 @@ class CourseDto {
         dto.setCategoryId(course.getCategory().getId());
         dto.setInstructorId(course.getInstructor().getId());
         dto.setDuration(course.getDuration());
-        dto.setDifficultyLevel(course.getDifficultyLevel().name());
+        dto.setDifficultyLevel(course.getDifficultyLevel());
         dto.setPrice(course.getPrice());
         dto.setFeatured(course.isFeatured());
         dto.setActive(course.isActive());
@@ -84,43 +92,19 @@ class CourseDto {
         dto.setCreatedAt(course.getCreatedAt());
         dto.setUpdatedAt(course.getUpdatedAt());
 
-        // Runtime data
+        // Set runtime info
+        dto.setCategoryName(course.getCategory().getName());
+        dto.setInstructorName(course.getInstructor().getFullName());
         dto.setEnrollmentCount(course.getEnrollmentCount());
         dto.setLessonCount(course.getLessonCount());
         dto.setQuizCount(course.getQuizCount());
-        dto.setCategoryName(course.getCategory().getName());
-        dto.setInstructorName(course.getInstructor().getFullName());
 
         return dto;
     }
 
-    // Helper methods
-    public String getFormattedPrice() {
-        if (price == null || price == 0) {
-            return "Miễn phí";
-        }
-        return String.format("%,.0f VNĐ", price);
-    }
-
-    public String getFormattedDuration() {
-        return CourseUtils.CourseHelper.formatDuration(duration != null ? duration : 0);
-    }
-
-    public String getDifficultyDisplayName() {
-        switch (difficultyLevel) {
-            case "BEGINNER": return "Cơ bản";
-            case "INTERMEDIATE": return "Trung bình";
-            case "ADVANCED": return "Nâng cao";
-            default: return "Không xác định";
-        }
-    }
-
     // Getters và Setters
     public String getName() { return name; }
-    public void setName(String name) {
-        this.name = name;
-        this.slug = CourseUtils.StringUtils.createSlug(name);
-    }
+    public void setName(String name) { this.name = name; }
 
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
@@ -184,4 +168,52 @@ class CourseDto {
 
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+
+    /**
+     * Lấy text hiển thị cho difficulty level
+     * @return Text hiển thị
+     */
+    public String getDifficultyLevelText() {
+        switch (difficultyLevel) {
+            case "BEGINNER": return "Cơ bản";
+            case "INTERMEDIATE": return "Trung cấp";
+            case "ADVANCED": return "Nâng cao";
+            default: return "Không xác định";
+        }
+    }
+
+    /**
+     * Lấy formatted price
+     * @return Price được format
+     */
+    public String getFormattedPrice() {
+        if (price == null || price == 0.0) {
+            return "Miễn phí";
+        }
+        return CourseUtils.NumberUtils.formatCurrency(price);
+    }
+
+    /**
+     * Lấy formatted duration
+     * @return Duration được format
+     */
+    public String getFormattedDuration() {
+        if (duration == null) {
+            return "Chưa xác định";
+        }
+        return CourseUtils.CourseHelper.formatDuration(duration);
+    }
+
+    /**
+     * Validation method
+     * @return true nếu hợp lệ
+     */
+    public boolean isValid() {
+        return name != null && !name.trim().isEmpty() &&
+                description != null && !description.trim().isEmpty() &&
+                categoryId != null &&
+                instructorId != null &&
+                duration != null && duration > 0 &&
+                price != null && price >= 0;
+    }
 }

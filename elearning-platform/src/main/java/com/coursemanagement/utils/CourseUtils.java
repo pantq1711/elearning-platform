@@ -1,205 +1,228 @@
 package com.coursemanagement.utils;
 
-import org.springframework.web.multipart.MultipartFile;
-import org.springframework.util.StringUtils;
-
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.security.SecureRandom;
+import java.text.DecimalFormat;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
-import java.util.List;
 import java.util.regex.Pattern;
 
 /**
- * Utility class chứa các helper methods cho ứng dụng Course Management
- * Bao gồm: string processing, file handling, validation, security utilities
+ * Utility classes tổng hợp cho hệ thống Course Management
+ * Chứa các helper methods cho string, validation, formatting, etc.
  */
 public class CourseUtils {
 
     /**
-     * String Utilities Class
-     * Các method xử lý chuỗi, slug, validation
+     * String utilities
      */
     public static class StringUtils {
 
-        private static final Pattern SLUG_PATTERN = Pattern.compile("^[a-z0-9]+(?:-[a-z0-9]+)*$");
-        private static final String VIETNAMESE_CHARS = "àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ";
-        private static final String ENGLISH_CHARS = "aaaaaaaaaaaaaaaaaeeeeeeeeeeeiiiiiooooooooooooooooouuuuuuuuuuuyyyyyd";
-
         /**
-         * Tạo slug từ chuỗi tiếng Việt
-         * VD: "Khóa học Java" -> "khoa-hoc-java"
+         * Tạo slug từ string (cho URL friendly)
+         * @param input String đầu vào
+         * @return Slug đã được tạo
          */
         public static String createSlug(String input) {
-            if (!hasText(input)) {
+            if (input == null || input.trim().isEmpty()) {
                 return "";
             }
 
-            String slug = input.toLowerCase().trim();
-
-            // Chuyển đổi ký tự tiếng Việt thành ký tự không dấu
-            for (int i = 0; i < VIETNAMESE_CHARS.length(); i++) {
-                slug = slug.replace(VIETNAMESE_CHARS.charAt(i), ENGLISH_CHARS.charAt(i));
-            }
-
-            // Thay thế ký tự đặc biệt bằng dấu gạch ngang
-            slug = slug.replaceAll("[^a-z0-9\\s-]", "");
-
-            // Thay thế khoảng trắng và nhiều dấu gạch ngang liên tiếp
-            slug = slug.replaceAll("\\s+", "-");
-            slug = slug.replaceAll("-+", "-");
-
-            // Loại bỏ dấu gạch ngang ở đầu và cuối
-            slug = slug.replaceAll("^-|-$", "");
-
-            return slug;
+            return input.trim()
+                    .toLowerCase()
+                    .replaceAll("[àáạảãâầấậẩẫăằắặẳẵ]", "a")
+                    .replaceAll("[èéẹẻẽêềếệểễ]", "e")
+                    .replaceAll("[ìíịỉĩ]", "i")
+                    .replaceAll("[òóọỏõôồốộổỗơờớợởỡ]", "o")
+                    .replaceAll("[ùúụủũưừứựửữ]", "u")
+                    .replaceAll("[ỳýỵỷỹ]", "y")
+                    .replaceAll("[đ]", "d")
+                    .replaceAll("[^a-z0-9\\s-]", "") // Loại bỏ ký tự đặc biệt
+                    .replaceAll("\\s+", "-") // Thay space bằng dấu -
+                    .replaceAll("-+", "-") // Loại bỏ dấu - liên tiếp
+                    .replaceAll("^-|-$", ""); // Loại bỏ dấu - đầu/cuối
         }
 
         /**
-         * Kiểm tra chuỗi có nội dung hay không (không null và không rỗng)
+         * Truncate string với ellipsis
+         * @param text Text cần cắt
+         * @param maxLength Độ dài tối đa
+         * @return Text đã được cắt
          */
-        public static boolean hasText(String str) {
-            return str != null && !str.trim().isEmpty();
+        public static String truncate(String text, int maxLength) {
+            if (text == null || text.length() <= maxLength) {
+                return text;
+            }
+            return text.substring(0, maxLength - 3) + "...";
         }
 
         /**
-         * Validate slug format
+         * Capitalize first letter
+         * @param text Text đầu vào
+         * @return Text với chữ cái đầu viết hoa
          */
-        public static boolean isValidSlug(String slug) {
-            return hasText(slug) && SLUG_PATTERN.matcher(slug).matches();
-        }
-
-        /**
-         * Truncate chuỗi với suffix
-         */
-        public static String truncate(String str, int maxLength, String suffix) {
-            if (!hasText(str) || str.length() <= maxLength) {
-                return str;
+        public static String capitalize(String text) {
+            if (text == null || text.isEmpty()) {
+                return text;
             }
-
-            suffix = suffix != null ? suffix : "...";
-            return str.substring(0, maxLength - suffix.length()) + suffix;
-        }
-
-        /**
-         * Truncate chuỗi với suffix mặc định là "..."
-         */
-        public static String truncate(String str, int maxLength) {
-            return truncate(str, maxLength, "...");
-        }
-
-        /**
-         * Capitalize từ đầu tiên của mỗi từ
-         */
-        public static String capitalizeWords(String str) {
-            if (!hasText(str)) {
-                return str;
-            }
-
-            String[] words = str.toLowerCase().split("\\s+");
-            StringBuilder result = new StringBuilder();
-
-            for (int i = 0; i < words.length; i++) {
-                if (i > 0) {
-                    result.append(" ");
-                }
-
-                String word = words[i];
-                if (word.length() > 0) {
-                    result.append(Character.toUpperCase(word.charAt(0)));
-                    if (word.length() > 1) {
-                        result.append(word.substring(1));
-                    }
-                }
-            }
-
-            return result.toString();
-        }
-
-        /**
-         * Loại bỏ HTML tags khỏi chuỗi
-         */
-        public static String stripHtml(String str) {
-            if (!hasText(str)) {
-                return str;
-            }
-            return str.replaceAll("<[^>]*>", "").trim();
-        }
-
-        /**
-         * Tạo excerpt từ nội dung dài
-         */
-        public static String createExcerpt(String content, int maxLength) {
-            if (!hasText(content)) {
-                return "";
-            }
-
-            // Loại bỏ HTML tags trước
-            String plainText = stripHtml(content);
-
-            // Truncate và đảm bảo không cắt giữa từ
-            if (plainText.length() <= maxLength) {
-                return plainText;
-            }
-
-            String truncated = plainText.substring(0, maxLength);
-            int lastSpace = truncated.lastIndexOf(' ');
-
-            if (lastSpace > 0) {
-                truncated = truncated.substring(0, lastSpace);
-            }
-
-            return truncated + "...";
+            return text.substring(0, 1).toUpperCase() + text.substring(1).toLowerCase();
         }
     }
 
     /**
-     * Date Time Utilities Class
-     * Các method xử lý ngày tháng, thời gian
+     * Validation utilities
+     */
+    public static class ValidationUtils {
+
+        private static final Pattern EMAIL_PATTERN =
+                Pattern.compile("^[A-Za-z0-9+_.-]+@([A-Za-z0-9.-]+\\.[A-Za-z]{2,})$");
+
+        private static final Pattern USERNAME_PATTERN =
+                Pattern.compile("^[a-zA-Z0-9._-]{3,20}$");
+
+        private static final Pattern PHONE_PATTERN =
+                Pattern.compile("^(\\+84|0)[0-9]{9,10}$");
+
+        /**
+         * Validate email
+         * @param email Email cần validate
+         * @return true nếu hợp lệ
+         */
+        public static boolean isValidEmail(String email) {
+            return email != null && EMAIL_PATTERN.matcher(email).matches();
+        }
+
+        /**
+         * Validate username
+         * @param username Username cần validate
+         * @return true nếu hợp lệ
+         */
+        public static boolean isValidUsername(String username) {
+            return username != null && USERNAME_PATTERN.matcher(username).matches();
+        }
+
+        /**
+         * Validate password
+         * @param password Password cần validate
+         * @return true nếu hợp lệ
+         */
+        public static boolean isValidPassword(String password) {
+            return password != null &&
+                    password.length() >= 6 &&
+                    password.length() <= 100;
+        }
+
+        /**
+         * Validate phone number
+         * @param phone Phone cần validate
+         * @return true nếu hợp lệ
+         */
+        public static boolean isValidPhone(String phone) {
+            return phone != null && PHONE_PATTERN.matcher(phone).matches();
+        }
+    }
+
+    /**
+     * Number and currency utilities
+     */
+    public static class NumberUtils {
+
+        private static final DecimalFormat CURRENCY_FORMAT = new DecimalFormat("#,##0");
+        private static final DecimalFormat DECIMAL_FORMAT = new DecimalFormat("#,##0.##");
+
+        /**
+         * Format currency (VND)
+         * @param amount Số tiền
+         * @return Formatted currency
+         */
+        public static String formatCurrency(Double amount) {
+            if (amount == null || amount == 0) {
+                return "Miễn phí";
+            }
+            return CURRENCY_FORMAT.format(amount) + " VNĐ";
+        }
+
+        /**
+         * Format number với dấu phẩy
+         * @param number Số cần format
+         * @return Formatted number
+         */
+        public static String formatNumber(Number number) {
+            if (number == null) {
+                return "0";
+            }
+            return DECIMAL_FORMAT.format(number);
+        }
+
+        /**
+         * Format percentage
+         * @param value Giá trị
+         * @param total Tổng
+         * @return Percentage string
+         */
+        public static String formatPercentage(Number value, Number total) {
+            if (value == null || total == null || total.doubleValue() == 0) {
+                return "0%";
+            }
+            double percentage = value.doubleValue() / total.doubleValue() * 100;
+            return String.format("%.1f%%", percentage);
+        }
+    }
+
+    /**
+     * Date and time utilities
      */
     public static class DateTimeUtils {
 
-        private static final DateTimeFormatter DEFAULT_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
-        private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-        private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
-        private static final DateTimeFormatter ISO_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        private static final DateTimeFormatter DATE_TIME_FORMATTER =
+                DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+
+        private static final DateTimeFormatter DATE_FORMATTER =
+                DateTimeFormatter.ofPattern("dd/MM/yyyy");
+
+        private static final DateTimeFormatter TIME_FORMATTER =
+                DateTimeFormatter.ofPattern("HH:mm");
 
         /**
-         * Format LocalDateTime thành chuỗi với format mặc định
+         * Format datetime
+         * @param dateTime LocalDateTime cần format
+         * @return Formatted datetime string
          */
         public static String formatDateTime(LocalDateTime dateTime) {
-            return dateTime != null ? dateTime.format(DEFAULT_FORMATTER) : "";
+            if (dateTime == null) {
+                return "";
+            }
+            return dateTime.format(DATE_TIME_FORMATTER);
         }
 
         /**
-         * Format LocalDateTime thành chuỗi ngày
+         * Format date only
+         * @param dateTime LocalDateTime cần format
+         * @return Formatted date string
          */
         public static String formatDate(LocalDateTime dateTime) {
-            return dateTime != null ? dateTime.format(DATE_FORMATTER) : "";
+            if (dateTime == null) {
+                return "";
+            }
+            return dateTime.format(DATE_FORMATTER);
         }
 
         /**
-         * Format LocalDateTime thành chuỗi giờ
+         * Format time only
+         * @param dateTime LocalDateTime cần format
+         * @return Formatted time string
          */
         public static String formatTime(LocalDateTime dateTime) {
-            return dateTime != null ? dateTime.format(TIME_FORMATTER) : "";
+            if (dateTime == null) {
+                return "";
+            }
+            return dateTime.format(TIME_FORMATTER);
         }
 
         /**
-         * Format LocalDateTime thành ISO string
+         * Format relative time (time ago)
+         * @param dateTime LocalDateTime cần format
+         * @return Relative time string
          */
-        public static String formatIso(LocalDateTime dateTime) {
-            return dateTime != null ? dateTime.format(ISO_FORMATTER) : "";
-        }
-
-        /**
-         * Tính thời gian tương đối (time ago)
-         */
-        public static String getTimeAgo(LocalDateTime dateTime) {
+        public static String formatRelativeTime(LocalDateTime dateTime) {
             if (dateTime == null) {
                 return "";
             }
@@ -211,398 +234,173 @@ public class CourseUtils {
                 return "Vừa xong";
             } else if (minutes < 60) {
                 return minutes + " phút trước";
-            } else if (minutes < 1440) { // 24 hours
-                long hours = minutes / 60;
-                return hours + " giờ trước";
-            } else if (minutes < 43200) { // 30 days
-                long days = minutes / 1440;
-                return days + " ngày trước";
+            } else if (minutes < 1440) { // < 24 hours
+                return (minutes / 60) + " giờ trước";
+            } else if (minutes < 43200) { // < 30 days
+                return (minutes / 1440) + " ngày trước";
             } else {
                 return formatDate(dateTime);
             }
         }
-
-        /**
-         * Kiểm tra ngày có phải hôm nay không
-         */
-        public static boolean isToday(LocalDateTime dateTime) {
-            if (dateTime == null) {
-                return false;
-            }
-
-            LocalDateTime now = LocalDateTime.now();
-            return dateTime.toLocalDate().equals(now.toLocalDate());
-        }
-
-        /**
-         * Kiểm tra ngày có phải hôm qua không
-         */
-        public static boolean isYesterday(LocalDateTime dateTime) {
-            if (dateTime == null) {
-                return false;
-            }
-
-            LocalDateTime yesterday = LocalDateTime.now().minusDays(1);
-            return dateTime.toLocalDate().equals(yesterday.toLocalDate());
-        }
     }
 
     /**
-     * Validation Utilities Class
-     * Các method validation cho input data
+     * Course specific helpers
      */
-    public static class ValidationUtils {
-
-        private static final Pattern EMAIL_PATTERN = Pattern.compile(
-                "^[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*@(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,7}$");
-
-        private static final Pattern PHONE_PATTERN = Pattern.compile(
-                "^(\\+84|0)[0-9]{9,10}$");
-
-        private static final Pattern USERNAME_PATTERN = Pattern.compile(
-                "^[a-zA-Z0-9_]{3,20}$");
+    public static class CourseHelper {
 
         /**
-         * Validate email format
+         * Format duration (minutes to readable format)
+         * @param minutes Duration in minutes
+         * @return Formatted duration
          */
-        public static boolean isValidEmail(String email) {
-            return StringUtils.hasText(email) && EMAIL_PATTERN.matcher(email).matches();
-        }
-
-        /**
-         * Validate số điện thoại Việt Nam
-         */
-        public static boolean isValidPhoneNumber(String phone) {
-            return StringUtils.hasText(phone) && PHONE_PATTERN.matcher(phone).matches();
-        }
-
-        /**
-         * Validate username format
-         */
-        public static boolean isValidUsername(String username) {
-            return StringUtils.hasText(username) && USERNAME_PATTERN.matcher(username).matches();
-        }
-
-        /**
-         * Validate password strength
-         */
-        public static boolean isStrongPassword(String password) {
-            if (!StringUtils.hasText(password) || password.length() < 8) {
-                return false;
+        public static String formatDuration(Integer minutes) {
+            if (minutes == null || minutes == 0) {
+                return "Chưa xác định";
             }
 
-            boolean hasUpper = password.matches(".*[A-Z].*");
-            boolean hasLower = password.matches(".*[a-z].*");
-            boolean hasDigit = password.matches(".*\\d.*");
-            boolean hasSpecial = password.matches(".*[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>\\/?].*");
-
-            return hasUpper && hasLower && hasDigit && hasSpecial;
-        }
-
-        /**
-         * Validate URL format
-         */
-        public static boolean isValidUrl(String url) {
-            if (!StringUtils.hasText(url)) {
-                return false;
-            }
-
-            try {
-                new java.net.URL(url);
-                return url.startsWith("http://") || url.startsWith("https://");
-            } catch (Exception e) {
-                return false;
+            if (minutes < 60) {
+                return minutes + " phút";
+            } else if (minutes < 1440) { // < 24 hours
+                int hours = minutes / 60;
+                int remainingMinutes = minutes % 60;
+                if (remainingMinutes == 0) {
+                    return hours + " giờ";
+                } else {
+                    return hours + " giờ " + remainingMinutes + " phút";
+                }
+            } else {
+                int days = minutes / 1440;
+                int remainingHours = (minutes % 1440) / 60;
+                if (remainingHours == 0) {
+                    return days + " ngày";
+                } else {
+                    return days + " ngày " + remainingHours + " giờ";
+                }
             }
         }
 
         /**
-         * Validate YouTube URL
+         * Get difficulty level text
+         * @param level Difficulty level enum
+         * @return Text hiển thị
          */
-        public static boolean isValidYouTubeUrl(String url) {
-            if (!isValidUrl(url)) {
-                return false;
+        public static String getDifficultyText(String level) {
+            if (level == null) {
+                return "Không xác định";
             }
 
-            return url.contains("youtube.com/watch") || url.contains("youtu.be/");
+            switch (level.toUpperCase()) {
+                case "BEGINNER": return "Cơ bản";
+                case "INTERMEDIATE": return "Trung cấp";
+                case "ADVANCED": return "Nâng cao";
+                default: return "Không xác định";
+            }
+        }
+
+        /**
+         * Get difficulty CSS class
+         * @param level Difficulty level
+         * @return CSS class
+         */
+        public static String getDifficultyCssClass(String level) {
+            if (level == null) {
+                return "badge-secondary";
+            }
+
+            switch (level.toUpperCase()) {
+                case "BEGINNER": return "badge-success";
+                case "INTERMEDIATE": return "badge-warning";
+                case "ADVANCED": return "badge-danger";
+                default: return "badge-secondary";
+            }
+        }
+
+        /**
+         * Calculate completion percentage
+         * @param completed Số lượng đã hoàn thành
+         * @param total Tổng số lượng
+         * @return Percentage (0-100)
+         */
+        public static double calculateCompletionPercentage(int completed, int total) {
+            if (total == 0) {
+                return 0.0;
+            }
+            return Math.round((double) completed / total * 100 * 10.0) / 10.0;
         }
     }
 
     /**
-     * File Utilities Class
-     * Các method xử lý file upload, validation
+     * File utilities
      */
     public static class FileUtils {
 
-        // Các extension được phép cho từng loại file
-        private static final List<String> ALLOWED_IMAGE_EXTENSIONS =
-                Arrays.asList("jpg", "jpeg", "png", "gif", "webp");
-
-        private static final List<String> ALLOWED_DOCUMENT_EXTENSIONS =
-                Arrays.asList("pdf", "doc", "docx", "txt", "rtf");
-
-        private static final List<String> ALLOWED_VIDEO_EXTENSIONS =
-                Arrays.asList("mp4", "avi", "mov", "wmv", "flv");
-
-        // Kích thước file tối đa (bytes)
-        private static final long MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
-        private static final long MAX_DOCUMENT_SIZE = 10 * 1024 * 1024; // 10MB
-        private static final long MAX_VIDEO_SIZE = 100 * 1024 * 1024; // 100MB
+        /**
+         * Check if file is image
+         * @param filename Filename
+         * @return true if image
+         */
+        public static boolean isImageFile(String filename) {
+            if (filename == null) {
+                return false;
+            }
+            String extension = getFileExtension(filename).toLowerCase();
+            return extension.matches("jpg|jpeg|png|gif|webp|svg");
+        }
 
         /**
-         * Lấy file extension từ tên file
+         * Check if file is video
+         * @param filename Filename
+         * @return true if video
+         */
+        public static boolean isVideoFile(String filename) {
+            if (filename == null) {
+                return false;
+            }
+            String extension = getFileExtension(filename).toLowerCase();
+            return extension.matches("mp4|avi|mov|wmv|flv|webm|mkv");
+        }
+
+        /**
+         * Check if file is document
+         * @param filename Filename
+         * @return true if document
+         */
+        public static boolean isDocumentFile(String filename) {
+            if (filename == null) {
+                return false;
+            }
+            String extension = getFileExtension(filename).toLowerCase();
+            return extension.matches("pdf|doc|docx|ppt|pptx|xls|xlsx|txt");
+        }
+
+        /**
+         * Get file extension
+         * @param filename Filename
+         * @return File extension
          */
         public static String getFileExtension(String filename) {
-            if (!StringUtils.hasText(filename)) {
+            if (filename == null || !filename.contains(".")) {
                 return "";
             }
-
-            int lastDot = filename.lastIndexOf('.');
-            return lastDot != -1 ? filename.substring(lastDot + 1).toLowerCase() : "";
+            return filename.substring(filename.lastIndexOf(".") + 1);
         }
 
         /**
-         * Validate file image
+         * Format file size
+         * @param bytes File size in bytes
+         * @return Formatted file size
          */
-        public static boolean isValidImageFile(MultipartFile file) {
-            if (file == null || file.isEmpty()) {
-                return false;
+        public static String formatFileSize(long bytes) {
+            if (bytes < 1024) {
+                return bytes + " B";
+            } else if (bytes < 1024 * 1024) {
+                return String.format("%.1f KB", bytes / 1024.0);
+            } else if (bytes < 1024 * 1024 * 1024) {
+                return String.format("%.1f MB", bytes / (1024.0 * 1024.0));
+            } else {
+                return String.format("%.1f GB", bytes / (1024.0 * 1024.0 * 1024.0));
             }
-
-            String extension = getFileExtension(file.getOriginalFilename());
-            return ALLOWED_IMAGE_EXTENSIONS.contains(extension) &&
-                    file.getSize() <= MAX_IMAGE_SIZE;
-        }
-
-        /**
-         * Validate file document
-         */
-        public static boolean isValidDocumentFile(MultipartFile file) {
-            if (file == null || file.isEmpty()) {
-                return false;
-            }
-
-            String extension = getFileExtension(file.getOriginalFilename());
-            return ALLOWED_DOCUMENT_EXTENSIONS.contains(extension) &&
-                    file.getSize() <= MAX_DOCUMENT_SIZE;
-        }
-
-        /**
-         * Validate file video
-         */
-        public static boolean isValidVideoFile(MultipartFile file) {
-            if (file == null || file.isEmpty()) {
-                return false;
-            }
-
-            String extension = getFileExtension(file.getOriginalFilename());
-            return ALLOWED_VIDEO_EXTENSIONS.contains(extension) &&
-                    file.getSize() <= MAX_VIDEO_SIZE;
-        }
-
-        /**
-         * Tạo tên file unique để tránh trùng lặp
-         */
-        public static String generateUniqueFilename(String originalFilename) {
-            if (!StringUtils.hasText(originalFilename)) {
-                return "file_" + System.currentTimeMillis();
-            }
-
-            String extension = getFileExtension(originalFilename);
-            String nameWithoutExtension = originalFilename.substring(0,
-                    originalFilename.lastIndexOf('.') == -1 ? originalFilename.length() : originalFilename.lastIndexOf('.'));
-
-            String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
-            String randomString = SecurityUtils.generateRandomString(6);
-
-            return StringUtils.createSlug(nameWithoutExtension) + "_" + timestamp + "_" + randomString +
-                    (StringUtils.hasText(extension) ? "." + extension : "");
-        }
-
-        /**
-         * Validate kích thước file
-         */
-        public static boolean isValidFileSize(MultipartFile file, long maxSizeInBytes) {
-            return file != null && !file.isEmpty() && file.getSize() <= maxSizeInBytes;
-        }
-
-        /**
-         * Tạo thư mục nếu chưa tồn tại
-         */
-        public static boolean createDirectoryIfNotExists(String directoryPath) {
-            try {
-                Path path = Paths.get(directoryPath);
-                if (!Files.exists(path)) {
-                    Files.createDirectories(path);
-                }
-                return true;
-            } catch (IOException e) {
-                System.err.println("Lỗi khi tạo thư mục: " + e.getMessage());
-                return false;
-            }
-        }
-
-        /**
-         * Lưu file vào thư mục chỉ định với error handling tốt hơn
-         */
-        public static String saveFile(MultipartFile file, String uploadDir, String filename) throws IOException {
-            if (file == null || file.isEmpty()) {
-                throw new IllegalArgumentException("File không được để trống");
-            }
-
-            if (!StringUtils.hasText(filename)) {
-                throw new IllegalArgumentException("Tên file không hợp lệ");
-            }
-
-            // Tạo thư mục nếu chưa tồn tại
-            if (!createDirectoryIfNotExists(uploadDir)) {
-                throw new IOException("Không thể tạo thư mục upload: " + uploadDir);
-            }
-
-            Path filePath = Paths.get(uploadDir, filename);
-
-            try {
-                Files.copy(file.getInputStream(), filePath);
-                return filePath.toString();
-            } catch (IOException e) {
-                throw new IOException("Lỗi khi lưu file: " + e.getMessage(), e);
-            }
-        }
-
-        /**
-         * Xóa file
-         */
-        public static boolean deleteFile(String filePath) {
-            try {
-                if (StringUtils.hasText(filePath)) {
-                    Path path = Paths.get(filePath);
-                    return Files.deleteIfExists(path);
-                }
-                return false;
-            } catch (IOException e) {
-                System.err.println("Lỗi khi xóa file: " + e.getMessage());
-                return false;
-            }
-        }
-
-        /**
-         * Lấy kích thước file readable (KB, MB, GB)
-         */
-        public static String getReadableFileSize(long bytes) {
-            if (bytes <= 0) return "0 B";
-
-            String[] units = {"B", "KB", "MB", "GB", "TB"};
-            int digitGroups = (int) (Math.log10(bytes) / Math.log10(1024));
-
-            return String.format("%.1f %s",
-                    bytes / Math.pow(1024, digitGroups),
-                    units[digitGroups]);
-        }
-    }
-
-    /**
-     * Security Utilities Class
-     * Các method liên quan đến bảo mật
-     */
-    public static class SecurityUtils {
-
-        private static final String CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-        private static final String UPPERCASE = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-        private static final String LOWERCASE = "abcdefghijklmnopqrstuvwxyz";
-        private static final String NUMBERS = "0123456789";
-        private static final String SPECIAL_CHARS = "!@#$%^&*()_+-=[]{}|;:,.<>?";
-
-        private static final SecureRandom random = new SecureRandom();
-
-        /**
-         * Tạo random string với charset tùy chỉnh
-         */
-        public static String generateRandomString(int length) {
-            return generateRandomString(length, CHARACTERS);
-        }
-
-        /**
-         * Tạo random string với charset được chỉ định
-         */
-        public static String generateRandomString(int length, String charset) {
-            if (length <= 0 || !StringUtils.hasText(charset)) {
-                throw new IllegalArgumentException("Length phải > 0 và charset không được rỗng");
-            }
-
-            StringBuilder sb = new StringBuilder(length);
-            for (int i = 0; i < length; i++) {
-                sb.append(charset.charAt(random.nextInt(charset.length())));
-            }
-            return sb.toString();
-        }
-
-        /**
-         * Tạo password ngẫu nhiên mạnh
-         */
-        public static String generateStrongPassword(int length) {
-            if (length < 8) {
-                throw new IllegalArgumentException("Password phải có ít nhất 8 ký tự");
-            }
-
-            StringBuilder password = new StringBuilder();
-
-            // Đảm bảo có ít nhất 1 ký tự từ mỗi loại
-            password.append(UPPERCASE.charAt(random.nextInt(UPPERCASE.length())));
-            password.append(LOWERCASE.charAt(random.nextInt(LOWERCASE.length())));
-            password.append(NUMBERS.charAt(random.nextInt(NUMBERS.length())));
-            password.append(SPECIAL_CHARS.charAt(random.nextInt(SPECIAL_CHARS.length())));
-
-            // Fill phần còn lại
-            String allChars = UPPERCASE + LOWERCASE + NUMBERS + SPECIAL_CHARS;
-            for (int i = 4; i < length; i++) {
-                password.append(allChars.charAt(random.nextInt(allChars.length())));
-            }
-
-            // Shuffle password
-            return shuffleString(password.toString());
-        }
-
-        /**
-         * Shuffle string
-         */
-        private static String shuffleString(String str) {
-            char[] chars = str.toCharArray();
-            for (int i = chars.length - 1; i > 0; i--) {
-                int j = random.nextInt(i + 1);
-                char temp = chars[i];
-                chars[i] = chars[j];
-                chars[j] = temp;
-            }
-            return new String(chars);
-        }
-
-        /**
-         * Sanitize string để tránh XSS
-         */
-        public static String sanitizeHtml(String input) {
-            if (!StringUtils.hasText(input)) {
-                return input;
-            }
-
-            return input
-                    .replaceAll("<", "&lt;")
-                    .replaceAll(">", "&gt;")
-                    .replaceAll("\"", "&quot;")
-                    .replaceAll("'", "&#x27;")
-                    .replaceAll("/", "&#x2F;");
-        }
-
-        /**
-         * Tạo verification token
-         */
-        public static String generateVerificationToken() {
-            return generateRandomString(32, CHARACTERS);
-        }
-
-        /**
-         * Tạo API key
-         */
-        public static String generateApiKey() {
-            return "api_" + generateRandomString(40, CHARACTERS);
         }
     }
 }

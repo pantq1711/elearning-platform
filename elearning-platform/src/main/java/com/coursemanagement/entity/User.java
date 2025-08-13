@@ -1,126 +1,77 @@
 package com.coursemanagement.entity;
 
-import jakarta.persistence.*;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
-
+import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 /**
- * Entity đại diện cho bảng users trong database
- * Triển khai UserDetails để tích hợp với Spring Security
+ * Entity đại diện cho người dùng trong hệ thống
+ * Triển khai UserDetails cho Spring Security
+ * Hỗ trợ 3 roles: ADMIN, INSTRUCTOR, STUDENT
  */
 @Entity
 @Table(name = "users")
 public class User implements UserDetails {
 
-    /**
-     * ID tự động tăng - Primary Key
-     */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /**
-     * Tên đăng nhập - unique và không được trống
-     */
-    @Column(unique = true, nullable = false)
-    @NotBlank(message = "Tên đăng nhập không được để trống")
-    @Size(min = 3, max = 50, message = "Tên đăng nhập phải từ 3-50 ký tự")
+    @Column(unique = true, nullable = false, length = 50)
     private String username;
 
-    /**
-     * Mật khẩu đã được mã hóa - không được trống
-     */
-    @Column(nullable = false)
-    @NotBlank(message = "Mật khẩu không được để trống")
-    @Size(min = 6, message = "Mật khẩu phải có ít nhất 6 ký tự")
-    private String password;
-
-    /**
-     * Email - unique và không được trống
-     */
-    @Column(unique = true, nullable = false)
-    @NotBlank(message = "Email không được để trống")
-    @Email(message = "Email không hợp lệ")
+    @Column(unique = true, nullable = false, length = 100)
     private String email;
 
-    /**
-     * Họ và tên đầy đủ (tùy chọn)
-     */
-    @Column(name = "full_name")
+    @Column(name = "full_name", nullable = false, length = 100)
     private String fullName;
 
-    /**
-     * Vai trò của user trong hệ thống
-     */
+    @Column(nullable = false, length = 255)
+    private String password;
+
+    @Column(name = "phone_number", length = 20)
+    private String phoneNumber;
+
+    @Column(columnDefinition = "TEXT")
+    private String bio;
+
+    @Column(name = "profile_image_url", length = 500)
+    private String profileImageUrl;
+
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 20)
     private Role role = Role.STUDENT;
 
-    /**
-     * Trạng thái tài khoản có đang hoạt động không
-     */
     @Column(name = "is_active")
-    private boolean isActive = true;
+    private boolean active = true;
 
-    /**
-     * Thời gian tạo tài khoản
-     */
-    @Column(name = "created_at")
-    private LocalDateTime createdAt;
-
-    /**
-     * Thời gian cập nhật cuối cùng
-     */
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
-
-    /**
-     * Thời gian đăng nhập cuối cùng
-     */
     @Column(name = "last_login")
     private LocalDateTime lastLogin;
 
-    /**
-     * Số điện thoại (tùy chọn)
-     */
-    @Column(name = "phone_number")
-    private String phoneNumber;
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
 
-    /**
-     * Địa chỉ (tùy chọn)
-     */
-    @Column(columnDefinition = "TEXT")
-    private String address;
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
 
-    /**
-     * Ghi chú về người dùng (tùy chọn)
-     */
-    @Column(columnDefinition = "TEXT")
-    private String notes;
+    // Relationships
+    @OneToMany(mappedBy = "instructor", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<Course> instructorCourses = new ArrayList<>();
 
-    // Quan hệ với Course (cho Instructor)
-    @OneToMany(mappedBy = "instructor", fetch = FetchType.LAZY)
-    private List<Course> instructedCourses = new ArrayList<>();
-
-    // Quan hệ với Enrollment (cho Student)
-    @OneToMany(mappedBy = "student", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "student", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Enrollment> enrollments = new ArrayList<>();
 
-    // Quan hệ với QuizResult (cho Student)
-    @OneToMany(mappedBy = "student", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "student", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<QuizResult> quizResults = new ArrayList<>();
 
     /**
-     * Enum định nghĩa các vai trò trong hệ thống
+     * Enum cho các role trong hệ thống
      */
     public enum Role {
         ADMIN("Quản trị viên"),
@@ -138,71 +89,32 @@ public class User implements UserDetails {
         }
     }
 
-    /**
-     * Constructor mặc định
-     */
-    public User() {
+    // Constructors
+    public User() {}
+
+    public User(String username, String email, String fullName, String password, Role role) {
+        this.username = username;
+        this.email = email;
+        this.fullName = fullName;
+        this.password = password;
+        this.role = role;
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
     }
 
-    /**
-     * Constructor với thông tin cơ bản
-     */
-    public User(String username, String password, String email, Role role) {
-        this();
-        this.username = username;
-        this.password = password;
-        this.email = email;
-        this.role = role;
-    }
-
-    /**
-     * Callback được gọi trước khi persist entity
-     */
+    // Helper methods
     @PrePersist
-    public void prePersist() {
-        LocalDateTime now = LocalDateTime.now();
-        this.createdAt = now;
-        this.updatedAt = now;
+    protected void onCreate() {
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
+        }
+        updatedAt = LocalDateTime.now();
     }
 
-    /**
-     * Callback được gọi trước khi update entity
-     */
     @PreUpdate
-    public void preUpdate() {
-        this.updatedAt = LocalDateTime.now();
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
     }
-
-    // === Spring Security UserDetails implementation ===
-
-    @Override
-    public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
-    }
-
-    @Override
-    public boolean isAccountNonExpired() {
-        return true;
-    }
-
-    @Override
-    public boolean isAccountNonLocked() {
-        return isActive;
-    }
-
-    @Override
-    public boolean isCredentialsNonExpired() {
-        return true;
-    }
-
-    @Override
-    public boolean isEnabled() {
-        return isActive;
-    }
-
-    // === Helper methods ===
 
     /**
      * Cập nhật thời gian đăng nhập cuối
@@ -212,104 +124,154 @@ public class User implements UserDetails {
     }
 
     /**
-     * Kiểm tra có phải Admin không
+     * Lấy text hiển thị cho role
+     * @return Text hiển thị role
+     */
+    public String getRoleText() {
+        return role != null ? role.getDisplayName() : "Không xác định";
+    }
+
+    /**
+     * Lấy text hiển thị cho status
+     * @return Text hiển thị status
+     */
+    public String getStatusText() {
+        return active ? "Hoạt động" : "Tạm khóa";
+    }
+
+    /**
+     * Lấy CSS class cho status
+     * @return CSS class
+     */
+    public String getStatusCssClass() {
+        return active ? "badge-success" : "badge-danger";
+    }
+
+    /**
+     * Lấy CSS class cho role
+     * @return CSS class
+     */
+    public String getRoleCssClass() {
+        if (role == null) return "badge-secondary";
+
+        switch (role) {
+            case ADMIN: return "badge-danger";
+            case INSTRUCTOR: return "badge-warning";
+            case STUDENT: return "badge-info";
+            default: return "badge-secondary";
+        }
+    }
+
+    /**
+     * Lấy formatted last login time
+     * @return Formatted time
+     */
+    public String getFormattedLastLogin() {
+        if (lastLogin == null) {
+            return "Chưa đăng nhập";
+        }
+        // Simple formatting - có thể dùng CourseUtils.DateTimeUtils.formatDateTime(lastLogin)
+        return lastLogin.toString();
+    }
+
+    /**
+     * Kiểm tra có avatar không
+     * @return true nếu có avatar
+     */
+    public boolean hasAvatar() {
+        return profileImageUrl != null && !profileImageUrl.trim().isEmpty();
+    }
+
+    /**
+     * Lấy avatar URL hoặc default
+     * @return Avatar URL
+     */
+    public String getAvatarUrl() {
+        if (hasAvatar()) {
+            return profileImageUrl;
+        }
+        return "/images/default-avatar.png";
+    }
+
+    /**
+     * Lấy initials cho avatar placeholder
+     * @return Initials (VD: "John Doe" -> "JD")
+     */
+    public String getInitials() {
+        if (fullName == null || fullName.trim().isEmpty()) {
+            return "?";
+        }
+
+        String[] parts = fullName.trim().split("\\s+");
+        if (parts.length == 1) {
+            return parts[0].substring(0, 1).toUpperCase();
+        }
+
+        return (parts[0].substring(0, 1) + parts[parts.length - 1].substring(0, 1)).toUpperCase();
+    }
+
+    /**
+     * Kiểm tra user có phải admin không
+     * @return true nếu là admin
      */
     public boolean isAdmin() {
-        return role == Role.ADMIN;
+        return Role.ADMIN.equals(role);
     }
 
     /**
-     * Kiểm tra có phải Instructor không
+     * Kiểm tra user có phải instructor không
+     * @return true nếu là instructor
      */
     public boolean isInstructor() {
-        return role == Role.INSTRUCTOR;
+        return Role.INSTRUCTOR.equals(role);
     }
 
     /**
-     * Kiểm tra có phải Student không
+     * Kiểm tra user có phải student không
+     * @return true nếu là student
      */
     public boolean isStudent() {
-        return role == Role.STUDENT;
+        return Role.STUDENT.equals(role);
     }
 
-    /**
-     * Lấy tên hiển thị
-     */
-    public String getDisplayName() {
-        return fullName != null && !fullName.trim().isEmpty() ? fullName : username;
+    // ===== SPRING SECURITY USERDETAILS IMPLEMENTATION =====
+
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role.name()));
     }
 
-    /**
-     * Kiểm tra có thông tin liên hệ đầy đủ không
-     */
-    public boolean hasCompleteContactInfo() {
-        return fullName != null && !fullName.trim().isEmpty() &&
-                phoneNumber != null && !phoneNumber.trim().isEmpty() &&
-                address != null && !address.trim().isEmpty();
+    @Override
+    public String getPassword() {
+        return password;
     }
 
-    /**
-     * Lấy số lượng khóa học đã tạo (cho Instructor)
-     */
-    public int getInstructedCourseCount() {
-        return instructedCourses != null ? instructedCourses.size() : 0;
+    @Override
+    public String getUsername() {
+        return username;
     }
 
-    /**
-     * Lấy số lượng khóa học đã đăng ký (cho Student)
-     */
-    public int getEnrollmentCount() {
-        return enrollments != null ? enrollments.size() : 0;
+    @Override
+    public boolean isAccountNonExpired() {
+        return true;
     }
 
-    /**
-     * Lấy số lượng quiz đã làm (cho Student)
-     */
-    public int getQuizResultCount() {
-        return quizResults != null ? quizResults.size() : 0;
+    @Override
+    public boolean isAccountNonLocked() {
+        return active;
     }
 
-    /**
-     * Tính điểm trung bình quiz (cho Student)
-     */
-    public Double getAverageQuizScore() {
-        if (quizResults == null || quizResults.isEmpty()) {
-            return null;
-        }
-
-        return quizResults.stream()
-                .filter(qr -> qr.getScore() != null)
-                .mapToDouble(QuizResult::getScore)
-                .average()
-                .orElse(0.0);
+    @Override
+    public boolean isCredentialsNonExpired() {
+        return true;
     }
 
-    /**
-     * Đếm số khóa học đã hoàn thành (cho Student)
-     */
-    public long getCompletedCourseCount() {
-        if (enrollments == null) {
-            return 0;
-        }
-
-        return enrollments.stream()
-                .filter(Enrollment::isCompleted)
-                .count();
+    @Override
+    public boolean isEnabled() {
+        return active;
     }
 
-    /**
-     * Kiểm tra có đăng nhập trong X ngày qua không
-     */
-    public boolean hasLoggedInWithinDays(int days) {
-        if (lastLogin == null) {
-            return false;
-        }
-
-        LocalDateTime cutoff = LocalDateTime.now().minusDays(days);
-        return lastLogin.isAfter(cutoff);
-    }
-
-    // === Getters và Setters ===
+    // ===== GETTERS AND SETTERS =====
 
     public Long getId() {
         return id;
@@ -319,20 +281,8 @@ public class User implements UserDetails {
         this.id = id;
     }
 
-    public String getUsername() {
-        return username;
-    }
-
     public void setUsername(String username) {
         this.username = username;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
     }
 
     public String getEmail() {
@@ -351,6 +301,34 @@ public class User implements UserDetails {
         this.fullName = fullName;
     }
 
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    public String getPhoneNumber() {
+        return phoneNumber;
+    }
+
+    public void setPhoneNumber(String phoneNumber) {
+        this.phoneNumber = phoneNumber;
+    }
+
+    public String getBio() {
+        return bio;
+    }
+
+    public void setBio(String bio) {
+        this.bio = bio;
+    }
+
+    public String getProfileImageUrl() {
+        return profileImageUrl;
+    }
+
+    public void setProfileImageUrl(String profileImageUrl) {
+        this.profileImageUrl = profileImageUrl;
+    }
+
     public Role getRole() {
         return role;
     }
@@ -360,11 +338,19 @@ public class User implements UserDetails {
     }
 
     public boolean isActive() {
-        return isActive;
+        return active;
     }
 
     public void setActive(boolean active) {
-        isActive = active;
+        this.active = active;
+    }
+
+    public LocalDateTime getLastLogin() {
+        return lastLogin;
+    }
+
+    public void setLastLogin(LocalDateTime lastLogin) {
+        this.lastLogin = lastLogin;
     }
 
     public LocalDateTime getCreatedAt() {
@@ -383,44 +369,12 @@ public class User implements UserDetails {
         this.updatedAt = updatedAt;
     }
 
-    public LocalDateTime getLastLogin() {
-        return lastLogin;
+    public List<Course> getInstructorCourses() {
+        return instructorCourses;
     }
 
-    public void setLastLogin(LocalDateTime lastLogin) {
-        this.lastLogin = lastLogin;
-    }
-
-    public String getPhoneNumber() {
-        return phoneNumber;
-    }
-
-    public void setPhoneNumber(String phoneNumber) {
-        this.phoneNumber = phoneNumber;
-    }
-
-    public String getAddress() {
-        return address;
-    }
-
-    public void setAddress(String address) {
-        this.address = address;
-    }
-
-    public String getNotes() {
-        return notes;
-    }
-
-    public void setNotes(String notes) {
-        this.notes = notes;
-    }
-
-    public List<Course> getInstructedCourses() {
-        return instructedCourses;
-    }
-
-    public void setInstructedCourses(List<Course> instructedCourses) {
-        this.instructedCourses = instructedCourses;
+    public void setInstructorCourses(List<Course> instructorCourses) {
+        this.instructorCourses = instructorCourses;
     }
 
     public List<Enrollment> getEnrollments() {
@@ -450,8 +404,7 @@ public class User implements UserDetails {
                 ", email='" + email + '\'' +
                 ", fullName='" + fullName + '\'' +
                 ", role=" + role +
-                ", isActive=" + isActive +
-                ", lastLogin=" + lastLogin +
+                ", active=" + active +
                 '}';
     }
 

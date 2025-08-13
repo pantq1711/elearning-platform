@@ -194,16 +194,15 @@ public class SecurityConfig {
 
                 // Cấu hình logout
                 .logout(logout -> logout
-                        .logoutRequestMatcher(new AntPathRequestMatcher("/logout", "POST"))
-                        .logoutUrl("/logout")
+                        .logoutRequestMatcher(new AntPathRequestMatcher("/logout"))
                         .logoutSuccessUrl("/login?logout=true")
+                        .deleteCookies("JSESSIONID", "ELEARNING_REMEMBER_ME")
                         .invalidateHttpSession(true)
                         .clearAuthentication(true)
-                        .deleteCookies("JSESSIONID", "ELEARNING_REMEMBER_ME")
                         .permitAll()
                 )
 
-                // Cấu hình remember-me
+                // Remember me configuration
                 .rememberMe(remember -> remember
                         .rememberMeServices(rememberMeServices())
                         .key(REMEMBER_ME_KEY)
@@ -211,30 +210,22 @@ public class SecurityConfig {
                         .userDetailsService(userService)
                 )
 
-                // Cấu hình exception handling
+                // Exception handling
                 .exceptionHandling(exceptions -> exceptions
-                        .accessDeniedPage("/error/403")
+                        .accessDeniedPage("/access-denied")
                         .authenticationEntryPoint((request, response, authException) -> {
-                            // Custom entry point cho API requests
-                            if (request.getRequestURI().startsWith("/api/")) {
-                                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                                response.setContentType("application/json");
-                                response.getWriter().write("{\"error\":\"Unauthorized\",\"message\":\"Authentication required\"}");
-                            } else {
-                                response.sendRedirect("/login");
-                            }
+                            response.sendRedirect("/login?required=true");
                         })
                 )
 
-                // Cấu hình session management với bảo mật cao
+                // Session management với Spring Security 6.x syntax
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
-                        .maximumSessions(2) // Tối đa 2 session per user
-                        .maxSessionsPreventsLogin(false) // Cho phép login mới kick session cũ
+                        .maximumSessions(3) // Tối đa 3 sessions đồng thời
+                        .maxSessionsPreventsLogin(false) // Cho phép login mới, kick old sessions
                         .expiredUrl("/login?expired=true") // URL khi session hết hạn
                         .sessionRegistry(sessionRegistry())
-                        .and()
-                        .sessionFixation().migrateSession() // Migrate session ID after login
+                        .sessionFixation().migrateSession() // Fix: không dùng .and()
                         .invalidSessionUrl("/login?invalid=true")
                 )
 
@@ -244,16 +235,16 @@ public class SecurityConfig {
                         .csrfTokenRepository(org.springframework.security.web.csrf.CookieCsrfTokenRepository.withHttpOnlyFalse())
                 )
 
-                // Cấu hình headers security
+                // Cấu hình headers security với syntax mới
                 .headers(headers -> headers
-                        .frameOptions(frameOptions -> frameOptions.deny()) // Fix: Sử dụng lambda thay vì DENY constant
-                        .contentTypeOptions(contentType -> contentType.and()) // Ngăn MIME type sniffing
+                        .frameOptions(frameOptions -> frameOptions.deny()) // Sửa: không dùng deprecated DENY
+                        .contentTypeOptions() // Fix: không dùng .and()
                         .httpStrictTransportSecurity(hstsConfig -> hstsConfig
                                 .maxAgeInSeconds(31536000) // HSTS 1 năm
-                                .includeSubdomains(true)
+                                .includeSubDomains(true) // Fix: chính xác method name
                                 .preload(true)
                         )
-                        .referrerPolicy(ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN)
+                        .referrerPolicy(org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN) // Fix: full class path
                 );
 
         return http.build();

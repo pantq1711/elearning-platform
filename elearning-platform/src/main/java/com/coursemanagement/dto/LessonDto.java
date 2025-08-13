@@ -6,7 +6,7 @@ import org.hibernate.validator.constraints.URL;
 import java.time.LocalDateTime;
 import java.util.List;
 
-import com.coursemanagement.util.CourseUtils;
+import com.coursemanagement.utils.CourseUtils;
 import com.coursemanagement.entity.Lesson;
 import com.coursemanagement.entity.Quiz;
 
@@ -37,7 +37,10 @@ public class LessonDto {
 
     private boolean preview = false;
     private boolean active = true;
+
+    @URL(message = "URL tài liệu không đúng định dạng")
     private String documentUrl;
+
     private String slug;
 
     // Runtime data
@@ -65,42 +68,94 @@ public class LessonDto {
         return dto;
     }
 
+    // Getters và Setters
+    public String getTitle() { return title; }
+    public void setTitle(String title) { this.title = title; }
+
+    public String getContent() { return content; }
+    public void setContent(String content) { this.content = content; }
+
+    public String getVideoLink() { return videoLink; }
+    public void setVideoLink(String videoLink) { this.videoLink = videoLink; }
+
+    public Long getCourseId() { return courseId; }
+    public void setCourseId(Long courseId) { this.courseId = courseId; }
+
+    public Integer getOrderIndex() { return orderIndex; }
+    public void setOrderIndex(Integer orderIndex) { this.orderIndex = orderIndex; }
+
+    public Integer getEstimatedDuration() { return estimatedDuration; }
+    public void setEstimatedDuration(Integer estimatedDuration) { this.estimatedDuration = estimatedDuration; }
+
+    public boolean isPreview() { return preview; }
+    public void setPreview(boolean preview) { this.preview = preview; }
+
+    public boolean isActive() { return active; }
+    public void setActive(boolean active) { this.active = active; }
+
+    public String getDocumentUrl() { return documentUrl; }
+    public void setDocumentUrl(String documentUrl) { this.documentUrl = documentUrl; }
+
+    public String getSlug() { return slug; }
+    public void setSlug(String slug) { this.slug = slug; }
+
+    public String getCourseName() { return courseName; }
+    public void setCourseName(String courseName) { this.courseName = courseName; }
+
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+
+    /**
+     * Lấy formatted duration
+     * @return Duration được format
+     */
     public String getFormattedDuration() {
         return CourseUtils.CourseHelper.formatDuration(estimatedDuration != null ? estimatedDuration : 0);
     }
 
-    public String getContentExcerpt(int maxLength) {
-        return CourseUtils.StringUtils.createExcerpt(content, maxLength);
+    /**
+     * Kiểm tra có video không
+     * @return true nếu có video
+     */
+    public boolean hasVideo() {
+        return videoLink != null && !videoLink.trim().isEmpty();
     }
 
-    // Getters & Setters
-    public String getTitle() { return title; }
-    public void setTitle(String title) {
-        this.title = title;
-        this.slug = CourseUtils.StringUtils.createSlug(title);
+    /**
+     * Kiểm tra có tài liệu không
+     * @return true nếu có tài liệu
+     */
+    public boolean hasDocument() {
+        return documentUrl != null && !documentUrl.trim().isEmpty();
     }
-    public String getContent() { return content; }
-    public void setContent(String content) { this.content = content; }
-    public String getVideoLink() { return videoLink; }
-    public void setVideoLink(String videoLink) { this.videoLink = videoLink; }
-    public Long getCourseId() { return courseId; }
-    public void setCourseId(Long courseId) { this.courseId = courseId; }
-    public Integer getOrderIndex() { return orderIndex; }
-    public void setOrderIndex(Integer orderIndex) { this.orderIndex = orderIndex; }
-    public Integer getEstimatedDuration() { return estimatedDuration; }
-    public void setEstimatedDuration(Integer estimatedDuration) { this.estimatedDuration = estimatedDuration; }
-    public boolean isPreview() { return preview; }
-    public void setPreview(boolean preview) { this.preview = preview; }
-    public boolean isActive() { return active; }
-    public void setActive(boolean active) { this.active = active; }
-    public String getDocumentUrl() { return documentUrl; }
-    public void setDocumentUrl(String documentUrl) { this.documentUrl = documentUrl; }
-    public String getSlug() { return slug; }
-    public void setSlug(String slug) { this.slug = slug; }
-    public String getCourseName() { return courseName; }
-    public void setCourseName(String courseName) { this.courseName = courseName; }
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
-    public LocalDateTime getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+
+    /**
+     * Lấy text hiển thị cho preview status
+     * @return Text hiển thị
+     */
+    public String getPreviewText() {
+        return preview ? "Xem trước" : "Yêu cầu đăng ký";
+    }
+
+    /**
+     * Lấy CSS class cho preview status
+     * @return CSS class
+     */
+    public String getPreviewCssClass() {
+        return preview ? "badge-success" : "badge-warning";
+    }
+
+    /**
+     * Validation method
+     * @return true nếu hợp lệ
+     */
+    public boolean isValid() {
+        return title != null && !title.trim().isEmpty() &&
+                content != null && !content.trim().isEmpty() &&
+                courseId != null &&
+                orderIndex != null && orderIndex > 0;
+    }
 }

@@ -113,4 +113,117 @@ public class UserDto {
 
     public String getProfileImageUrl() { return profileImageUrl; }
     public void setProfileImageUrl(String profileImageUrl) { this.profileImageUrl = profileImageUrl; }
+
+    /**
+     * Lấy text hiển thị cho role
+     * @return Text hiển thị role
+     */
+    public String getRoleText() {
+        if (role == null) return "Không xác định";
+
+        switch (role) {
+            case "ADMIN": return "Quản trị viên";
+            case "INSTRUCTOR": return "Giảng viên";
+            case "STUDENT": return "Học viên";
+            default: return "Không xác định";
+        }
+    }
+
+    /**
+     * Lấy text hiển thị cho status
+     * @return Text hiển thị status
+     */
+    public String getStatusText() {
+        return active ? "Hoạt động" : "Tạm khóa";
+    }
+
+    /**
+     * Lấy CSS class cho status
+     * @return CSS class
+     */
+    public String getStatusCssClass() {
+        return active ? "badge-success" : "badge-danger";
+    }
+
+    /**
+     * Lấy CSS class cho role
+     * @return CSS class
+     */
+    public String getRoleCssClass() {
+        if (role == null) return "badge-secondary";
+
+        switch (role) {
+            case "ADMIN": return "badge-danger";
+            case "INSTRUCTOR": return "badge-warning";
+            case "STUDENT": return "badge-info";
+            default: return "badge-secondary";
+        }
+    }
+
+    /**
+     * Lấy formatted last login time
+     * @return Formatted time
+     */
+    public String getFormattedLastLogin() {
+        if (lastLogin == null) {
+            return "Chưa đăng nhập";
+        }
+        return CourseUtils.DateTimeUtils.formatDateTime(lastLogin);
+    }
+
+    /**
+     * Kiểm tra có avatar không
+     * @return true nếu có avatar
+     */
+    public boolean hasAvatar() {
+        return profileImageUrl != null && !profileImageUrl.trim().isEmpty();
+    }
+
+    /**
+     * Lấy avatar URL hoặc default
+     * @return Avatar URL
+     */
+    public String getAvatarUrl() {
+        if (hasAvatar()) {
+            return profileImageUrl;
+        }
+        return "/images/default-avatar.png";
+    }
+
+    /**
+     * Lấy initials cho avatar placeholder
+     * @return Initials (VD: "John Doe" -> "JD")
+     */
+    public String getInitials() {
+        if (fullName == null || fullName.trim().isEmpty()) {
+            return "?";
+        }
+
+        String[] parts = fullName.trim().split("\\s+");
+        if (parts.length == 1) {
+            return parts[0].substring(0, 1).toUpperCase();
+        }
+
+        return (parts[0].substring(0, 1) + parts[parts.length - 1].substring(0, 1)).toUpperCase();
+    }
+
+    /**
+     * Validation tổng thể
+     * @return true nếu hợp lệ
+     */
+    public boolean isValid() {
+        return username != null && !username.trim().isEmpty() &&
+                email != null && !email.trim().isEmpty() &&
+                fullName != null && !fullName.trim().isEmpty();
+    }
+
+    /**
+     * Validation cho password
+     * @return true nếu password hợp lệ
+     */
+    public boolean isPasswordValid() {
+        return password != null &&
+                password.length() >= 6 &&
+                password.equals(confirmPassword);
+    }
 }

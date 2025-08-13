@@ -14,6 +14,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.validation.Valid;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -73,403 +74,405 @@ public class InstructorController {
             List<Enrollment> recentEnrollments = enrollmentService.findRecentEnrollmentsByInstructor(currentUser, 10);
             model.addAttribute("recentEnrollments", recentEnrollments);
 
-            // Thống kê theo tháng (cho chart)
-            model.addAttribute("monthlyStats", enrollmentService.getMonthlyStatsByInstructor(currentUser));
+            // Thống kê theo tháng
+            Map<String, Object> monthlyStats = courseService.getCourseStatisticsByMonth();
+            model.addAttribute("monthlyStats", monthlyStats);
 
             return "instructor/dashboard";
 
         } catch (Exception e) {
             model.addAttribute("error", "Có lỗi xảy ra khi tải dashboard: " + e.getMessage());
-            return "instructor/dashboard";
+            return "error/500";
         }
     }
 
+    // ===== COURSE MANAGEMENT =====
+
     /**
-     * Danh sách khóa học của instructor
+     * Danh sách courses của instructor
      */
     @GetMapping("/courses")
-    public String listCourses(@RequestParam(value = "search", required = false) String search,
-                              @RequestParam(value = "category", required = false) Long categoryId,
-                              @RequestParam(value = "status", required = false) String status,
-                              Model model,
-                              Authentication authentication) {
+    public String courses(Model model, Authentication authentication,
+                          @RequestParam(required = false) String search) {
         try {
             User currentUser = (User) authentication.getPrincipal();
             model.addAttribute("currentUser", currentUser);
 
-            // Lấy danh sách khóa học với filter
-            List<Course> courses = courseService.findCoursesByInstructorWithFilter(
-                    currentUser, search, categoryId, status);
+            List<Course> courses;
+            if (search != null && !search.trim().isEmpty()) {
+                courses = courseService.findByInstructorAndKeyword(currentUser, search.trim());
+                model.addAttribute("searchQuery", search);
+            } else {
+                courses = courseService.findByInstructorOrderByCreatedAtDesc(currentUser);
+            }
+
+            // Thêm thông tin thống kê cho mỗi course
+            for (Course course : courses) {
+                long lessonCount = lessonService.countActiveLessonsByCourse(course);
+                long quizCount = quizService.countActiveQuizzesByCourse(course);
+                course.setLessonCount((int) lessonCount);
+                course.setQuizCount((int) quizCount);
+            }
 
             model.addAttribute("courses", courses);
-            model.addAttribute("search", search);
-            model.addAttribute("selectedCategory", categoryId);
-            model.addAttribute("selectedStatus", status);
-            model.addAttribute("categories", categoryService.findAllOrderByName());
-
             return "instructor/courses";
 
         } catch (Exception e) {
-            model.addAttribute("error", "Có lỗi xảy ra khi tải danh sách khóa học");
-            return "instructor/courses";
+            model.addAttribute("error", "Có lỗi xảy ra khi tải danh sách khóa học: " + e.getMessage());
+            return "error/500";
         }
     }
 
     /**
-     * Form tạo khóa học mới
+     * Form tạo course mới
      */
     @GetMapping("/courses/new")
-    public String newCourseForm(Model model, Authentication authentication) {
-        User currentUser = (User) authentication.getPrincipal();
-        model.addAttribute("currentUser", currentUser);
-
+    public String newCourse(Model model) {
         model.addAttribute("course", new Course());
         model.addAttribute("categories", categoryService.findAllOrderByName());
-        model.addAttribute("difficulties", Course.DifficultyLevel.values());
-
         return "instructor/course-form";
     }
 
     /**
-     * Xử lý tạo khóa học mới
+     * Xử lý tạo course mới
      */
     @PostMapping("/courses")
-    public String createCourse(@Valid @ModelAttribute("course") Course course,
+    public String createCourse(@Valid @ModelAttribute Course course,
                                BindingResult result,
-                               @RequestParam(value = "imageFile", required = false) MultipartFile imageFile,
-                               Model model,
                                Authentication authentication,
-                               RedirectAttributes redirectAttributes) {
+                               RedirectAttributes redirectAttributes,
+                               Model model) {
         try {
-            User currentUser = (User) authentication.getPrincipal();
-
             if (result.hasErrors()) {
-                model.addAttribute("currentUser", currentUser);
                 model.addAttribute("categories", categoryService.findAllOrderByName());
-                model.addAttribute("difficulties", Course.DifficultyLevel.values());
                 return "instructor/course-form";
             }
 
-            // Set instructor cho khóa học
+            User currentUser = (User) authentication.getPrincipal();
             course.setInstructor(currentUser);
 
-            // Xử lý upload image nếu có
-            if (imageFile != null && !imageFile.isEmpty()) {
-                String imageUrl = courseService.uploadCourseImage(imageFile);
-                course.setImageUrl(imageUrl);
-            }
+            Course savedCourse = courseService.createCourse(course);
+            redirectAttributes.addFlashAttribute("success", "Tạo khóa học thành công!");
+            return "redirect:/instructor/courses/" + savedCourse.getId();
 
-            // Tạo khóa học
-            Course createdCourse = courseService.createCourse(course);
-
-            redirectAttributes.addFlashAttribute("message",
-                    "Tạo khóa học thành công: " + createdCourse.getN());
-
-            return "redirect:/instructor/courses/" + createdCourse.getId();
-
-        } catch (RuntimeException e) {
-            model.addAttribute("error", e.getMessage());
-            model.addAttribute("currentUser", (User) authentication.getPrincipal());
-            model.addAttribute("categories", categoryService.findAllOrderByName());
-            model.addAttribute("difficulties", Course.DifficultyLevel.values());
-            return "instructor/course-form";
         } catch (Exception e) {
-            model.addAttribute("error", "Có lỗi xảy ra khi tạo khóa học");
-            model.addAttribute("currentUser", (User) authentication.getPrincipal());
+            model.addAttribute("error", "Có lỗi xảy ra khi tạo khóa học: " + e.getMessage());
             model.addAttribute("categories", categoryService.findAllOrderByName());
-            model.addAttribute("difficulties", Course.DifficultyLevel.values());
             return "instructor/course-form";
         }
     }
 
     /**
-     * Chi tiết khóa học và quản lý
+     * Chi tiết course của instructor
      */
     @GetMapping("/courses/{id}")
-    public String viewCourse(@PathVariable Long id,
-                             Model model,
-                             Authentication authentication) {
+    public String courseDetail(@PathVariable Long id,
+                               Model model,
+                               Authentication authentication) {
         try {
             User currentUser = (User) authentication.getPrincipal();
-            model.addAttribute("currentUser", currentUser);
-
             Course course = courseService.findByIdAndInstructor(id, currentUser)
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học hoặc bạn không có quyền truy cập"));
 
             model.addAttribute("course", course);
 
-            // Thống kê khóa học
-            Long enrollmentCount = enrollmentService.countEnrollmentsByCourse(course);
-            Long lessonCount = lessonService.countLessonsByCourse(course);
-            Long quizCount = quizService.countQuizzesByCourse(course);
-            Double averageRating = courseService.getAverageRating(course);
-
-            model.addAttribute("enrollmentCount", enrollmentCount);
-            model.addAttribute("lessonCount", lessonCount);
-            model.addAttribute("quizCount", quizCount);
-            model.addAttribute("averageRating", averageRating);
-
-            // Danh sách bài giảng
+            // Lessons của course
             List<Lesson> lessons = lessonService.findByCourseOrderByOrderIndex(course);
             model.addAttribute("lessons", lessons);
 
-            // Học viên gần đây
-            List<Enrollment> recentEnrollments = enrollmentService.getRecentEnrollmentsByCourse(course, 10);
-            model.addAttribute("recentEnrollments", recentEnrollments);
+            // Quizzes của course
+            List<Quiz> quizzes = quizService.findByCourse(course);
+            model.addAttribute("quizzes", quizzes);
+
+            // Enrollments của course
+            List<Enrollment> enrollments = enrollmentService.findEnrollmentsByCourse(course,
+                    org.springframework.data.domain.PageRequest.of(0, 20)).getContent();
+            model.addAttribute("enrollments", enrollments);
+
+            // Thống kê course
+            Map<String, Object> courseStats = Map.of(
+                    "totalLessons", lessons.size(),
+                    "totalQuizzes", quizzes.size(),
+                    "totalEnrollments", enrollments.size(),
+                    "completedEnrollments", enrollments.stream().mapToLong(e -> e.isCompleted() ? 1 : 0).sum()
+            );
+            model.addAttribute("courseStats", courseStats);
 
             return "instructor/course-detail";
 
         } catch (Exception e) {
             model.addAttribute("error", e.getMessage());
-            return "redirect:/instructor/courses";
+            return "error/404";
         }
     }
 
     /**
-     * Form chỉnh sửa khóa học
+     * Form edit course
      */
     @GetMapping("/courses/{id}/edit")
-    public String editCourseForm(@PathVariable Long id,
-                                 Model model,
-                                 Authentication authentication) {
+    public String editCourse(@PathVariable Long id,
+                             Model model,
+                             Authentication authentication) {
         try {
             User currentUser = (User) authentication.getPrincipal();
-            model.addAttribute("currentUser", currentUser);
-
             Course course = courseService.findByIdAndInstructor(id, currentUser)
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học hoặc bạn không có quyền truy cập"));
 
             model.addAttribute("course", course);
             model.addAttribute("categories", categoryService.findAllOrderByName());
-            model.addAttribute("difficulties", Course.DifficultyLevel.values());
-
-            return "instructor/course-edit";
+            return "instructor/course-form";
 
         } catch (Exception e) {
             model.addAttribute("error", e.getMessage());
-            return "redirect:/instructor/courses";
+            return "error/404";
         }
     }
 
     /**
-     * Xử lý cập nhật khóa học
+     * Xử lý update course
      */
     @PostMapping("/courses/{id}")
     public String updateCourse(@PathVariable Long id,
-                               @Valid @ModelAttribute("course") Course course,
+                               @Valid @ModelAttribute Course course,
                                BindingResult result,
-                               @RequestParam(value = "imageFile", required = false) MultipartFile imageFile,
-                               Model model,
                                Authentication authentication,
-                               RedirectAttributes redirectAttributes) {
+                               RedirectAttributes redirectAttributes,
+                               Model model) {
         try {
-            User currentUser = (User) authentication.getPrincipal();
-
             if (result.hasErrors()) {
-                model.addAttribute("currentUser", currentUser);
                 model.addAttribute("categories", categoryService.findAllOrderByName());
-                model.addAttribute("difficulties", Course.DifficultyLevel.values());
-                return "instructor/course-edit";
+                return "instructor/course-form";
             }
 
-            // Kiểm tra quyền sở hữu khóa học
+            User currentUser = (User) authentication.getPrincipal();
             Course existingCourse = courseService.findByIdAndInstructor(id, currentUser)
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học hoặc bạn không có quyền truy cập"));
 
-            // Cập nhật thông tin
-            course.setId(id);
+            // Copy properties
+            course.setId(existingCourse.getId());
             course.setInstructor(currentUser);
 
-            // Xử lý upload image mới nếu có
-            if (imageFile != null && !imageFile.isEmpty()) {
-                String imageUrl = courseService.uploadCourseImage(imageFile);
-                course.setImageUrl(imageUrl);
-            } else {
-                // Giữ nguyên image cũ
-                course.setImageUrl(existingCourse.getImageUrl());
-            }
+            courseService.updateCourse(course);
+            redirectAttributes.addFlashAttribute("success", "Cập nhật khóa học thành công!");
+            return "redirect:/instructor/courses/" + id;
 
-            // Cập nhật khóa học
-            Course updatedCourse = courseService.updateCourse(course);
-
-            redirectAttributes.addFlashAttribute("message",
-                    "Cập nhật khóa học thành công!");
-
-            return "redirect:/instructor/courses/" + updatedCourse.getId();
-
-        } catch (RuntimeException e) {
-            model.addAttribute("error", e.getMessage());
-            model.addAttribute("currentUser", (User) authentication.getPrincipal());
-            model.addAttribute("categories", categoryService.findAllOrderByName());
-            model.addAttribute("difficulties", Course.DifficultyLevel.values());
-            return "instructor/course-edit";
         } catch (Exception e) {
-            model.addAttribute("error", "Có lỗi xảy ra khi cập nhật khóa học");
-            model.addAttribute("currentUser", (User) authentication.getPrincipal());
+            model.addAttribute("error", "Có lỗi xảy ra khi cập nhật khóa học: " + e.getMessage());
             model.addAttribute("categories", categoryService.findAllOrderByName());
-            model.addAttribute("difficulties", Course.DifficultyLevel.values());
-            return "instructor/course-edit";
+            return "instructor/course-form";
         }
     }
 
     /**
-     * Xóa khóa học (soft delete)
+     * Upload course image
      */
-    @PostMapping("/courses/{id}/delete")
-    public String deleteCourse(@PathVariable Long id,
-                               Authentication authentication,
-                               RedirectAttributes redirectAttributes) {
+    @PostMapping("/courses/{id}/upload-image")
+    public String uploadCourseImage(@PathVariable Long id,
+                                    @RequestParam("file") MultipartFile file,
+                                    Authentication authentication,
+                                    RedirectAttributes redirectAttributes) {
         try {
             User currentUser = (User) authentication.getPrincipal();
-
             Course course = courseService.findByIdAndInstructor(id, currentUser)
-                    .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học hoặc bạn không có quyền truy cập"));
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học"));
 
-            // Kiểm tra xem có học viên đã đăng ký không
-            Long enrollmentCount = enrollmentService.countEnrollmentsByCourse(course);
-            if (enrollmentCount > 0) {
-                redirectAttributes.addFlashAttribute("error",
-                        "Không thể xóa khóa học đã có học viên đăng ký. Vui lòng tắt kích hoạt thay vì xóa.");
+            if (file.isEmpty()) {
+                redirectAttributes.addFlashAttribute("error", "Vui lòng chọn file ảnh");
                 return "redirect:/instructor/courses/" + id;
             }
 
-            // Thực hiện soft delete
-            courseService.softDeleteCourse(id);
-
-            redirectAttributes.addFlashAttribute("message",
-                    "Đã xóa khóa học: " + course.getN());
-
-            return "redirect:/instructor/courses";
+            String imageUrl = courseService.uploadCourseImage(id, file);
+            redirectAttributes.addFlashAttribute("success", "Upload ảnh thành công!");
+            return "redirect:/instructor/courses/" + id;
 
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error",
-                    "Có lỗi xảy ra khi xóa khóa học: " + e.getMessage());
-            return "redirect:/instructor/courses";
+            redirectAttributes.addFlashAttribute("error", "Lỗi upload ảnh: " + e.getMessage());
+            return "redirect:/instructor/courses/" + id;
         }
     }
 
-    /**
-     * Danh sách bài giảng của một khóa học
-     */
-    @GetMapping("/courses/{courseId}/lessons")
-    public String listLessons(@PathVariable Long courseId,
-                              Model model,
-                              Authentication authentication) {
-        try {
-            User currentUser = (User) authentication.getPrincipal();
-            model.addAttribute("currentUser", currentUser);
-
-            Course course = courseService.findByIdAndInstructor(courseId, currentUser)
-                    .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học hoặc bạn không có quyền truy cập"));
-
-            model.addAttribute("course", course);
-
-            List<Lesson> lessons = lessonService.findByCourseOrderByOrderIndex(course);
-            model.addAttribute("lessons", lessons);
-
-            return "instructor/lessons";
-
-        } catch (Exception e) {
-            model.addAttribute("error", e.getMessage());
-            return "redirect:/instructor/courses";
-        }
-    }
+    // ===== LESSON MANAGEMENT =====
 
     /**
-     * Form tạo bài giảng mới
+     * Form tạo lesson mới
      */
     @GetMapping("/courses/{courseId}/lessons/new")
-    public String newLessonForm(@PathVariable Long courseId,
-                                Model model,
-                                Authentication authentication) {
+    public String newLesson(@PathVariable Long courseId,
+                            Model model,
+                            Authentication authentication) {
         try {
             User currentUser = (User) authentication.getPrincipal();
-            model.addAttribute("currentUser", currentUser);
-
             Course course = courseService.findByIdAndInstructor(courseId, currentUser)
-                    .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học hoặc bạn không có quyền truy cập"));
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học"));
 
+            Lesson lesson = new Lesson();
+            lesson.setCourse(course);
+
+            model.addAttribute("lesson", lesson);
             model.addAttribute("course", course);
-            model.addAttribute("lesson", new Lesson());
-
-            // Tính order index tiếp theo
-            Integer nextOrderIndex = lessonService.getNextOrderIndex(course);
-            model.addAttribute("nextOrderIndex", nextOrderIndex);
-
             return "instructor/lesson-form";
 
         } catch (Exception e) {
             model.addAttribute("error", e.getMessage());
-            return "redirect:/instructor/courses/" + courseId + "/lessons";
+            return "error/404";
         }
     }
 
     /**
-     * Xử lý tạo bài giảng mới
+     * Xử lý tạo lesson mới
      */
     @PostMapping("/courses/{courseId}/lessons")
     public String createLesson(@PathVariable Long courseId,
-                               @Valid @ModelAttribute("lesson") Lesson lesson,
+                               @Valid @ModelAttribute Lesson lesson,
                                BindingResult result,
-                               @RequestParam(value = "documentFile", required = false) MultipartFile documentFile,
-                               Model model,
                                Authentication authentication,
-                               RedirectAttributes redirectAttributes) {
+                               RedirectAttributes redirectAttributes,
+                               Model model) {
         try {
             User currentUser = (User) authentication.getPrincipal();
+            Course course = courseService.findByIdAndInstructor(courseId, currentUser)
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học"));
 
             if (result.hasErrors()) {
-                Course course = courseService.findByIdAndInstructor(courseId, currentUser).orElse(null);
-                model.addAttribute("currentUser", currentUser);
                 model.addAttribute("course", course);
-                model.addAttribute("nextOrderIndex", lessonService.getNextOrderIndex(course));
                 return "instructor/lesson-form";
             }
 
-            Course course = courseService.findByIdAndInstructor(courseId, currentUser)
-                    .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học hoặc bạn không có quyền truy cập"));
-
-            // Set course cho lesson
             lesson.setCourse(course);
+            lessonService.createLesson(lesson);
 
-            // Xử lý upload document nếu có
-            if (documentFile != null && !documentFile.isEmpty()) {
-                String documentUrl = lessonService.uploadLessonDocument(documentFile);
-                lesson.setDocumentUrl(documentUrl);
-            }
+            redirectAttributes.addFlashAttribute("success", "Tạo bài học thành công!");
+            return "redirect:/instructor/courses/" + courseId;
 
-            // Tạo bài giảng
-            Lesson createdLesson = lessonService.createLesson(lesson);
-
-            redirectAttributes.addFlashAttribute("message",
-                    "Tạo bài giảng thành công: " + createdLesson.getTitle());
-
-            return "redirect:/instructor/courses/" + courseId + "/lessons";
-
-        } catch (RuntimeException e) {
-            model.addAttribute("error", e.getMessage());
-            Course course = courseService.findById(courseId).orElse(null);
-            model.addAttribute("course", course);
-            model.addAttribute("currentUser", (User) authentication.getPrincipal());
-            return "instructor/lesson-form";
         } catch (Exception e) {
-            model.addAttribute("error", "Có lỗi xảy ra khi tạo bài giảng");
-            Course course = courseService.findById(courseId).orElse(null);
-            model.addAttribute("course", course);
-            model.addAttribute("currentUser", (User) authentication.getPrincipal());
+            model.addAttribute("error", "Có lỗi xảy ra khi tạo bài học: " + e.getMessage());
             return "instructor/lesson-form";
         }
     }
 
     /**
-     * Exception handler cho controller này
+     * Upload lesson document
      */
-    @ExceptionHandler(Exception.class)
-    public String handleException(Exception e, Model model) {
-        System.err.println("Lỗi trong InstructorController: " + e.getMessage());
-        e.printStackTrace();
+    @PostMapping("/lessons/{id}/upload-document")
+    public String uploadLessonDocument(@PathVariable Long id,
+                                       @RequestParam("file") MultipartFile file,
+                                       Authentication authentication,
+                                       RedirectAttributes redirectAttributes) {
+        try {
+            Lesson lesson = lessonService.findById(id)
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy bài học"));
 
-        model.addAttribute("error", "Có lỗi xảy ra: " + e.getMessage());
-        return "error/500";
+            User currentUser = (User) authentication.getPrincipal();
+            Course course = courseService.findByIdAndInstructor(lesson.getCourse().getId(), currentUser)
+                    .orElseThrow(() -> new RuntimeException("Bạn không có quyền truy cập"));
+
+            if (file.isEmpty()) {
+                redirectAttributes.addFlashAttribute("error", "Vui lòng chọn file tài liệu");
+                return "redirect:/instructor/courses/" + course.getId();
+            }
+
+            String documentUrl = lessonService.uploadLessonDocument(id, file);
+            redirectAttributes.addFlashAttribute("success", "Upload tài liệu thành công!");
+            return "redirect:/instructor/courses/" + course.getId();
+
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "Lỗi upload tài liệu: " + e.getMessage());
+            return "redirect:/instructor/dashboard";
+        }
+    }
+
+    // ===== QUIZ MANAGEMENT =====
+
+    /**
+     * Form tạo quiz mới
+     */
+    @GetMapping("/courses/{courseId}/quizzes/new")
+    public String newQuiz(@PathVariable Long courseId,
+                          Model model,
+                          Authentication authentication) {
+        try {
+            User currentUser = (User) authentication.getPrincipal();
+            Course course = courseService.findByIdAndInstructor(courseId, currentUser)
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học"));
+
+            Quiz quiz = new Quiz();
+            quiz.setCourse(course);
+
+            model.addAttribute("quiz", quiz);
+            model.addAttribute("course", course);
+            return "instructor/quiz-form";
+
+        } catch (Exception e) {
+            model.addAttribute("error", e.getMessage());
+            return "error/404";
+        }
+    }
+
+    /**
+     * Xử lý tạo quiz mới
+     */
+    @PostMapping("/courses/{courseId}/quizzes")
+    public String createQuiz(@PathVariable Long courseId,
+                             @Valid @ModelAttribute Quiz quiz,
+                             BindingResult result,
+                             Authentication authentication,
+                             RedirectAttributes redirectAttributes,
+                             Model model) {
+        try {
+            User currentUser = (User) authentication.getPrincipal();
+            Course course = courseService.findByIdAndInstructor(courseId, currentUser)
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học"));
+
+            if (result.hasErrors()) {
+                model.addAttribute("course", course);
+                return "instructor/quiz-form";
+            }
+
+            quiz.setCourse(course);
+            quizService.createQuiz(quiz);
+
+            redirectAttributes.addFlashAttribute("success", "Tạo bài kiểm tra thành công!");
+            return "redirect:/instructor/courses/" + courseId;
+
+        } catch (Exception e) {
+            model.addAttribute("error", "Có lỗi xảy ra khi tạo bài kiểm tra: " + e.getMessage());
+            return "instructor/quiz-form";
+        }
+    }
+
+    // ===== STATISTICS =====
+
+    /**
+     * Trang thống kê của instructor
+     */
+    @GetMapping("/statistics")
+    public String statistics(Model model, Authentication authentication) {
+        try {
+            User currentUser = (User) authentication.getPrincipal();
+            model.addAttribute("currentUser", currentUser);
+
+            // Thống kê tổng quan
+            Map<String, Object> instructorStats = Map.of(
+                    "totalCourses", courseService.countCoursesByInstructor(currentUser),
+                    "totalStudents", enrollmentService.countStudentsByInstructor(currentUser),
+                    "totalRevenue", enrollmentService.calculateRevenueByInstructor(currentUser),
+                    "totalLessons", lessonService.countLessonsByInstructor(currentUser)
+            );
+            model.addAttribute("instructorStats", instructorStats);
+
+            // Thống kê courses
+            Map<String, Object> courseStats = courseService.getCourseStatisticsByInstructor();
+            model.addAttribute("courseStats", courseStats);
+
+            // Monthly enrollment stats
+            Map<String, Object> enrollmentStats = enrollmentService.getEnrollmentStatisticsByMonth();
+            model.addAttribute("enrollmentStats", enrollmentStats);
+
+            return "instructor/statistics";
+
+        } catch (Exception e) {
+            model.addAttribute("error", "Có lỗi xảy ra khi tải thống kê: " + e.getMessage());
+            return "error/500";
+        }
     }
 }

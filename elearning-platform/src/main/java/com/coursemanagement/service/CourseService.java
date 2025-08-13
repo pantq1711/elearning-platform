@@ -17,10 +17,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 /**
  * Service class để xử lý business logic liên quan đến Course
@@ -52,6 +49,15 @@ public class CourseService {
      */
     public Optional<Course> findByIdAndInstructor(Long id, User instructor) {
         return courseRepository.findByIdAndInstructor(id, instructor);
+    }
+
+    /**
+     * Tìm course theo slug
+     * @param slug Slug của course
+     * @return Optional chứa Course nếu tìm thấy
+     */
+    public Optional<Course> findBySlug(String slug) {
+        return courseRepository.findBySlug(slug);
     }
 
     /**
@@ -88,184 +94,212 @@ public class CourseService {
         Course existingCourse = courseRepository.findById(course.getId())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy course với ID: " + course.getId()));
 
-        validateCourse(course);
+        // Cập nhật thông tin
+        existingCourse.setName(course.getName());
+        existingCourse.setDescription(course.getDescription());
+        existingCourse.setCategory(course.getCategory());
+        existingCourse.setDuration(course.getDuration());
+        existingCourse.setDifficultyLevel(course.getDifficultyLevel());
+        existingCourse.setPrice(course.getPrice());
+        existingCourse.setPrerequisites(course.getPrerequisites());
+        existingCourse.setLearningObjectives(course.getLearningObjectives());
+        existingCourse.setLanguage(course.getLanguage());
+        existingCourse.setFeatured(course.isFeatured());
+        existingCourse.setActive(course.isActive());
+        existingCourse.setUpdatedAt(LocalDateTime.now());
 
         // Cập nhật slug nếu tên thay đổi
         if (!existingCourse.getName().equals(course.getName())) {
-            course.setSlug(CourseUtils.StringUtils.createSlug(course.getName()));
-        } else {
-            course.setSlug(existingCourse.getSlug());
+            existingCourse.setSlug(CourseUtils.StringUtils.createSlug(course.getName()));
         }
 
-        // Giữ nguyên thời gian tạo
-        course.setCreatedAt(existingCourse.getCreatedAt());
-        course.setUpdatedAt(LocalDateTime.now());
-
-        return courseRepository.save(course);
+        return courseRepository.save(existingCourse);
     }
 
     /**
-     * Upload course image
-     * @param imageFile File image
-     * @return URL của image đã upload
-     * @throws IOException Nếu có lỗi I/O
+     * Xóa course (soft delete)
+     * @param courseId ID của course
      */
-    public String uploadCourseImage(MultipartFile imageFile) throws IOException {
-        if (!CourseUtils.FileUtils.isValidImageFile(imageFile)) {
-            throw new RuntimeException("File không hợp lệ. Chỉ chấp nhận JPG, PNG, GIF dưới 5MB");
-        }
-
-        String filename = CourseUtils.FileUtils.generateUniqueFilename(imageFile.getOriginalFilename());
-        String savedPath = CourseUtils.FileUtils.saveFile(imageFile, UPLOAD_DIR + "images/", filename);
-
-        // Trả về relative URL
-        return "/uploads/courses/images/" + filename;
-    }
-
-    /**
-     * Soft delete course
-     * @param courseId ID course cần xóa
-     */
-    public void softDeleteCourse(Long courseId) {
+    public void deleteCourse(Long courseId) {
         Course course = courseRepository.findById(courseId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy course"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy course với ID: " + courseId));
 
         course.setActive(false);
         course.setUpdatedAt(LocalDateTime.now());
         courseRepository.save(course);
     }
 
-    // ===== ADMIN & ANALYTICS METHODS =====
+    // ===== METHODS CHO HOMECONTROLLER =====
 
     /**
-     * Đếm tổng số courses
-     * @return Số lượng courses
-     */
-    public Long countAllCourses() {
-        return courseRepository.count();
-    }
-
-    /**
-     * Đếm số courses active
-     * @return Số lượng active courses
+     * Đếm tất cả courses active
+     * @return Số lượng courses active
      */
     public Long countActiveCourses() {
         return courseRepository.countByActive(true);
     }
 
     /**
-     * Đếm số courses active (public method)
-     * @return Số lượng active courses
+     * Đếm tất cả courses
+     * @return Tổng số courses
      */
-    public Long countAllActiveCourses() {
-        return countActiveCourses();
+    public Long countAllCourses() {
+        return courseRepository.count();
     }
 
     /**
-     * Đếm số courses featured
-     * @return Số lượng featured courses
+     * Tìm top courses phổ biến nhất (theo số enrollment)
+     * @param limit Số lượng giới hạn
+     * @return Danh sách courses phổ biến
      */
-    public Long countFeaturedCourses() {
-        return courseRepository.countByFeatured(true);
+    public List<Course> findTopPopularCourses(int limit) {
+        Pageable pageable = PageRequest.of(0, limit);
+        return courseRepository.findPopularCourses(pageable);
     }
 
     /**
-     * Đếm số courses của một instructor
+     * Tìm courses active mới nhất
+     * @return Danh sách courses mới nhất
+     */
+    public List<Course> findActiveCoursesOrderByLatest() {
+        return courseRepository.findByActiveOrderByCreatedAtDesc(true);
+    }
+
+    /**
+     * Tìm courses active theo category
+     * @param category Category
+     * @return Danh sách courses
+     */
+    public List<Course> findActiveCoursesByCategory(Category category) {
+        return courseRepository.findByCategoryAndActiveOrderByCreatedAtDesc(category, true);
+    }
+
+    /**
+     * Tìm courses active theo category ID
+     * @param categoryId ID của category
+     * @return Danh sách courses
+     */
+    public List<Course> findActiveCoursesByCategory(Long categoryId) {
+        return courseRepository.findByCategoryIdAndActiveOrderByCreatedAtDesc(categoryId, true);
+    }
+
+    /**
+     * Tìm available courses cho student (chưa đăng ký)
+     * @param studentId ID của student
+     * @return Danh sách available courses
+     */
+    public List<Course> findAvailableCoursesForStudent(Long studentId) {
+        return courseRepository.findAvailableCoursesForStudent(studentId);
+    }
+
+    /**
+     * Tìm courses theo tên (search)
+     * @param name Tên course
+     * @return Danh sách courses
+     */
+    public List<Course> searchCoursesByName(String name) {
+        return courseRepository.findByNameContainingIgnoreCaseAndActive(name, true);
+    }
+
+    // ===== INSTRUCTOR RELATED METHODS =====
+
+    /**
+     * Đếm courses của instructor
      * @param instructor Instructor
      * @return Số lượng courses
      */
     public Long countCoursesByInstructor(User instructor) {
-        return courseRepository.countByInstructor(instructor);
+        return courseRepository.countByInstructorAndActive(instructor, true);
     }
 
     /**
-     * Đếm số courses trong một category
-     * @param category Category
-     * @return Số lượng courses
-     */
-    public Long countCoursesByCategory(Category category) {
-        return courseRepository.countByCategory(category);
-    }
-
-    /**
-     * Đếm số lessons trong một course
-     * @param courseId ID course
-     * @return Số lượng lessons
-     */
-    public Long countLessonsByCourse(Long courseId) {
-        // Cần implement query với join hoặc call LessonService
-        // Tạm thời trả về 0
-        return 0L;
-    }
-
-    /**
-     * Đếm số quizzes trong một course
-     * @param courseId ID course
-     * @return Số lượng quizzes
-     */
-    public Long countQuizzesByCourse(Long courseId) {
-        // Cần implement query với join hoặc call QuizService
-        // Tạm thời trả về 0
-        return 0L;
-    }
-
-    /**
-     * Tìm courses của một instructor
+     * Tìm recent courses của instructor
      * @param instructor Instructor
-     * @return Danh sách courses
-     */
-    public List<Course> findByInstructor(User instructor) {
-        return courseRepository.findByInstructorOrderByCreatedAtDesc(instructor);
-    }
-
-    /**
-     * Tìm courses gần đây của instructor
-     * @param instructor Instructor
-     * @param limit Số lượng cần lấy
-     * @return Danh sách recent courses
+     * @param limit Số lượng giới hạn
+     * @return Danh sách courses gần đây
      */
     public List<Course> findRecentCoursesByInstructor(User instructor, int limit) {
-        Pageable pageable = PageRequest.of(0, limit, Sort.by("createdAt").descending());
+        Pageable pageable = PageRequest.of(0, limit);
         return courseRepository.findByInstructor(instructor, pageable);
     }
 
     /**
-     * Tìm courses với filter cho instructor
+     * Tìm courses của instructor với pagination
      * @param instructor Instructor
-     * @param search Từ khóa tìm kiếm
-     * @param categoryId Category ID
-     * @param status Status filter
-     * @return Danh sách courses
-     */
-    public List<Course> findCoursesByInstructorWithFilter(User instructor, String search, Long categoryId, String status) {
-        // Simplified implementation - có thể mở rộng với Specification
-        if (StringUtils.hasText(search)) {
-            return courseRepository.findByInstructorAndNameContainingIgnoreCaseOrderByCreatedAtDesc(instructor, search);
-        }
-        return courseRepository.findByInstructorOrderByCreatedAtDesc(instructor);
-    }
-
-    /**
-     * Tìm courses phổ biến nhất
-     * @param limit Số lượng cần lấy
-     * @return Danh sách popular courses
-     */
-    public List<Course> findMostPopularCourses(int limit) {
-        Pageable pageable = PageRequest.of(0, limit);
-        return courseRepository.findMostPopularCourses(pageable);
-    }
-
-    /**
-     * Tìm courses với filter và pagination
-     * @param search Từ khóa tìm kiếm
-     * @param categoryId Category ID
-     * @param status Status filter
      * @param pageable Pagination info
-     * @return Page của courses
+     * @return Page courses
      */
-    public Page<Course> findCoursesWithFilter(String search, Long categoryId, String status, Pageable pageable) {
+    public Page<Course> findCoursesByInstructor(User instructor, Pageable pageable) {
+        return courseRepository.findByInstructorOrderByCreatedAtDesc(instructor, pageable);
+    }
+
+    // ===== STATISTICS METHODS =====
+
+    /**
+     * Lấy thống kê courses theo category
+     * @return Map chứa thống kê
+     */
+    public Map<String, Object> getCourseStatisticsByCategory() {
+        List<Object[]> stats = courseRepository.getCourseCountByCategory();
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("categoryStats", stats);
+        result.put("totalCourses", countAllCourses());
+        result.put("activeCourses", countActiveCourses());
+
+        return result;
+    }
+
+    /**
+     * Lấy thống kê courses theo instructor
+     * @return Map chứa thống kê
+     */
+    public Map<String, Object> getCourseStatisticsByInstructor() {
+        List<Object[]> stats = courseRepository.getCourseCountByInstructor();
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("instructorStats", stats);
+        result.put("totalInstructors", stats.size());
+
+        return result;
+    }
+
+    /**
+     * Lấy thống kê courses theo tháng
+     * @return Map chứa thống kê theo tháng
+     */
+    public Map<String, Object> getCourseStatisticsByMonth() {
+        LocalDateTime oneYearAgo = LocalDateTime.now().minusYears(1);
+        List<Object[]> stats = courseRepository.getCourseStatsByMonth(oneYearAgo);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("monthlyStats", stats);
+        result.put("totalCourses", countAllCourses());
+        result.put("activeCourses", countActiveCourses());
+
+        return result;
+    }
+
+    // ===== SEARCH AND FILTER METHODS =====
+
+    /**
+     * Tìm courses với filters
+     * @param search Từ khóa tìm kiếm
+     * @param categoryId ID category
+     * @param instructorId ID instructor
+     * @param featured Featured status
+     * @param pageable Pagination info
+     * @return Page courses
+     */
+    public Page<Course> findCoursesWithFilters(String search, Long categoryId,
+                                               Long instructorId, Boolean featured,
+                                               Pageable pageable) {
         return courseRepository.findAll((root, query, criteriaBuilder) -> {
             var predicates = criteriaBuilder.conjunction();
+
+            // Active courses only
+            predicates = criteriaBuilder.and(predicates,
+                    criteriaBuilder.equal(root.get("active"), true));
 
             // Search filter
             if (StringUtils.hasText(search)) {
@@ -278,16 +312,21 @@ public class CourseService {
             }
 
             // Category filter
-            if (categoryId != null && categoryId > 0) {
+            if (categoryId != null) {
                 predicates = criteriaBuilder.and(predicates,
                         criteriaBuilder.equal(root.get("category").get("id"), categoryId));
             }
 
-            // Status filter
-            if (StringUtils.hasText(status) && !"all".equals(status)) {
-                boolean isActive = "active".equals(status);
+            // Instructor filter
+            if (instructorId != null) {
                 predicates = criteriaBuilder.and(predicates,
-                        criteriaBuilder.equal(root.get("active"), isActive));
+                        criteriaBuilder.equal(root.get("instructor").get("id"), instructorId));
+            }
+
+            // Featured filter
+            if (featured != null) {
+                predicates = criteriaBuilder.and(predicates,
+                        criteriaBuilder.equal(root.get("featured"), featured));
             }
 
             return predicates;
@@ -295,135 +334,223 @@ public class CourseService {
     }
 
     /**
-     * Cập nhật featured status
+     * Upload image cho course
      * @param courseId ID course
-     * @param featured Featured status mới
+     * @param file File ảnh
+     * @return URL của ảnh đã upload
      */
-    public void updateFeaturedStatus(Long courseId, boolean featured) {
-        Course course = courseRepository.findById(courseId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy course"));
+    public String uploadCourseImage(Long courseId, MultipartFile file) {
+        try {
+            // Logic upload file (sẽ implement sau)
+            String fileName = "course_" + courseId + "_" + System.currentTimeMillis() + "_" + file.getOriginalFilename();
+            String imageUrl = "/images/courses/" + fileName;
 
-        course.setFeatured(featured);
-        course.setUpdatedAt(LocalDateTime.now());
-        courseRepository.save(course);
+            // Cập nhật imageUrl cho course
+            Course course = findById(courseId)
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy course"));
+            course.setImageUrl(imageUrl);
+            updateCourse(course);
+
+            return imageUrl;
+        } catch (Exception e) {
+            throw new RuntimeException("Lỗi upload ảnh: " + e.getMessage());
+        }
     }
 
     /**
-     * Lấy average rating của course
+     * Tìm courses của instructor sắp xếp theo ngày tạo
+     * @param instructor Instructor
+     * @return Danh sách courses
+     */
+    public List<Course> findByInstructorOrderByCreatedAtDesc(User instructor) {
+        return courseRepository.findByInstructorOrderByCreatedAtDesc(instructor);
+    }
+
+    /**
+     * Tìm courses của instructor theo keyword
+     * @param instructor Instructor
+     * @param keyword Từ khóa tìm kiếm
+     * @return Danh sách courses
+     */
+    public List<Course> findByInstructorAndKeyword(User instructor, String keyword) {
+        return courseRepository.findByInstructorAndKeyword(instructor, keyword);
+    }
+
+    /**
+     * Đếm featured courses
+     * @return Số lượng featured courses
+     */
+    public Long countFeaturedCourses() {
+        return courseRepository.countByFeaturedAndActive(true, true);
+    }
+
+    /**
+     * Đếm courses theo category
+     * @param category Category
+     * @return Số lượng courses
+     */
+    public Long countCoursesByCategory(Category category) {
+        return courseRepository.countByCategory(category);
+    }
+
+    /**
+     * Tìm courses với filter
+     * @param search Từ khóa tìm kiếm
+     * @param categoryId ID category
+     * @param status Status filter
+     * @param pageable Pagination info
+     * @return Page courses
+     */
+    public Page<Course> findCoursesWithFilter(String search, Long categoryId, String status, Pageable pageable) {
+        Boolean activeFilter = null;
+        if ("active".equals(status)) {
+            activeFilter = true;
+        } else if ("inactive".equals(status)) {
+            activeFilter = false;
+        }
+
+        return findCoursesWithFilters(search, categoryId, null, null, pageable);
+    }
+
+    /**
+     * Đếm enrollments theo course
+     * @param course Course
+     * @return Số lượng enrollments
+     */
+    public Long countEnrollmentsByCourse(Course course) {
+        return (long) course.getEnrollmentCount();
+    }
+
+    /**
+     * Đếm lessons theo course
+     * @param course Course
+     * @return Số lượng lessons
+     */
+    public Long countLessonsByCourse(Course course) {
+        return (long) course.getLessonCount();
+    }
+
+    /**
+     * Đếm quizzes theo course
+     * @param course Course
+     * @return Số lượng quizzes
+     */
+    public Long countQuizzesByCourse(Course course) {
+        return (long) course.getQuizCount();
+    }
+
+    /**
+     * Lấy average rating cho course
      * @param course Course
      * @return Average rating
      */
     public Double getAverageRating(Course course) {
-        // Placeholder - cần implement rating system
-        return 4.5; // Tạm thời trả về 4.5
+        // Placeholder - would need Rating entity
+        return 0.0;
     }
 
     /**
-     * Lấy top performing courses
-     * @param limit Số lượng cần lấy
-     * @return Danh sách top courses
+     * Lấy completion rate theo course
+     * @param course Course
+     * @return Completion rate
      */
-    public List<Course> getTopPerformingCourses(int limit) {
-        return findMostPopularCourses(limit);
+    public Double getCompletionRateByCourse(Course course) {
+        // Placeholder - would need to calculate from enrollments
+        return 0.0;
     }
 
     /**
-     * Lấy thống kê performance theo category
-     * @return Map chứa thống kê categories
+     * Tìm recent enrollments theo course
+     * @param course Course
+     * @param limit Số lượng giới hạn
+     * @return Danh sách recent enrollments
      */
-    public Map<String, Long> getCategoryPerformanceStats() {
-        Map<String, Long> stats = new HashMap<>();
-
-        // Placeholder implementation
-        // Cần query complex để group by category và count enrollments
-        stats.put("Programming", 150L);
-        stats.put("Design", 89L);
-        stats.put("Business", 67L);
-        stats.put("Marketing", 45L);
-
-        return stats;
+    public List<Object[]> getRecentEnrollmentsByCourse(Course course, int limit) {
+        // Placeholder - would query enrollments
+        return new ArrayList<>();
     }
 
     /**
-     * Tìm tất cả courses active
-     * @return Danh sách active courses
+     * Tìm top students theo course
+     * @param course Course
+     * @param limit Số lượng giới hạn
+     * @return Danh sách top students
      */
-    public List<Course> findAllActiveCourses() {
-        return courseRepository.findByActiveOrderByCreatedAtDesc(true);
+    public List<Object[]> getTopStudentsByCourse(Course course, int limit) {
+        // Placeholder - would query enrollments with scores
+        return new ArrayList<>();
     }
 
     /**
-     * Tìm courses featured
-     * @return Danh sách featured courses
+     * Cập nhật featured status
+     * @param courseId ID course
+     * @param featured Featured status
+     * @return Course đã được cập nhật
      */
-    public List<Course> findFeaturedCourses() {
-        return courseRepository.findByFeaturedAndActiveOrderByCreatedAtDesc(true, true);
+    public Course updateFeaturedStatus(Long courseId, boolean featured) {
+        Course course = findById(courseId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy course"));
+
+        course.setFeatured(featured);
+        course.setUpdatedAt(LocalDateTime.now());
+
+        return courseRepository.save(course);
     }
 
     /**
-     * Tìm courses theo category
-     * @param category Category
-     * @return Danh sách courses
+     * Tìm most popular courses
+     * @param limit Số lượng giới hạn
+     * @return Danh sách popular courses
      */
-    public List<Course> findByCategory(Category category) {
-        return courseRepository.findByCategoryAndActiveOrderByCreatedAtDesc(category, true);
+    public List<Course> findMostPopularCourses(int limit) {
+        return findTopPopularCourses(limit);
     }
 
     /**
-     * Tìm courses theo keyword
-     * @param keyword Từ khóa tìm kiếm
-     * @return Danh sách courses
+     * Lấy detailed monthly stats
+     * @return Map chứa detailed stats
      */
-    public List<Course> searchCourses(String keyword) {
-        if (!StringUtils.hasText(keyword)) {
-            return findAllActiveCourses();
-        }
-        return courseRepository.findByNameContainingIgnoreCaseAndActiveOrderByCreatedAtDesc(keyword, true);
+    public Map<String, Object> getDetailedMonthlyStats() {
+        return getCourseStatisticsByMonth();
     }
 
-    // ===== PRIVATE HELPER METHODS =====
+    /**
+     * Tìm top performing courses
+     * @param limit Số lượng giới hạn
+     * @return Danh sách top performing courses
+     */
+    public List<Object[]> getTopPerformingCourses(int limit) {
+        // Placeholder - would need performance metrics
+        return new ArrayList<>();
+    }
 
     /**
-     * Validate thông tin course
+     * Validation cho course
      * @param course Course cần validate
      */
     private void validateCourse(Course course) {
-        if (course == null) {
-            throw new RuntimeException("Thông tin course không được để trống");
-        }
-
-        // Validate name
         if (!StringUtils.hasText(course.getName())) {
-            throw new RuntimeException("Tên khóa học không được để trống");
-        }
-        if (course.getName().length() < 5) {
-            throw new RuntimeException("Tên khóa học phải có ít nhất 5 ký tự");
-        }
-        if (course.getName().length() > 200) {
-            throw new RuntimeException("Tên khóa học không được vượt quá 200 ký tự");
+            throw new RuntimeException("Tên course không được để trống");
         }
 
-        // Validate description
         if (!StringUtils.hasText(course.getDescription())) {
-            throw new RuntimeException("Mô tả khóa học không được để trống");
-        }
-        if (course.getDescription().length() < 20) {
-            throw new RuntimeException("Mô tả khóa học phải có ít nhất 20 ký tự");
+            throw new RuntimeException("Mô tả course không được để trống");
         }
 
-        // Validate instructor
-        if (course.getInstructor() == null) {
-            throw new RuntimeException("Khóa học phải có giảng viên");
-        }
-
-        // Validate category
         if (course.getCategory() == null) {
-            throw new RuntimeException("Khóa học phải có danh mục");
+            throw new RuntimeException("Category không được để trống");
         }
 
-        // Validate duration
-        if (course.getDuration() != null && course.getDuration() <= 0) {
-            throw new RuntimeException("Thời lượng khóa học phải là số dương");
+        if (course.getInstructor() == null) {
+            throw new RuntimeException("Instructor không được để trống");
+        }
+
+        if (course.getDuration() == null || course.getDuration() <= 0) {
+            throw new RuntimeException("Thời lượng course phải lớn hơn 0");
+        }
+
+        if (course.getPrice() == null || course.getPrice() < 0) {
+            throw new RuntimeException("Giá course không được âm");
         }
     }
 }

@@ -84,68 +84,32 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
      */
     Long countByRoleAndActive(User.Role role, boolean active);
 
-    // ===== ACTIVITY-BASED QUERIES =====
-
     /**
-     * Đếm users active
+     * Đếm users theo active status
      * @param active Trạng thái active
-     * @return Số lượng active users
+     * @return Số lượng users
      */
     Long countByActive(boolean active);
 
     /**
-     * Đếm users active và có last login sau thời điểm cụ thể
+     * Đếm users active trong thời gian gần đây
      * @param active Trạng thái active
-     * @param lastLoginAfter Thời điểm last login
-     * @return Số lượng users
+     * @param lastLoginAfter Thời gian login cuối
+     * @return Số lượng active users
      */
     Long countByActiveAndLastLoginAfter(boolean active, LocalDateTime lastLoginAfter);
 
     /**
-     * Đếm users được tạo sau thời điểm cụ thể
-     * @param createdAfter Thời điểm tạo
-     * @return Số lượng users mới
-     */
-    Long countByCreatedAtAfter(LocalDateTime createdAfter);
-
-    /**
-     * Đếm users được tạo trong khoảng thời gian
-     * @param startDate Thời điểm bắt đầu
-     * @param endDate Thời điểm kết thúc
+     * Đếm users tạo sau một thời điểm
+     * @param createdAt Thời điểm tạo
      * @return Số lượng users
      */
-    Long countByCreatedAtBetween(LocalDateTime startDate, LocalDateTime endDate);
+    Long countByCreatedAtAfter(LocalDateTime createdAt);
 
-    // ===== INSTRUCTOR-SPECIFIC QUERIES =====
-
-    /**
-     * Tìm instructors hoạt động gần đây
-     * @param role Role INSTRUCTOR
-     * @param active Trạng thái active
-     * @param pageable Pagination với sort theo lastLogin
-     * @return Danh sách instructors
-     */
-    @Query("SELECT u FROM User u WHERE u.role = :role AND u.active = :active " +
-            "ORDER BY u.lastLogin DESC NULLS LAST")
-    List<User> findActiveInstructorsOrderByLastLogin(@Param("role") User.Role role,
-                                                     @Param("active") boolean active,
-                                                     Pageable pageable);
+    // ===== INSTRUCTOR SPECIFIC QUERIES =====
 
     /**
-     * Tìm top instructors theo số enrollments (cần join với Course và Enrollment)
-     * @param role Role INSTRUCTOR
-     * @param active Trạng thái active
-     * @param pageable Pagination
-     * @return Danh sách top instructors
-     */
-    @Query("SELECT u FROM User u WHERE u.role = :role AND u.active = :active " +
-            "ORDER BY (SELECT COUNT(e) FROM Enrollment e WHERE e.course.instructor = u) DESC")
-    List<User> findTopInstructorsByEnrollments(@Param("role") User.Role role,
-                                               @Param("active") boolean active,
-                                               Pageable pageable);
-
-    /**
-     * Tìm instructors theo số courses
+     * Tìm instructors sắp xếp theo số lượng courses
      * @param role Role INSTRUCTOR
      * @param active Trạng thái active
      * @param pageable Pagination
@@ -195,6 +159,7 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
 
     /**
      * Lấy thống kê users theo tháng
+     * @param startDate Ngày bắt đầu
      * @return List array [month, year, count]
      */
     @Query("SELECT MONTH(u.createdAt), YEAR(u.createdAt), COUNT(u) " +
@@ -202,120 +167,122 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
             "WHERE u.createdAt >= :startDate " +
             "GROUP BY YEAR(u.createdAt), MONTH(u.createdAt) " +
             "ORDER BY YEAR(u.createdAt), MONTH(u.createdAt)")
-    List<Object[]> getUserRegistrationStatsByMonth(@Param("startDate") LocalDateTime startDate);
+    List<Object[]> getUserStatsByMonth(@Param("startDate") LocalDateTime startDate);
 
     /**
      * Lấy thống kê users theo role
      * @return List array [role, count]
      */
-    @Query("SELECT u.role, COUNT(u) FROM User u GROUP BY u.role")
+    @Query("SELECT u.role, COUNT(u) FROM User u GROUP BY u.role ORDER BY COUNT(u) DESC")
     List<Object[]> getUserStatsByRole();
 
     /**
-     * Đếm users online gần đây (last login trong 24 giờ)
-     * @param since Thời điểm 24 giờ trước
-     * @return Số lượng users online
+     * Lấy top active users (theo last login)
+     * @param pageable Pagination
+     * @return Danh sách top active users
      */
-    @Query("SELECT COUNT(u) FROM User u WHERE u.active = true AND u.lastLogin >= :since")
-    Long countActiveUsersInLast24Hours(@Param("since") LocalDateTime since);
+    @Query("SELECT u FROM User u WHERE u.active = true AND u.lastLogin IS NOT NULL " +
+            "ORDER BY u.lastLogin DESC")
+    List<User> findTopActiveUsers(Pageable pageable);
 
-    // ===== MANAGEMENT QUERIES =====
+    // ===== ACTIVITY TRACKING =====
 
     /**
-     * Tìm users chưa đăng nhập trong thời gian dài
-     * @param threshold Thời điểm threshold
+     * Tìm users chưa đăng nhập lâu
+     * @param lastLoginBefore Thời điểm login cuối
      * @return Danh sách inactive users
      */
     @Query("SELECT u FROM User u WHERE u.active = true AND " +
-            "(u.lastLogin IS NULL OR u.lastLogin < :threshold)")
-    List<User> findInactiveUsers(@Param("threshold") LocalDateTime threshold);
+            "(u.lastLogin IS NULL OR u.lastLogin < :lastLoginBefore)")
+    List<User> findInactiveUsers(@Param("lastLoginBefore") LocalDateTime lastLoginBefore);
 
     /**
-     * Tìm users mới cần approve (nếu có approval workflow)
-     * @param role Role cần approve
-     * @param active Trạng thái active
-     * @param createdAfter Tạo sau thời điểm này
-     * @return Danh sách users cần approve
+     * Tìm new users trong X ngày gần đây
+     * @param startDate Ngày bắt đầu
+     * @return Danh sách new users
      */
-    @Query("SELECT u FROM User u WHERE u.role = :role AND u.active = :active AND " +
-            "u.createdAt >= :createdAfter ORDER BY u.createdAt DESC")
-    List<User> findNewUsersForApproval(@Param("role") User.Role role,
-                                       @Param("active") boolean active,
-                                       @Param("createdAfter") LocalDateTime createdAfter);
+    @Query("SELECT u FROM User u WHERE u.createdAt >= :startDate ORDER BY u.createdAt DESC")
+    List<User> findNewUsers(@Param("startDate") LocalDateTime startDate);
 
     /**
-     * Tìm users có email domain cụ thể
-     * @param domain Email domain (ví dụ: "gmail.com")
+     * Đếm users online (đăng nhập trong X phút gần đây)
+     * @param onlineThreshold Thời gian threshold
+     * @return Số lượng users online
+     */
+    @Query("SELECT COUNT(u) FROM User u WHERE u.active = true AND u.lastLogin >= :onlineThreshold")
+    Long countOnlineUsers(@Param("onlineThreshold") LocalDateTime onlineThreshold);
+
+    // ===== ADMIN MANAGEMENT =====
+
+    /**
+     * Tìm users cần attention (chưa complete profile)
+     * @return Danh sách users cần attention
+     */
+    @Query("SELECT u FROM User u WHERE u.active = true AND " +
+            "(u.bio IS NULL OR u.bio = '' OR u.phoneNumber IS NULL OR u.phoneNumber = '')")
+    List<User> findUsersNeedingAttention();
+
+    /**
+     * Tìm duplicate emails (nếu có lỗi data)
+     * @return List array [email, count]
+     */
+    @Query("SELECT u.email, COUNT(u) FROM User u GROUP BY u.email HAVING COUNT(u) > 1")
+    List<Object[]> findDuplicateEmails();
+
+    /**
+     * Tìm users theo email domain
+     * @param domain Email domain (VD: "gmail.com")
      * @return Danh sách users
      */
-    @Query("SELECT u FROM User u WHERE LOWER(u.email) LIKE LOWER(CONCAT('%@', :domain))")
+    @Query("SELECT u FROM User u WHERE u.email LIKE CONCAT('%@', :domain)")
     List<User> findByEmailDomain(@Param("domain") String domain);
 
-    // ===== BULK OPERATIONS =====
+    // ===== ADVANCED ANALYTICS =====
 
     /**
-     * Bulk update active status cho multiple users
-     * @param userIds Danh sách user IDs
-     * @param active Status mới
-     * @return Số lượng users đã update
-     */
-    @Query("UPDATE User u SET u.active = :active WHERE u.id IN :userIds")
-    int bulkUpdateActiveStatus(@Param("userIds") List<Long> userIds,
-                               @Param("active") boolean active);
-
-    /**
-     * Bulk update role cho multiple users
-     * @param userIds Danh sách user IDs
-     * @param role Role mới
-     * @return Số lượng users đã update
-     */
-    @Query("UPDATE User u SET u.role = :role WHERE u.id IN :userIds")
-    int bulkUpdateRole(@Param("userIds") List<Long> userIds,
-                       @Param("role") User.Role role);
-
-    // ===== SECURITY QUERIES =====
-
-    /**
-     * Tìm users có login attempts nhiều trong thời gian ngắn (security)
-     * @param threshold Thời điểm threshold
-     * @return Danh sách suspicious users
-     */
-    @Query("SELECT u FROM User u WHERE u.lastLogin >= :threshold " +
-            "GROUP BY u HAVING COUNT(u) > 5")
-    List<User> findSuspiciousLoginActivity(@Param("threshold") LocalDateTime threshold);
-
-    /**
-     * Tìm users theo IP range (nếu store IP addresses)
-     * Placeholder method - cần thêm IP field vào User entity
-     */
-    // List<User> findByLastLoginIpStartingWith(String ipPrefix);
-
-    // ===== REPORTING QUERIES =====
-
-    /**
-     * Lấy summary statistics cho admin dashboard
-     * @return Object array [totalUsers, activeUsers, newThisMonth, instructors, students]
+     * Lấy user growth rate
+     * @param currentMonthStart Đầu tháng hiện tại
+     * @param previousMonthStart Đầu tháng trước
+     * @return List array [currentMonthCount, previousMonthCount, growthRate]
      */
     @Query("SELECT " +
-            "(SELECT COUNT(u) FROM User u), " +
-            "(SELECT COUNT(u) FROM User u WHERE u.active = true), " +
-            "(SELECT COUNT(u) FROM User u WHERE u.createdAt >= :monthStart), " +
-            "(SELECT COUNT(u) FROM User u WHERE u.role = 'INSTRUCTOR'), " +
-            "(SELECT COUNT(u) FROM User u WHERE u.role = 'STUDENT')")
-    Object[] getUserSummaryStats(@Param("monthStart") LocalDateTime monthStart);
+            "(SELECT COUNT(u1) FROM User u1 WHERE u1.createdAt >= :currentMonthStart), " +
+            "(SELECT COUNT(u2) FROM User u2 WHERE u2.createdAt >= :previousMonthStart AND u2.createdAt < :currentMonthStart), " +
+            "CASE WHEN (SELECT COUNT(u3) FROM User u3 WHERE u3.createdAt >= :previousMonthStart AND u3.createdAt < :currentMonthStart) > 0 " +
+            "THEN ((SELECT COUNT(u4) FROM User u4 WHERE u4.createdAt >= :currentMonthStart) - " +
+            "      (SELECT COUNT(u5) FROM User u5 WHERE u5.createdAt >= :previousMonthStart AND u5.createdAt < :currentMonthStart)) * 100.0 / " +
+            "     (SELECT COUNT(u6) FROM User u6 WHERE u6.createdAt >= :previousMonthStart AND u6.createdAt < :currentMonthStart) " +
+            "ELSE 0 END")
+    List<Object[]> getUserGrowthRate(@Param("currentMonthStart") LocalDateTime currentMonthStart,
+                                     @Param("previousMonthStart") LocalDateTime previousMonthStart);
 
     /**
-     * Lấy growth statistics
-     * @param months Số tháng cần lấy thống kê
-     * @return List array [month, newUsers, totalUsers]
+     * Lấy retention rate (users vẫn active sau X tháng)
+     * @param registeredBefore Đăng ký trước thời điểm
+     * @param activeAfter Vẫn active sau thời điểm
+     * @return List array [totalRegistered, stillActive, retentionRate]
      */
-    @Query(value = "SELECT DATE_FORMAT(created_at, '%Y-%m') as month, " +
-            "COUNT(*) as new_users, " +
-            "(SELECT COUNT(*) FROM users u2 WHERE u2.created_at <= LAST_DAY(u1.created_at)) as total_users " +
-            "FROM users u1 " +
-            "WHERE created_at >= DATE_SUB(NOW(), INTERVAL :months MONTH) " +
-            "GROUP BY DATE_FORMAT(created_at, '%Y-%m') " +
-            "ORDER BY month",
-            nativeQuery = true)
-    List<Object[]> getUserGrowthStats(@Param("months") int months);
+    @Query("SELECT " +
+            "(SELECT COUNT(u1) FROM User u1 WHERE u1.createdAt <= :registeredBefore), " +
+            "(SELECT COUNT(u2) FROM User u2 WHERE u2.createdAt <= :registeredBefore AND u2.active = true AND u2.lastLogin >= :activeAfter), " +
+            "CASE WHEN (SELECT COUNT(u3) FROM User u3 WHERE u3.createdAt <= :registeredBefore) > 0 " +
+            "THEN (SELECT COUNT(u4) FROM User u4 WHERE u4.createdAt <= :registeredBefore AND u4.active = true AND u4.lastLogin >= :activeAfter) * 100.0 / " +
+            "     (SELECT COUNT(u5) FROM User u5 WHERE u5.createdAt <= :registeredBefore) " +
+            "ELSE 0 END")
+    List<Object[]> getUserRetentionRate(@Param("registeredBefore") LocalDateTime registeredBefore,
+                                        @Param("activeAfter") LocalDateTime activeAfter);
+
+    /**
+     * Tìm users most engaged (nhiều activities)
+     * @param pageable Pagination
+     * @return List array [userId, userName, totalEnrollments, totalQuizzes]
+     */
+    @Query("SELECT u.id, u.fullName, " +
+            "(SELECT COUNT(e) FROM Enrollment e WHERE e.student = u), " +
+            "(SELECT COUNT(qr) FROM QuizResult qr WHERE qr.student = u) " +
+            "FROM User u " +
+            "WHERE u.role = 'STUDENT' AND u.active = true " +
+            "ORDER BY ((SELECT COUNT(e) FROM Enrollment e WHERE e.student = u) + " +
+            "          (SELECT COUNT(qr) FROM QuizResult qr WHERE qr.student = u)) DESC")
+    List<Object[]> findMostEngagedUsers(Pageable pageable);
 }

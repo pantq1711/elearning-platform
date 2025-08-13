@@ -12,6 +12,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Controller xử lý các trang công khai và trang chủ
@@ -31,6 +32,12 @@ public class HomeController {
 
     @Autowired
     private EnrollmentService enrollmentService;
+
+    @Autowired
+    private LessonService lessonService;
+
+    @Autowired
+    private QuizService quizService;
 
     /**
      * Trang chủ công khai
@@ -70,102 +77,96 @@ public class HomeController {
                     .stream().limit(6).toList();
             model.addAttribute("latestCourses", latestCourses);
 
-            // Danh mục có khóa học
-            List<Category> categoriesWithCourses = categoryService.findCategoriesWithCourses();
-            model.addAttribute("categories", categoriesWithCourses);
-
-            // Top danh mục phổ biến
-            List<Category> topCategories = categoryService.findTopCategoriesByCourseCount(8);
+            // Danh mục nổi bật với thống kê
+            List<CategoryService.CategoryStats> topCategories = categoryService.findTopCategoriesByCourseCount(8);
             model.addAttribute("topCategories", topCategories);
+
+            // Featured categories
+            List<Category> featuredCategories = categoryService.findFeaturedCategories();
+            model.addAttribute("featuredCategories", featuredCategories);
 
             return "home";
 
         } catch (Exception e) {
-            model.addAttribute("error", "Có lỗi xảy ra khi tải trang chủ");
+            model.addAttribute("error", "Có lỗi xảy ra khi tải trang chủ: " + e.getMessage());
             return "error/500";
         }
     }
 
     /**
-     * Trang danh sách khóa học công khai
-     * Cho phép khách vãng lai xem danh sách khóa học
+     * Trang tìm kiếm courses
      */
-    @GetMapping("/courses")
-    public String publicCourses(@RequestParam(value = "search", required = false) String search,
-                                @RequestParam(value = "category", required = false) Long categoryId,
-                                Model model) {
+    @GetMapping("/search")
+    public String search(@RequestParam(required = false) String q,
+                         @RequestParam(required = false) Long categoryId,
+                         Model model) {
         try {
-            // Kiểm tra user đã đăng nhập chưa
-            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-            if (auth != null && auth.isAuthenticated() && !auth.getPrincipal().equals("anonymousUser")) {
-                User currentUser = (User) auth.getPrincipal();
-                model.addAttribute("currentUser", currentUser);
-            }
+            // Lấy tất cả categories cho filter
+            List<Category> categories = categoryService.findAllActive();
+            model.addAttribute("categories", categories);
 
-            List<Course> courses;
+            List<Course> searchResults;
 
-            // Tìm kiếm và lọc khóa học
-            if (search != null && !search.trim().isEmpty()) {
-                courses = courseService.searchCourses(search);
+            if (q != null && !q.trim().isEmpty()) {
+                // Tìm kiếm theo từ khóa
+                searchResults = courseService.searchCoursesByName(q.trim());
+                model.addAttribute("searchQuery", q);
             } else if (categoryId != null) {
-                Category category = categoryService.findById(categoryId).orElse(null);
-                if (category != null) {
-                    courses = courseService.findActiveCoursesByCategory(category);
-                    model.addAttribute("selectedCategory", category);
-                } else {
-                    courses = courseService.findAllActiveCourses();
-                }
+                // Tìm kiếm theo category
+                searchResults = courseService.findActiveCoursesByCategory(categoryId);
+                Category selectedCategory = categoryService.findById(categoryId).orElse(null);
+                model.addAttribute("selectedCategory", selectedCategory);
             } else {
-                courses = courseService.findAllActiveCourses();
+                // Hiển thị tất cả courses active
+                searchResults = courseService.findActiveCoursesOrderByLatest();
             }
 
-            model.addAttribute("courses", courses);
-            model.addAttribute("search", search);
-            model.addAttribute("categories", categoryService.findCategoriesWithCourses());
+            // Thêm thông tin thống kê cho mỗi course
+            for (Course course : searchResults) {
+                course.setLessonCount((int) lessonService.countActiveLessonsByCourse(course));
+                course.setQuizCount((int) quizService.countActiveQuizzesByCourse(course));
+            }
 
-            return "public/courses";
+            model.addAttribute("searchResults", searchResults);
+            model.addAttribute("resultCount", searchResults.size());
+
+            return "public/search";
 
         } catch (Exception e) {
-            model.addAttribute("error", "Có lỗi xảy ra khi tải danh sách khóa học");
-            return "public/courses";
+            model.addAttribute("error", "Có lỗi xảy ra khi tìm kiếm: " + e.getMessage());
+            return "error/500";
         }
     }
 
     /**
-     * Chi tiết khóa học công khai
-     * Cho phép xem thông tin khóa học trước khi đăng nhập
+     * Trang chi tiết course cho guest
      */
-    @GetMapping("/courses/{id}")
-    public String publicCourseDetail(@PathVariable Long id, Model model) {
+    @GetMapping("/course/{slug}")
+    public String courseDetail(@PathVariable String slug, Model model) {
         try {
-            // Kiểm tra user đã đăng nhập chưa
-            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-            if (auth != null && auth.isAuthenticated() && !auth.getPrincipal().equals("anonymousUser")) {
-                User currentUser = (User) auth.getPrincipal();
-                model.addAttribute("currentUser", currentUser);
-
-                // Nếu là học viên đã đăng nhập, chuyển hướng đến trang chi tiết dành cho học viên
-                if (currentUser.getRole() == User.Role.STUDENT) {
-                    return "redirect:/student/courses/" + id;
-                }
-            }
-
-            Course course = courseService.findById(id)
+            Course course = courseService.findBySlug(slug)
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học"));
 
             if (!course.isActive()) {
-                model.addAttribute("error", "Khóa học hiện tại không khả dụng");
-                return "redirect:/courses";
+                throw new RuntimeException("Khóa học này hiện không khả dụng");
             }
 
             model.addAttribute("course", course);
 
-            // Thống kê cơ bản cho khách vãng lai
-            model.addAttribute("enrollmentCount", enrollmentService.countEnrollmentsByCourse(course));
-            model.addAttribute("lessonCount", lessonService.countActiveLessonsByCourse(course));
-            model.addAttribute("quizCount", quizService.countActiveQuizzesByCourse(course));
+            // Thống kê course
+            model.addAttribute("totalLessons", lessonService.countActiveLessonsByCourse(course));
+            model.addAttribute("totalQuizzes", quizService.countActiveQuizzesByCourse(course));
 
-            // Khóa học cùng danh mục
+            // Lessons preview (chỉ những lessons có preview = true)
+            List<com.coursemanagement.entity.Lesson> previewLessons =
+                    lessonService.findActiveLessonsByCourse(course)
+                            .stream()
+                            .filter(com.coursemanagement.entity.Lesson::isPreview)
+                            .limit(3)
+                            .toList();
+            model.addAttribute("previewLessons", previewLessons);
+
+            // Courses liên quan (cùng category)
             List<Course> relatedCourses = courseService.findActiveCoursesByCategory(course.getCategory())
                     .stream()
                     .filter(c -> !c.getId().equals(course.getId()))
@@ -173,173 +174,131 @@ public class HomeController {
                     .toList();
             model.addAttribute("relatedCourses", relatedCourses);
 
+            // Kiểm tra user đã đăng nhập và đã enroll chưa
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            boolean isEnrolled = false;
+            if (auth != null && auth.isAuthenticated() && !auth.getPrincipal().equals("anonymousUser")) {
+                User currentUser = (User) auth.getPrincipal();
+                model.addAttribute("currentUser", currentUser);
+                isEnrolled = enrollmentService.isStudentEnrolled(currentUser, course);
+            }
+            model.addAttribute("isEnrolled", isEnrolled);
+
             return "public/course-detail";
 
         } catch (Exception e) {
             model.addAttribute("error", e.getMessage());
-            return "redirect:/courses";
+            return "error/404";
         }
     }
 
     /**
-     * Trang danh mục khóa học
+     * Trang danh sách categories
      */
     @GetMapping("/categories")
-    public String publicCategories(Model model) {
+    public String categories(Model model) {
         try {
-            // Kiểm tra user đã đăng nhập chưa
-            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-            if (auth != null && auth.isAuthenticated() && !auth.getPrincipal().equals("anonymousUser")) {
-                User currentUser = (User) auth.getPrincipal();
-                model.addAttribute("currentUser", currentUser);
+            List<Category> allCategories = categoryService.findAllActive();
+            model.addAttribute("categories", allCategories);
+
+            // Thống kê cho mỗi category
+            for (Category category : allCategories) {
+                List<Course> categoryCourses = courseService.findActiveCoursesByCategory(category);
+                category.setCourseCount((long) categoryCourses.size());
             }
-
-            // Tất cả danh mục có khóa học
-            List<Category> categories = categoryService.findCategoriesWithCourses();
-            model.addAttribute("categories", categories);
-
-            // Thống kê cho mỗi danh mục
-            List<Object[]> categoryStats = categoryService.getCategoryStatistics();
-            model.addAttribute("categoryStats", categoryStats);
 
             return "public/categories";
 
         } catch (Exception e) {
-            model.addAttribute("error", "Có lỗi xảy ra khi tải danh sách danh mục");
-            return "public/categories";
+            model.addAttribute("error", "Có lỗi xảy ra khi tải danh mục: " + e.getMessage());
+            return "error/500";
         }
     }
 
     /**
-     * Trang giới thiệu
+     * Trang courses theo category
      */
-    @GetMapping("/about")
-    public String about(Model model) {
+    @GetMapping("/category/{slug}")
+    public String categoryDetail(@PathVariable String slug, Model model) {
         try {
-            // Kiểm tra user đã đăng nhập chưa
-            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-            if (auth != null && auth.isAuthenticated() && !auth.getPrincipal().equals("anonymousUser")) {
-                User currentUser = (User) auth.getPrincipal();
-                model.addAttribute("currentUser", currentUser);
+            Category category = categoryService.findBySlug(slug)
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy danh mục"));
+
+            model.addAttribute("category", category);
+
+            // Courses trong category
+            List<Course> categoryCourses = courseService.findActiveCoursesByCategory(category);
+
+            // Thêm thông tin thống kê cho mỗi course
+            for (Course course : categoryCourses) {
+                course.setLessonCount((int) lessonService.countActiveLessonsByCourse(course));
+                course.setQuizCount((int) quizService.countActiveQuizzesByCourse(course));
             }
 
-            // Thống kê tổng quan
-            model.addAttribute("totalCourses", courseService.countActiveCourses());
-            model.addAttribute("totalStudents", userService.countByRole(User.Role.STUDENT));
-            model.addAttribute("totalInstructors", userService.countByRole(User.Role.INSTRUCTOR));
-            model.addAttribute("totalCategories", categoryService.countAllCategories());
+            model.addAttribute("courses", categoryCourses);
+            model.addAttribute("courseCount", categoryCourses.size());
 
-            return "public/about";
+            return "public/category-detail";
 
         } catch (Exception e) {
-            model.addAttribute("error", "Có lỗi xảy ra khi tải trang giới thiệu");
-            return "public/about";
+            model.addAttribute("error", e.getMessage());
+            return "error/404";
         }
     }
 
     /**
-     * Trang liên hệ
-     */
-    @GetMapping("/contact")
-    public String contact(Model model) {
-        try {
-            // Kiểm tra user đã đăng nhập chưa
-            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-            if (auth != null && auth.isAuthenticated() && !auth.getPrincipal().equals("anonymousUser")) {
-                User currentUser = (User) auth.getPrincipal();
-                model.addAttribute("currentUser", currentUser);
-            }
-
-            return "public/contact";
-
-        } catch (Exception e) {
-            model.addAttribute("error", "Có lỗi xảy ra khi tải trang liên hệ");
-            return "public/contact";
-        }
-    }
-
-    /**
-     * API endpoint tìm kiếm khóa học (cho AJAX)
-     */
-    @GetMapping("/api/courses/search")
-    @ResponseBody
-    public List<Course> searchCoursesApi(@RequestParam("q") String query) {
-        try {
-            if (query == null || query.trim().length() < 2) {
-                return List.of();
-            }
-
-            return courseService.searchCoursesByName(query.trim())
-                    .stream()
-                    .limit(10)
-                    .toList();
-
-        } catch (Exception e) {
-            return List.of();
-        }
-    }
-
-    /**
-     * API endpoint lấy khóa học theo danh mục (cho AJAX)
-     */
-    @GetMapping("/api/categories/{categoryId}/courses")
-    @ResponseBody
-    public List<Course> getCoursesByCategory(@PathVariable Long categoryId) {
-        try {
-            Category category = categoryService.findById(categoryId).orElse(null);
-            if (category == null) {
-                return List.of();
-            }
-
-            return courseService.findActiveCoursesByCategory(category);
-
-        } catch (Exception e) {
-            return List.of();
-        }
-    }
-
-    /**
-     * Trang hiển thị thống kê công khai
+     * Trang thống kê công khai
      */
     @GetMapping("/stats")
     public String publicStats(Model model) {
         try {
-            // Kiểm tra user đã đăng nhập chưa
-            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-            if (auth != null && auth.isAuthenticated() && !auth.getPrincipal().equals("anonymousUser")) {
-                User currentUser = (User) auth.getPrincipal();
-                model.addAttribute("currentUser", currentUser);
-            }
-
             // Thống kê tổng quan
             model.addAttribute("totalCourses", courseService.countActiveCourses());
             model.addAttribute("totalStudents", userService.countByRole(User.Role.STUDENT));
             model.addAttribute("totalInstructors", userService.countByRole(User.Role.INSTRUCTOR));
-            model.addAttribute("totalCategories", categoryService.countAllCategories());
+            model.addAttribute("totalEnrollments", enrollmentService.countAllEnrollments());
 
-            // Top khóa học phổ biến
-            model.addAttribute("popularCourses", courseService.findTopPopularCourses(10));
+            // Top categories
+            List<CategoryService.CategoryStats> topCategories = categoryService.findTopCategoriesByCourseCount(10);
+            model.addAttribute("topCategories", topCategories);
 
-            // Thống kê theo danh mục
-            model.addAttribute("categoryStats", courseService.getCourseStatisticsByCategory());
+            // Popular courses
+            List<Course> popularCourses = courseService.findTopPopularCourses(10);
+            model.addAttribute("popularCourses", popularCourses);
 
-            // Thống kê theo giảng viên
-            model.addAttribute("instructorStats", courseService.getCourseStatisticsByInstructor());
+            // Thống kê theo tháng
+            Map<String, Object> courseStats = courseService.getCourseStatisticsByMonth();
+            model.addAttribute("courseStats", courseStats);
+
+            Map<String, Object> categoryStats = categoryService.getCategoryStatistics();
+            model.addAttribute("categoryStats", categoryStats);
 
             return "public/stats";
 
         } catch (Exception e) {
-            model.addAttribute("error", "Có lỗi xảy ra khi tải thống kê");
-            return "public/stats";
+            model.addAttribute("error", "Có lỗi xảy ra khi tải thống kê: " + e.getMessage());
+            return "error/500";
         }
     }
 
     /**
-     * Exception handler cho controller này
+     * Trang About
      */
-    @ExceptionHandler(Exception.class)
-    public String handleException(Exception e, Model model) {
-        model.addAttribute("error", "Có lỗi xảy ra: " + e.getMessage());
-        return "error/500";
+    @GetMapping("/about")
+    public String about(Model model) {
+        // Thống kê cơ bản cho about page
+        model.addAttribute("totalCourses", courseService.countActiveCourses());
+        model.addAttribute("totalStudents", userService.countByRole(User.Role.STUDENT));
+        model.addAttribute("totalInstructors", userService.countByRole(User.Role.INSTRUCTOR));
+
+        return "public/about";
+    }
+
+    /**
+     * Trang Contact
+     */
+    @GetMapping("/contact")
+    public String contact() {
+        return "public/contact";
     }
 }
