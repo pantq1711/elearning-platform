@@ -1,5 +1,5 @@
 # ===================================================================
-# SPRING BOOT APPLICATION PROPERTIES - H? TH?NG QU?N LÝ KHÓA H?C
+# SPRING BOOT APPLICATION PROPERTIES - H? TH?NG QU?N Lï¿½ KHï¿½A H?C
 # ===================================================================
 
 # ===================================================================
@@ -16,7 +16,7 @@ server.servlet.encoding.force=true
 # ===================================================================
 spring.datasource.url=jdbc:mysql://localhost:3306/course_management?useSSL=false&serverTimezone=Asia/Ho_Chi_Minh&allowPublicKeyRetrieval=true&useUnicode=true&characterEncoding=UTF-8
 spring.datasource.username=root
-spring.datasource.password=
+spring.datasource.password=123456
 
 # Connection Pool Configuration (HikariCP - m?c ??nh c?a Spring Boot)
 spring.datasource.hikari.maximum-pool-size=20
@@ -95,7 +95,7 @@ management.info.env.enabled=true
 
 # Application Info
 info.app.name=Course Management System
-info.app.description=H? th?ng qu?n lý khóa h?c và ki?m tra tr?c tuy?n
+info.app.description=H? th?ng qu?n lï¿½ khï¿½a h?c vï¿½ ki?m tra tr?c tuy?n
 info.app.version=1.0.0
 info.app.author=Your Name
 
@@ -118,7 +118,7 @@ spring.messages.cache-duration=3600
 # spring.mail.properties.mail.smtp.starttls.enable=true
 
 # ===================================================================
-# THYMELEAF CONFIGURATION (n?u dùng Thymeleaf thay vì JSP)
+# THYMELEAF CONFIGURATION (n?u dï¿½ng Thymeleaf thay vï¿½ JSP)
 # ===================================================================
 # spring.thymeleaf.cache=false
 # spring.thymeleaf.enabled=true
@@ -139,26 +139,26 @@ spring.jpa.properties.hibernate.validator.fail_fast=false
 # ===================================================================
 # CUSTOM APPLICATION PROPERTIES
 # ===================================================================
-# C?u hình cho ?ng d?ng
+# C?u hï¿½nh cho ?ng d?ng
 app.name=Course Management System
 app.version=1.0.0
 app.upload.dir=uploads/
 app.default.page.size=10
 app.max.file.size=10MB
 
-# C?u hình b?o m?t
+# C?u hï¿½nh b?o m?t
 app.security.password.min-length=6
 app.security.session.timeout=1800
 app.security.max.login.attempts=3
 
-# C?u hình email template
+# C?u hï¿½nh email template
 app.email.from=noreply@coursemanagement.com
 app.email.support=support@coursemanagement.com
 
 # ===================================================================
 # PROFILE SPECIFIC CONFIGURATION
 # ===================================================================
-# S? d?ng profile cho các môi tr??ng khác nhau
+# S? d?ng profile cho cï¿½c mï¿½i tr??ng khï¿½c nhau
 spring.profiles.active=development
 
 # Development Profile
@@ -180,8 +180,8 @@ server.servlet.session.cookie.secure=true
 # ===================================================================
 # NOTES
 # ===================================================================
-# 1. ??i spring.datasource.password thành m?t kh?u MySQL c?a b?n
+# 1. ??i spring.datasource.password thï¿½nh m?t kh?u MySQL c?a b?n
 # 2. T?o database 'course_management' trong MySQL tr??c khi ch?y
 # 3. Uncomment email configuration n?u c?n g?i email
-# 4. ??i app.upload.dir thành ???ng d?n th?c t? n?u c?n upload file
+# 4. ??i app.upload.dir thï¿½nh ???ng d?n th?c t? n?u c?n upload file
 # 5. Trong production, ??t spring.profiles.active=production

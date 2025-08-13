@@ -18,7 +18,6 @@ import java.util.Optional;
 /**
  * Repository interface cho Lesson entity
  * Chứa các custom queries cho lesson management
- * Cập nhật với đầy đủ methods cần thiết
  */
 @Repository
 public interface LessonRepository extends JpaRepository<Lesson, Long> {
@@ -27,73 +26,74 @@ public interface LessonRepository extends JpaRepository<Lesson, Long> {
 
     /**
      * Tìm lesson theo slug
-     * @param slug Slug của lesson
-     * @return Optional chứa Lesson nếu tìm thấy
      */
     Optional<Lesson> findBySlug(String slug);
 
     /**
      * Tìm lesson theo ID và course (cho security)
-     * @param id ID lesson
-     * @param course Course chứa lesson
-     * @return Optional chứa Lesson nếu tìm thấy
      */
     Optional<Lesson> findByIdAndCourse(Long id, Course course);
 
     /**
      * Kiểm tra slug đã tồn tại trong course chưa
-     * @param slug Slug
-     * @param course Course
-     * @return true nếu đã tồn tại
      */
     boolean existsBySlugAndCourse(String slug, Course course);
 
     /**
      * Kiểm tra slug đã tồn tại trong course chưa (exclude ID hiện tại)
-     * @param slug Slug
-     * @param course Course
-     * @param id ID cần exclude
-     * @return true nếu đã tồn tại
      */
     boolean existsBySlugAndCourseAndIdNot(String slug, Course course, Long id);
+
+    /**
+     * Kiểm tra có lesson nào với order index không
+     */
+    boolean existsByCourseAndOrderIndex(Course course, Integer orderIndex);
+
+    /**
+     * Kiểm tra có lesson nào với order index (exclude ID hiện tại)
+     */
+    boolean existsByCourseAndOrderIndexAndIdNot(Course course, Integer orderIndex, Long id);
 
     // ===== COURSE-RELATED QUERIES =====
 
     /**
      * Tìm lessons theo course sắp xếp theo order index
-     * @param course Course
-     * @return Danh sách lessons đã sắp xếp
      */
     List<Lesson> findByCourseOrderByOrderIndex(Course course);
 
     /**
+     * Tìm lessons theo course ID sắp xếp theo order index
+     */
+    @Query("SELECT l FROM Lesson l WHERE l.course.id = :courseId ORDER BY l.orderIndex ASC")
+    List<Lesson> findByCourseIdOrderByOrderIndex(@Param("courseId") Long courseId);
+
+    /**
      * Tìm lessons theo course với pagination
-     * @param course Course
-     * @param pageable Pagination info
-     * @return Page chứa lessons
      */
     Page<Lesson> findByCourse(Course course, Pageable pageable);
 
     /**
+     * Tìm lessons theo course sắp xếp theo order index với pagination
+     */
+    Page<Lesson> findByCourseOrderByOrderIndex(Course course, Pageable pageable);
+
+    /**
      * Tìm active lessons theo course
-     * @param course Course
-     * @param active Trạng thái active
-     * @return Danh sách active lessons
      */
     List<Lesson> findByCourseAndActiveOrderByOrderIndex(Course course, boolean active);
 
     /**
      * Đếm lessons theo course
-     * @param course Course
-     * @return Số lượng lessons
+     */
+    Long countByCourse(Course course);
+
+    /**
+     * Đếm lessons theo course (alternative method name)
      */
     Long countLessonsByCourse(Course course);
 
     /**
      * Đếm active lessons theo course
-     * @param course Course
-     * @param active Trạng thái active
-     * @return Số lượng active lessons
      */
     Long countByCourseAndActive(Course course, boolean active);
 
@@ -101,15 +101,11 @@ public interface LessonRepository extends JpaRepository<Lesson, Long> {
 
     /**
      * Tìm preview lessons theo course
-     * @param course Course
-     * @return Danh sách preview lessons
      */
     List<Lesson> findByCourseAndPreviewOrderByOrderIndex(Course course, boolean preview);
 
     /**
      * Lấy lesson đầu tiên có preview trong course
-     * @param course Course
-     * @return Optional chứa preview lesson đầu tiên
      */
     Optional<Lesson> findFirstByCourseAndPreviewOrderByOrderIndex(Course course, boolean preview);
 
@@ -117,37 +113,56 @@ public interface LessonRepository extends JpaRepository<Lesson, Long> {
 
     /**
      * Lấy max order index trong course
-     * @param course Course
-     * @return Max order index
      */
     @Query("SELECT COALESCE(MAX(l.orderIndex), 0) FROM Lesson l WHERE l.course = :course")
     Integer getMaxOrderIndexByCourse(@Param("course") Course course);
 
     /**
+     * Tìm max order index trong course (alternative method)
+     */
+    @Query("SELECT MAX(l.orderIndex) FROM Lesson l WHERE l.course = :course")
+    Integer findMaxOrderIndexByCourse(@Param("course") Course course);
+
+    /**
      * Lấy next order index cho lesson mới
-     * @param course Course
-     * @return Next order index
      */
     @Query("SELECT COALESCE(MAX(l.orderIndex), 0) + 1 FROM Lesson l WHERE l.course = :course")
     Integer getNextOrderIndex(@Param("course") Course course);
 
     /**
-     * Cập nhật order index của lessons
-     * @param lessonIds Danh sách lesson IDs
-     * @param newOrderIndex Order index mới
+     * Cập nhật order index của lessons từ vị trí cho trước
      */
     @Modifying
     @Transactional
     @Query("UPDATE Lesson l SET l.orderIndex = l.orderIndex + 1 WHERE l.course = :course AND l.orderIndex >= :fromIndex")
     void incrementOrderIndexFrom(@Param("course") Course course, @Param("fromIndex") Integer fromIndex);
 
+    /**
+     * Tăng order index của các lessons từ vị trí cho trước với số lượng tùy chọn
+     */
+    @Modifying
+    @Transactional
+    @Query("UPDATE Lesson l SET l.orderIndex = l.orderIndex + :incrementBy " +
+            "WHERE l.course = :course AND l.orderIndex >= :fromIndex")
+    void incrementOrderIndex(@Param("course") Course course,
+                             @Param("fromIndex") Integer fromIndex,
+                             @Param("incrementBy") int incrementBy);
+
+    /**
+     * Giảm order index của các lessons trong khoảng
+     */
+    @Modifying
+    @Transactional
+    @Query("UPDATE Lesson l SET l.orderIndex = l.orderIndex - 1 " +
+            "WHERE l.course = :course AND l.orderIndex > :fromIndex AND l.orderIndex <= :toIndex")
+    void decrementOrderIndex(@Param("course") Course course,
+                             @Param("fromIndex") int fromIndex,
+                             @Param("toIndex") Integer toIndex);
+
     // ===== SEARCH METHODS =====
 
     /**
-     * Search lessons theo title hoặc content
-     * @param course Course
-     * @param keyword Từ khóa tìm kiếm
-     * @return Danh sách lessons tìm thấy
+     * Search lessons theo title hoặc content trong course
      */
     @Query("SELECT l FROM Lesson l WHERE l.course = :course AND " +
             "(LOWER(l.title) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
@@ -156,30 +171,40 @@ public interface LessonRepository extends JpaRepository<Lesson, Long> {
 
     /**
      * Search lessons global
-     * @param keyword Từ khóa tìm kiếm
-     * @param pageable Pagination info
-     * @return Page chứa lessons tìm thấy
      */
     @Query("SELECT l FROM Lesson l WHERE l.active = true AND " +
             "(LOWER(l.title) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(l.content) LIKE LOWER(CONCAT('%', :keyword, '%')))")
     Page<Lesson> searchLessons(@Param("keyword") String keyword, Pageable pageable);
 
+    /**
+     * Tìm lessons active sắp xếp theo ngày tạo
+     */
+    Page<Lesson> findByActiveOrderByCreatedAtDesc(boolean active, Pageable pageable);
+
+    /**
+     * Tìm lessons theo title chứa keyword và active
+     */
+    Page<Lesson> findByTitleContainingIgnoreCaseAndActiveOrderByCreatedAtDesc(String keyword,
+                                                                              boolean active,
+                                                                              Pageable pageable);
+
     // ===== INSTRUCTOR-RELATED QUERIES =====
 
     /**
      * Tìm lessons theo instructor
-     * @param instructor Instructor
-     * @param pageable Pagination info
-     * @return Page chứa lessons
+     */
+    @Query("SELECT l FROM Lesson l WHERE l.course.instructor = :instructor ORDER BY l.createdAt DESC")
+    List<Lesson> findByInstructor(@Param("instructor") User instructor);
+
+    /**
+     * Tìm lessons theo instructor với pagination
      */
     @Query("SELECT l FROM Lesson l WHERE l.course.instructor = :instructor ORDER BY l.createdAt DESC")
     Page<Lesson> findByInstructor(@Param("instructor") User instructor, Pageable pageable);
 
     /**
      * Đếm lessons của instructor
-     * @param instructor Instructor
-     * @return Số lượng lessons
      */
     @Query("SELECT COUNT(l) FROM Lesson l WHERE l.course.instructor = :instructor")
     Long countByInstructor(@Param("instructor") User instructor);
@@ -187,33 +212,32 @@ public interface LessonRepository extends JpaRepository<Lesson, Long> {
     // ===== VIDEO & DOCUMENT QUERIES =====
 
     /**
-     * Tìm lessons có video
-     * @param course Course
-     * @return Danh sách lessons có video
+     * Tìm lessons có video (videoLink field)
      */
     @Query("SELECT l FROM Lesson l WHERE l.course = :course AND l.videoLink IS NOT NULL AND l.videoLink != ''")
     List<Lesson> findLessonsWithVideo(@Param("course") Course course);
 
     /**
+     * Tìm lessons có video content (videoUrl field)
+     */
+    @Query("SELECT l FROM Lesson l WHERE l.course = :course AND l.videoUrl IS NOT NULL " +
+            "ORDER BY l.orderIndex ASC")
+    List<Lesson> findLessonsWithVideoUrl(@Param("course") Course course);
+
+    /**
      * Tìm lessons có document
-     * @param course Course
-     * @return Danh sách lessons có document
      */
     @Query("SELECT l FROM Lesson l WHERE l.course = :course AND l.documentUrl IS NOT NULL AND l.documentUrl != ''")
     List<Lesson> findLessonsWithDocument(@Param("course") Course course);
 
     /**
      * Đếm lessons có video trong course
-     * @param course Course
-     * @return Số lượng lessons có video
      */
     @Query("SELECT COUNT(l) FROM Lesson l WHERE l.course = :course AND l.videoLink IS NOT NULL AND l.videoLink != ''")
     Long countLessonsWithVideo(@Param("course") Course course);
 
     /**
      * Đếm lessons có document trong course
-     * @param course Course
-     * @return Số lượng lessons có document
      */
     @Query("SELECT COUNT(l) FROM Lesson l WHERE l.course = :course AND l.documentUrl IS NOT NULL AND l.documentUrl != ''")
     Long countLessonsWithDocument(@Param("course") Course course);
@@ -222,40 +246,36 @@ public interface LessonRepository extends JpaRepository<Lesson, Long> {
 
     /**
      * Lấy tổng estimated duration của course
-     * @param course Course
-     * @return Tổng duration (minutes)
      */
     @Query("SELECT COALESCE(SUM(l.estimatedDuration), 0) FROM Lesson l WHERE l.course = :course AND l.active = true")
+    Integer getTotalEstimatedDurationByCourse(@Param("course") Course course);
+
+    /**
+     * Tính tổng duration của course (duration field)
+     */
+    @Query("SELECT SUM(COALESCE(l.duration, 0)) FROM Lesson l WHERE l.course = :course")
     Integer getTotalDurationByCourse(@Param("course") Course course);
 
     /**
      * Lấy average duration per lesson trong course
-     * @param course Course
-     * @return Average duration
      */
     @Query("SELECT AVG(l.estimatedDuration) FROM Lesson l WHERE l.course = :course AND l.active = true")
     Double getAverageDurationByCourse(@Param("course") Course course);
 
     /**
      * Lấy lessons được tạo gần đây
-     * @param limit Số lượng lessons
-     * @return Danh sách recent lessons
      */
     @Query("SELECT l FROM Lesson l WHERE l.active = true ORDER BY l.createdAt DESC")
     List<Lesson> findRecentLessons(@Param("limit") int limit);
 
     /**
      * Lấy lessons được update gần đây
-     * @param limit Số lượng lessons
-     * @return Danh sách recently updated lessons
      */
     @Query("SELECT l FROM Lesson l WHERE l.active = true ORDER BY l.updatedAt DESC")
     List<Lesson> findRecentlyUpdatedLessons(@Param("limit") int limit);
 
     /**
      * Lấy thống kê lessons theo course của instructor
-     * @param instructor Instructor
-     * @return Danh sách [CourseName, LessonCount, TotalDuration]
      */
     @Query("SELECT c.name, COUNT(l), COALESCE(SUM(l.estimatedDuration), 0) " +
             "FROM Course c LEFT JOIN c.lessons l " +
@@ -268,34 +288,36 @@ public interface LessonRepository extends JpaRepository<Lesson, Long> {
 
     /**
      * Lấy lesson tiếp theo trong course
-     * @param course Course
-     * @param currentOrderIndex Order index hiện tại
-     * @return Optional chứa lesson tiếp theo
      */
     @Query("SELECT l FROM Lesson l WHERE l.course = :course AND l.orderIndex > :currentOrderIndex AND l.active = true ORDER BY l.orderIndex ASC")
     Optional<Lesson> findNextLesson(@Param("course") Course course, @Param("currentOrderIndex") Integer currentOrderIndex);
 
     /**
      * Lấy lesson trước đó trong course
-     * @param course Course
-     * @param currentOrderIndex Order index hiện tại
-     * @return Optional chứa lesson trước đó
      */
     @Query("SELECT l FROM Lesson l WHERE l.course = :course AND l.orderIndex < :currentOrderIndex AND l.active = true ORDER BY l.orderIndex DESC")
     Optional<Lesson> findPreviousLesson(@Param("course") Course course, @Param("currentOrderIndex") Integer currentOrderIndex);
 
     /**
-     * Lấy lesson đầu tiên trong course
-     * @param course Course
-     * @return Optional chứa lesson đầu tiên
+     * Lấy lesson đầu tiên trong course (active)
      */
     Optional<Lesson> findFirstByCourseAndActiveOrderByOrderIndex(Course course, boolean active);
 
     /**
-     * Lấy lesson cuối cùng trong course
-     * @param course Course
-     * @return Optional chứa lesson cuối cùng
+     * Tìm lesson đầu tiên trong course
+     */
+    @Query("SELECT l FROM Lesson l WHERE l.course = :course ORDER BY l.orderIndex ASC")
+    Optional<Lesson> findFirstLessonByCourse(@Param("course") Course course);
+
+    /**
+     * Lấy lesson cuối cùng trong course (active)
      */
     @Query("SELECT l FROM Lesson l WHERE l.course = :course AND l.active = true ORDER BY l.orderIndex DESC")
     Optional<Lesson> findLastLessonInCourse(@Param("course") Course course);
+
+    /**
+     * Tìm lesson cuối cùng trong course
+     */
+    @Query("SELECT l FROM Lesson l WHERE l.course = :course ORDER BY l.orderIndex DESC")
+    Optional<Lesson> findLastLessonByCourse(@Param("course") Course course);
 }

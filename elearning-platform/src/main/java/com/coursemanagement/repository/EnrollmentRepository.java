@@ -25,136 +25,162 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
 
     /**
      * Tìm enrollment theo student và course
-     * @param student Student
-     * @param course Course
-     * @return Optional chứa Enrollment nếu tìm thấy
      */
     Optional<Enrollment> findByStudentAndCourse(User student, Course course);
 
     /**
      * Kiểm tra student đã đăng ký course chưa
-     * @param student Student
-     * @param course Course
-     * @return true nếu đã đăng ký
      */
     boolean existsByStudentAndCourse(User student, Course course);
+
+    /**
+     * Kiểm tra student đã đăng ký course theo ID không
+     */
+    boolean existsByStudentIdAndCourseId(Long studentId, Long courseId);
 
     // ===== STUDENT-RELATED QUERIES =====
 
     /**
      * Tìm tất cả enrollments của student
-     * @param student Student
-     * @return Danh sách enrollments
      */
     List<Enrollment> findByStudent(User student);
 
     /**
      * Tìm enrollments của student sắp xếp theo ngày đăng ký
-     * @param student Student
-     * @return Danh sách enrollments
      */
     List<Enrollment> findByStudentOrderByEnrollmentDateDesc(User student);
 
     /**
+     * Tìm enrollments theo student và trạng thái completed
+     */
+    List<Enrollment> findByStudentAndCompletedOrderByEnrollmentDateDesc(User student, boolean completed);
+
+    /**
+     * Tìm completed enrollments theo completion date
+     */
+    List<Enrollment> findByStudentAndCompletedOrderByCompletionDateDesc(User student, boolean completed);
+
+    /**
+     * Tìm enrollments theo student và score lớn hơn threshold
+     */
+    List<Enrollment> findByStudentAndFinalScoreGreaterThanOrderByFinalScoreDesc(User student, double minScore);
+
+    /**
      * Tìm active enrollments của student (chưa hoàn thành)
-     * @param student Student
-     * @return Danh sách active enrollments
      */
     @Query("SELECT e FROM Enrollment e WHERE e.student = :student AND e.completed = false")
     List<Enrollment> findActiveEnrollmentsByStudent(@Param("student") User student);
 
     /**
      * Tìm completed enrollments của student
-     * @param student Student
-     * @return Danh sách completed enrollments
      */
     @Query("SELECT e FROM Enrollment e WHERE e.student = :student AND e.completed = true")
     List<Enrollment> findCompletedEnrollmentsByStudent(@Param("student") User student);
 
     /**
      * Tìm enrollments của student với pagination
-     * @param student Student
-     * @param pageable Pagination info
-     * @return Page chứa enrollments
      */
     Page<Enrollment> findByStudent(User student, Pageable pageable);
 
     /**
      * Đếm enrollments của student
-     * @param student Student
-     * @return Số lượng enrollments
      */
     Long countByStudent(User student);
 
     /**
      * Đếm completed enrollments của student
-     * @param student Student
-     * @return Số lượng completed enrollments
      */
     Long countByStudentAndCompleted(User student, boolean completed);
+
+    /**
+     * Lấy điểm trung bình của student từ tất cả enrollments
+     */
+    @Query("SELECT AVG(COALESCE(e.finalScore, 0)) FROM Enrollment e WHERE e.student = :student")
+    Double getAverageScoreByStudent(@Param("student") User student);
+
+    /**
+     * Tìm enrollments by student ID
+     */
+    @Query("SELECT e FROM Enrollment e WHERE e.student.id = :studentId ORDER BY e.enrollmentDate DESC")
+    List<Enrollment> findByStudentId(@Param("studentId") Long studentId);
 
     // ===== INSTRUCTOR-RELATED QUERIES =====
 
     /**
      * Tìm enrollments của courses thuộc instructor
-     * @param instructor Instructor
-     * @return Danh sách enrollments
      */
     @Query("SELECT e FROM Enrollment e WHERE e.course.instructor = :instructor")
     List<Enrollment> findByInstructor(@Param("instructor") User instructor);
 
     /**
      * Tìm enrollments của instructor với pagination
-     * @param instructor Instructor
-     * @param pageable Pagination info
-     * @return Page chứa enrollments
      */
     @Query("SELECT e FROM Enrollment e WHERE e.course.instructor = :instructor")
     Page<Enrollment> findByInstructor(@Param("instructor") User instructor, Pageable pageable);
 
     /**
+     * Tìm recent enrollments của instructor
+     */
+    @Query("SELECT e FROM Enrollment e WHERE e.course.instructor = :instructor ORDER BY e.enrollmentDate DESC")
+    Page<Enrollment> findRecentEnrollmentsByInstructor(@Param("instructor") User instructor, Pageable pageable);
+
+    /**
      * Đếm enrollments trong courses của instructor
-     * @param instructor Instructor
-     * @return Số lượng enrollments
      */
     @Query("SELECT COUNT(e) FROM Enrollment e WHERE e.course.instructor = :instructor")
     Long countByInstructor(@Param("instructor") User instructor);
+
+    /**
+     * Đếm số students của một instructor
+     */
+    @Query("SELECT COUNT(DISTINCT e.student) FROM Enrollment e WHERE e.course.instructor = :instructor")
+    Long countStudentsByInstructor(@Param("instructor") User instructor);
+
+    /**
+     * Tính tổng revenue của instructor
+     */
+    @Query("SELECT SUM(COALESCE(e.course.price, 0)) FROM Enrollment e WHERE e.course.instructor = :instructor")
+    Double calculateRevenueByInstructor(@Param("instructor") User instructor);
+
+    /**
+     * Tìm students có low progress trong courses của instructor
+     */
+    @Query("SELECT e FROM Enrollment e WHERE e.course.instructor = :instructor " +
+            "AND e.progress <= :maxProgress AND e.enrollmentDate >= :enrolledAfter " +
+            "ORDER BY e.progress ASC")
+    List<Enrollment> findLowProgressEnrollments(@Param("instructor") User instructor,
+                                                @Param("maxProgress") double maxProgress,
+                                                @Param("enrolledAfter") LocalDateTime enrolledAfter);
 
     // ===== COURSE-RELATED QUERIES =====
 
     /**
      * Tìm enrollments theo course
-     * @param course Course
-     * @return Danh sách enrollments
      */
     List<Enrollment> findByCourse(Course course);
 
     /**
      * Tìm enrollments theo course với pagination
-     * @param course Course
-     * @param pageable Pagination info
-     * @return Page chứa enrollments
      */
     Page<Enrollment> findByCourse(Course course, Pageable pageable);
 
     /**
+     * Tìm enrollments theo course sắp xếp theo enrollment date
+     */
+    Page<Enrollment> findByCourseOrderByEnrollmentDateDesc(Course course, Pageable pageable);
+
+    /**
      * Đếm enrollments của course
-     * @param course Course
-     * @return Số lượng enrollments
      */
     Long countEnrollmentsByCourse(Course course);
 
     /**
      * Đếm completed enrollments của course
-     * @param course Course
-     * @return Số lượng completed enrollments
      */
     Long countByCompletedAndCourse(boolean completed, Course course);
 
     /**
      * Lấy completion rate của course
-     * @param course Course
-     * @return Completion rate (0.0 - 1.0)
      */
     @Query("SELECT CASE WHEN COUNT(e) = 0 THEN 0.0 ELSE " +
             "CAST(SUM(CASE WHEN e.completed = true THEN 1 ELSE 0 END) AS double) / COUNT(e) END " +
@@ -163,42 +189,59 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
 
     /**
      * Lấy recent enrollments của course
-     * @param course Course
-     * @param limit Số lượng enrollments
-     * @return Danh sách recent enrollments
      */
     @Query("SELECT e FROM Enrollment e WHERE e.course = :course ORDER BY e.enrollmentDate DESC")
     List<Enrollment> getRecentEnrollmentsByCourse(@Param("course") Course course, @Param("limit") int limit);
 
     /**
      * Lấy top students của course (theo progress)
-     * @param course Course
-     * @param limit Số lượng students
-     * @return Danh sách top students
      */
     @Query("SELECT e FROM Enrollment e WHERE e.course = :course ORDER BY e.progress DESC")
     List<Enrollment> getTopStudentsByCourse(@Param("course") Course course, @Param("limit") int limit);
+
+    /**
+     * Tìm enrollments by course ID
+     */
+    @Query("SELECT e FROM Enrollment e WHERE e.course.id = :courseId ORDER BY e.enrollmentDate DESC")
+    List<Enrollment> findByCourseId(@Param("courseId") Long courseId);
+
+    /**
+     * Tìm enrollments theo course với filters
+     */
+    @Query("SELECT e FROM Enrollment e WHERE e.course.id = :courseId " +
+            "AND (:completed IS NULL OR e.completed = :completed) " +
+            "ORDER BY e.enrollmentDate DESC")
+    Page<Enrollment> findByCourseWithFilters(@Param("courseId") Long courseId,
+                                             @Param("completed") Boolean completed,
+                                             Pageable pageable);
 
     // ===== ANALYTICS QUERIES =====
 
     /**
      * Đếm tất cả completed enrollments
-     * @return Số lượng completed enrollments
      */
     @Query("SELECT COUNT(e) FROM Enrollment e WHERE e.completed = true")
     Long countCompletedEnrollments();
 
     /**
+     * Đếm enrollments theo trạng thái completed
+     */
+    Long countByCompleted(boolean completed);
+
+    /**
+     * Đếm total enrollments
+     */
+    @Query("SELECT COUNT(e) FROM Enrollment e")
+    Long countTotal();
+
+    /**
      * Tìm recent enrollments với limit
-     * @param limit Số lượng enrollments
-     * @return Danh sách recent enrollments
      */
     @Query("SELECT e FROM Enrollment e ORDER BY e.enrollmentDate DESC")
     List<Enrollment> findRecentEnrollments(@Param("limit") int limit);
 
     /**
      * Lấy thống kê enrollment theo tháng
-     * @return Danh sách [Year, Month, Count]
      */
     @Query("SELECT YEAR(e.enrollmentDate), MONTH(e.enrollmentDate), COUNT(e) " +
             "FROM Enrollment e " +
@@ -207,8 +250,15 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
     List<Object[]> getMonthlyEnrollmentStats();
 
     /**
+     * Lấy thống kê enrollments theo tháng từ một thời điểm
+     */
+    @Query("SELECT YEAR(e.enrollmentDate), MONTH(e.enrollmentDate), COUNT(e) FROM Enrollment e " +
+            "WHERE e.enrollmentDate >= :fromDate GROUP BY YEAR(e.enrollmentDate), MONTH(e.enrollmentDate) " +
+            "ORDER BY YEAR(e.enrollmentDate), MONTH(e.enrollmentDate)")
+    List<Object[]> getEnrollmentStatsByMonth(@Param("fromDate") LocalDateTime fromDate);
+
+    /**
      * Lấy detailed monthly stats với completion data
-     * @return Danh sách thống kê chi tiết
      */
     @Query("SELECT YEAR(e.enrollmentDate), MONTH(e.enrollmentDate), " +
             "COUNT(e) as total, " +
@@ -220,7 +270,6 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
 
     /**
      * Tính average completion rate
-     * @return Average completion rate (0.0 - 1.0)
      */
     @Query("SELECT CASE WHEN COUNT(e) = 0 THEN 0.0 ELSE " +
             "CAST(SUM(CASE WHEN e.completed = true THEN 1 ELSE 0 END) AS double) / COUNT(e) END " +
@@ -229,9 +278,6 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
 
     /**
      * Lấy enrollments trong khoảng thời gian
-     * @param startDate Ngày bắt đầu
-     * @param endDate Ngày kết thúc
-     * @return Danh sách enrollments
      */
     @Query("SELECT e FROM Enrollment e WHERE e.enrollmentDate BETWEEN :startDate AND :endDate")
     List<Enrollment> findEnrollmentsBetweenDates(@Param("startDate") LocalDateTime startDate,
@@ -239,8 +285,6 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
 
     /**
      * Lấy enrollments với scores (có quiz results)
-     * @param student Student
-     * @return Danh sách enrollments với scores
      */
     @Query("SELECT DISTINCT e FROM Enrollment e " +
             "LEFT JOIN e.course.quizzes q " +
@@ -249,25 +293,7 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
     List<Enrollment> findEnrollmentsWithScoresByStudent(@Param("student") User student);
 
     /**
-     * Tìm enrollments by student ID
-     * @param studentId ID của student
-     * @return Danh sách enrollments
-     */
-    @Query("SELECT e FROM Enrollment e WHERE e.student.id = :studentId")
-    List<Enrollment> findByStudentId(@Param("studentId") Long studentId);
-
-    /**
-     * Tìm enrollments by course ID
-     * @param courseId ID của course
-     * @return Danh sách enrollments
-     */
-    @Query("SELECT e FROM Enrollment e WHERE e.course.id = :courseId")
-    List<Enrollment> findByCourseId(@Param("courseId") Long courseId);
-
-    /**
      * Lấy top courses theo enrollment count
-     * @param limit Số lượng courses
-     * @return Danh sách [Course, EnrollmentCount]
      */
     @Query("SELECT e.course, COUNT(e) as enrollmentCount " +
             "FROM Enrollment e " +
@@ -277,7 +303,6 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
 
     /**
      * Lấy enrollment progress statistics
-     * @return Danh sách [ProgressRange, Count]
      */
     @Query("SELECT " +
             "CASE " +
@@ -299,10 +324,15 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
 
     /**
      * Tìm students chưa hoàn thành course sau X ngày
-     * @param days Số ngày
-     * @return Danh sách enrollments
      */
     @Query("SELECT e FROM Enrollment e WHERE e.completed = false AND " +
             "e.enrollmentDate <= :cutoffDate")
     List<Enrollment> findIncompleteEnrollmentsOlderThan(@Param("cutoffDate") LocalDateTime cutoffDate);
+
+    /**
+     * Tìm top students theo average score
+     */
+    @Query("SELECT e.student, AVG(COALESCE(e.finalScore, 0)) as avgScore FROM Enrollment e " +
+            "WHERE e.finalScore IS NOT NULL GROUP BY e.student ORDER BY avgScore DESC")
+    Page<Object[]> findTopStudentsByAverageScore(Pageable pageable);
 }

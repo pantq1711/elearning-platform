@@ -36,28 +36,26 @@ public class UserService implements UserDetailsService {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    // ===== SPRING SECURITY INTEGRATION =====
+
     /**
      * Load user cho Spring Security authentication
-     * @param username Tên đăng nhập
-     * @return UserDetails object
-     * @throws UsernameNotFoundException Nếu không tìm thấy user
      */
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("Không tìm thấy người dùng: " + username));
 
-        // Cập nhật thời gian đăng nhập cuối
         user.updateLastLogin();
         userRepository.save(user);
 
         return user;
     }
 
+    // ===== BASIC CRUD OPERATIONS =====
+
     /**
      * Tìm user theo ID
-     * @param id ID của user
-     * @return Optional chứa User nếu tìm thấy
      */
     public Optional<User> findById(Long id) {
         return userRepository.findById(id);
@@ -65,8 +63,6 @@ public class UserService implements UserDetailsService {
 
     /**
      * Tìm user theo username
-     * @param username Username của user
-     * @return Optional chứa User nếu tìm thấy
      */
     public Optional<User> findByUsername(String username) {
         return userRepository.findByUsername(username);
@@ -74,8 +70,6 @@ public class UserService implements UserDetailsService {
 
     /**
      * Tìm user theo email
-     * @param email Email của user
-     * @return Optional chứa User nếu tìm thấy
      */
     public Optional<User> findByEmail(String email) {
         return userRepository.findByEmail(email);
@@ -83,17 +77,11 @@ public class UserService implements UserDetailsService {
 
     /**
      * Đăng ký user mới
-     * @param user User cần đăng ký
-     * @return User đã được tạo
      */
     public User registerUser(User user) {
-        // Validate thông tin đầu vào
         validateUserForRegistration(user);
 
-        // Mã hóa mật khẩu
         user.setPassword(passwordEncoder.encode(user.getPassword()));
-
-        // Set các thông tin mặc định
         user.setActive(true);
         user.setCreatedAt(LocalDateTime.now());
         user.setUpdatedAt(LocalDateTime.now());
@@ -102,9 +90,14 @@ public class UserService implements UserDetailsService {
     }
 
     /**
+     * Tạo user mới (alias for registerUser)
+     */
+    public User createUser(User user) {
+        return registerUser(user);
+    }
+
+    /**
      * Cập nhật thông tin user
-     * @param user User cần cập nhật
-     * @return User đã được cập nhật
      */
     public User updateUser(User user) {
         if (user.getId() == null) {
@@ -114,7 +107,6 @@ public class UserService implements UserDetailsService {
         User existingUser = userRepository.findById(user.getId())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy user với ID: " + user.getId()));
 
-        // Cập nhật các thông tin được phép thay đổi
         existingUser.setFullName(user.getFullName());
         existingUser.setEmail(user.getEmail());
         existingUser.setPhoneNumber(user.getPhoneNumber());
@@ -127,21 +119,15 @@ public class UserService implements UserDetailsService {
 
     /**
      * Đổi mật khẩu user
-     * @param userId ID của user
-     * @param oldPassword Mật khẩu cũ
-     * @param newPassword Mật khẩu mới
-     * @return true nếu đổi thành công
      */
     public boolean changePassword(Long userId, String oldPassword, String newPassword) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy user"));
 
-        // Kiểm tra mật khẩu cũ
         if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
             throw new RuntimeException("Mật khẩu cũ không đúng");
         }
 
-        // Cập nhật mật khẩu mới
         user.setPassword(passwordEncoder.encode(newPassword));
         user.setUpdatedAt(LocalDateTime.now());
         userRepository.save(user);
@@ -150,72 +136,112 @@ public class UserService implements UserDetailsService {
     }
 
     /**
+     * Active/Deactive user
+     */
+    public User updateUserStatus(Long userId, boolean active) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy user với ID: " + userId));
+
+        user.setActive(active);
+        user.setUpdatedAt(LocalDateTime.now());
+
+        return userRepository.save(user);
+    }
+
+    /**
+     * Cập nhật role của user
+     */
+    public User updateUserRole(Long userId, User.Role newRole) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy user với ID: " + userId));
+
+        user.setRole(newRole);
+        user.setUpdatedAt(LocalDateTime.now());
+
+        return userRepository.save(user);
+    }
+
+    /**
+     * Xóa user (soft delete)
+     */
+    public void deleteUser(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy user với ID: " + userId));
+
+        user.setActive(false);
+        user.setUpdatedAt(LocalDateTime.now());
+        userRepository.save(user);
+    }
+
+    // ===== ROLE-BASED QUERIES =====
+
+    /**
      * Đếm số users theo role
-     * @param role Role cần đếm
-     * @return Số lượng users
      */
     public Long countByRole(User.Role role) {
         return userRepository.countByRole(role);
     }
 
     /**
-     * Đếm tất cả users
-     * @return Tổng số users
+     * Đếm users theo role (alias)
      */
-    public Long countAllUsers() {
-        return userRepository.count();
+    public Long countUsersByRole(User.Role role) {
+        return countByRole(role);
     }
 
     /**
-     * Đếm users active trong tháng qua
-     * @return Số lượng active users
+     * Tìm users theo role (List version)
      */
-    public Long countActiveUsersInLastMonth() {
-        LocalDateTime oneMonthAgo = LocalDateTime.now().minusMonths(1);
-        return userRepository.countByActiveAndLastLoginAfter(true, oneMonthAgo);
+    public List<User> findByRole(User.Role role) {
+        return userRepository.findByRoleAndActiveOrderByFullName(role, true);
     }
 
     /**
-     * Đếm users theo role và status active
-     * @param role Role cần đếm
-     * @param active Status active
-     * @return Số lượng users
+     * Tìm users theo role với pagination
      */
-    public Long countByRoleAndActive(User.Role role, boolean active) {
-        return userRepository.countByRoleAndActive(role, active);
+    public Page<User> findByRole(User.Role role, Pageable pageable) {
+        return userRepository.findByRole(role, pageable);
     }
 
     /**
-     * Đếm số users active
-     * @return Số lượng active users
-     */
-    public Long countActiveUsers() {
-        return userRepository.countByActive(true);
-    }
-
-    /**
-     * Đếm users mới trong tháng này
-     * @return Số lượng users mới
-     */
-    public Long countNewUsersThisMonth() {
-        LocalDateTime startOfMonth = LocalDateTime.now().withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0);
-        return userRepository.countByCreatedAtAfter(startOfMonth);
-    }
-
-    /**
-     * Tìm users theo role và status active
-     * @param role Role
-     * @param active Status active
-     * @return Danh sách users
+     * Tìm users theo role và status active (List version)
      */
     public List<User> findByRoleAndActive(User.Role role, boolean active) {
         return userRepository.findByRoleAndActiveOrderByFullName(role, active);
     }
 
     /**
+     * Tìm users theo role và active với pagination
+     */
+    public Page<User> findByRoleAndActive(User.Role role, boolean active, Pageable pageable) {
+        return userRepository.findByRoleAndActive(role, active, pageable);
+    }
+
+    /**
+     * Đếm users theo role và status active
+     */
+    public Long countByRoleAndActive(User.Role role, boolean active) {
+        return userRepository.countByRoleAndActive(role, active);
+    }
+
+    // ===== INSTRUCTOR SPECIFIC QUERIES =====
+
+    /**
+     * Tìm active instructors
+     */
+    public List<User> findActiveInstructors() {
+        return userRepository.findByRoleAndActiveOrderByFullName(User.Role.INSTRUCTOR, true);
+    }
+
+    /**
+     * Tìm tất cả instructors sắp xếp theo tên
+     */
+    public List<User> findAllInstructorsOrderByName() {
+        return userRepository.findAllInstructorsOrderByName();
+    }
+
+    /**
      * Tìm instructors theo số lượng courses
-     * @param limit Số lượng giới hạn
-     * @return Danh sách instructors
      */
     public List<User> findTopInstructorsByCourseCount(int limit) {
         Pageable pageable = PageRequest.of(0, limit);
@@ -223,15 +249,163 @@ public class UserService implements UserDetailsService {
     }
 
     /**
-     * Tìm users với filter và pagination
-     * @param search Từ khóa tìm kiếm
-     * @param role Role filter
-     * @param status Status filter
-     * @param pageable Pagination info
-     * @return Page của users
+     * Tìm instructors sắp xếp theo số lượng courses với pagination
+     */
+    public Page<User> findInstructorsOrderByCourseCount(User.Role role, boolean active, Pageable pageable) {
+        return userRepository.findInstructorsOrderByCourseCount(role, active, pageable);
+    }
+
+    /**
+     * Tìm instructors với keyword
+     */
+    public List<User> searchInstructors(String keyword, int limit) {
+        return userRepository.searchInstructors(keyword, limit);
+    }
+
+    /**
+     * Đếm active instructors
+     */
+    public Long countActiveInstructors() {
+        return userRepository.countByRoleAndActive(User.Role.INSTRUCTOR, true);
+    }
+
+    /**
+     * Lấy số lượng students của một instructor
+     */
+    public Long countStudentsByInstructor(User instructor) {
+        return userRepository.countStudentsByInstructor(instructor);
+    }
+
+    // ===== STUDENT SPECIFIC QUERIES =====
+
+    /**
+     * Tìm tất cả students sắp xếp theo tên
+     */
+    public List<User> findAllStudentsOrderByName() {
+        return userRepository.findAllStudentsOrderByName();
+    }
+
+    /**
+     * Đếm active students
+     */
+    public Long countActiveStudents() {
+        return userRepository.countByRoleAndActive(User.Role.STUDENT, true);
+    }
+
+    /**
+     * Tìm top students theo average score
+     */
+    public Page<User> findTopStudentsByAverageScore(Pageable pageable) {
+        return userRepository.findTopStudentsByAverageScore(pageable);
+    }
+
+    /**
+     * Tìm students có low progress
+     */
+    public List<User> findLowProgressStudents(User instructor, double maxProgress, LocalDateTime enrolledAfter) {
+        return userRepository.findLowProgressStudents(instructor, maxProgress, enrolledAfter);
+    }
+
+    // ===== ACTIVITY & STATUS QUERIES =====
+
+    /**
+     * Đếm số users active
+     */
+    public Long countActiveUsers() {
+        return userRepository.countByActive(true);
+    }
+
+    /**
+     * Đếm users theo trạng thái active
+     */
+    public Long countByActive(boolean active) {
+        return userRepository.countByActive(active);
+    }
+
+    /**
+     * Đếm users active có last login sau thời điểm cho trước
+     */
+    public Long countByActiveAndLastLoginAfter(boolean active, LocalDateTime lastLoginAfter) {
+        return userRepository.countByActiveAndLastLoginAfter(active, lastLoginAfter);
+    }
+
+    /**
+     * Đếm users active trong tháng qua
+     */
+    public Long countActiveUsersInLastMonth() {
+        LocalDateTime oneMonthAgo = LocalDateTime.now().minusMonths(1);
+        return userRepository.countByActiveAndLastLoginAfter(true, oneMonthAgo);
+    }
+
+    /**
+     * Đếm tất cả users
+     */
+    public Long countAllUsers() {
+        return userRepository.count();
+    }
+
+    /**
+     * Tìm tất cả users active sắp xếp theo tên
+     */
+    public List<User> findAllActiveOrderByName() {
+        return userRepository.findAllByActiveTrueOrderByFullName();
+    }
+
+    // ===== TIME-BASED QUERIES =====
+
+    /**
+     * Đếm users được tạo sau thời điểm cho trước
+     */
+    public Long countByCreatedAtAfter(LocalDateTime createdAfter) {
+        return userRepository.countByCreatedAtAfter(createdAfter);
+    }
+    /**
+     * Tìm tất cả users sắp xếp theo tên
+     * @return Danh sách users sắp xếp theo fullName
+     */
+    public List<User> findAllOrderByName() {
+        return userRepository.findAll(Sort.by(Sort.Direction.ASC, "fullName"));
+    }
+
+    /**
+     * Đếm tổng số users
+     * @return Tổng số users
+     */
+    public Long countAll() {
+        return userRepository.count();
+    }
+
+    /**
+     * Lưu user
+     * @param user User cần lưu
+     * @return User đã lưu
+     */
+    public User save(User user) {
+        validateUser(user);
+
+        // Set thời gian tạo/cập nhật
+        if (user.getId() == null) {
+            user.setCreatedAt(LocalDateTime.now());
+        }
+        user.setUpdatedAt(LocalDateTime.now());
+
+        return userRepository.save(user);
+    }
+
+    /**
+     * Đếm users mới trong tháng này
+     */
+    public Long countNewUsersThisMonth() {
+        LocalDateTime startOfMonth = LocalDateTime.now().withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0);
+        return userRepository.countByCreatedAtAfter(startOfMonth);
+    }
+
+    // ===== SEARCH & FILTERING =====
+
+    /**
+     * Tìm users với filter và pagination (Complex criteria query)
      */
     public Page<User> findUsersWithFilter(String search, String role, String status, Pageable pageable) {
-        // Tạo specification cho complex query
         return userRepository.findAll((root, query, criteriaBuilder) -> {
             var predicates = criteriaBuilder.conjunction();
 
@@ -269,48 +443,23 @@ public class UserService implements UserDetailsService {
     }
 
     /**
-     * Tìm users theo keyword trong multiple fields
-     * @param keyword Từ khóa tìm kiếm
-     * @param pageable Pagination info
-     * @return Danh sách users
+     * Tìm users theo keyword trong multiple fields (List version)
      */
     public List<User> searchUsersByKeyword(String keyword, Pageable pageable) {
         return userRepository.findByKeyword(keyword, pageable);
     }
 
     /**
-     * Active/Deactive user
-     * @param userId ID của user
-     * @param active Status active mới
-     * @return User đã được cập nhật
+     * Tìm users theo keyword với pagination
      */
-    public User updateUserStatus(Long userId, boolean active) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy user với ID: " + userId));
-
-        user.setActive(active);
-        user.setUpdatedAt(LocalDateTime.now());
-
-        return userRepository.save(user);
+    public Page<User> findByKeyword(String keyword, Pageable pageable) {
+        return userRepository.findByKeyword(keyword, pageable);
     }
 
-    /**
-     * Xóa user (soft delete)
-     * @param userId ID của user
-     */
-    public void deleteUser(Long userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy user với ID: " + userId));
-
-        // Soft delete - chỉ set active = false
-        user.setActive(false);
-        user.setUpdatedAt(LocalDateTime.now());
-        userRepository.save(user);
-    }
+    // ===== STATISTICS & ANALYTICS =====
 
     /**
      * Lấy thống kê users theo tháng
-     * @return Map chứa thống kê theo tháng
      */
     public Map<String, Object> getUserStatisticsByMonth() {
         LocalDateTime oneYearAgo = LocalDateTime.now().minusYears(1);
@@ -326,86 +475,107 @@ public class UserService implements UserDetailsService {
     }
 
     /**
-     * Đếm users theo role (alias cho countByRole)
-     * @param role Role cần đếm
-     * @return Số lượng users
+     * Lấy thống kê users theo tháng từ thời điểm cho trước
      */
-    public Long countUsersByRole(User.Role role) {
-        return countByRole(role);
+    public List<Object[]> getUserStatsByMonth(LocalDateTime fromDate) {
+        return userRepository.getUserStatsByMonth(fromDate);
     }
 
     /**
-     * Tìm users theo role
-     * @param role Role cần tìm
-     * @return Danh sách users
+     * Lấy thống kê dashboard cho admin
      */
-    public List<User> findByRole(User.Role role) {
-        return userRepository.findByRoleAndActiveOrderByFullName(role, true);
+    public Map<String, Object> getDashboardStats() {
+        Map<String, Object> stats = new HashMap<>();
+
+        // Tổng số users
+        stats.put("totalUsers", userRepository.count());
+        stats.put("activeUsers", userRepository.countByActive(true));
+        stats.put("inactiveUsers", userRepository.countByActive(false));
+
+        // Users theo role
+        stats.put("totalInstructors", userRepository.countByRole(User.Role.INSTRUCTOR));
+        stats.put("totalStudents", userRepository.countByRole(User.Role.STUDENT));
+        stats.put("totalAdmins", userRepository.countByRole(User.Role.ADMIN));
+
+        // Users mới trong 30 ngày
+        LocalDateTime thirtyDaysAgo = LocalDateTime.now().minusDays(30);
+        stats.put("newUsersThisMonth", userRepository.countByCreatedAtAfter(thirtyDaysAgo));
+
+        // Users active trong 7 ngày
+        LocalDateTime sevenDaysAgo = LocalDateTime.now().minusDays(7);
+        stats.put("activeUsersThisWeek", userRepository.countByActiveAndLastLoginAfter(true, sevenDaysAgo));
+
+        return stats;
+    }
+
+    // ===== VALIDATION & EXISTENCE CHECKS =====
+
+    /**
+     * Kiểm tra username đã tồn tại chưa (cho create)
+     */
+    public boolean isUsernameExists(String username) {
+        return userRepository.existsByUsername(username);
     }
 
     /**
-     * Tạo user mới
-     * @param user User cần tạo
-     * @return User đã được tạo
+     * Kiểm tra email đã tồn tại chưa (cho create)
      */
-    public User createUser(User user) {
-        return registerUser(user);
+    public boolean isEmailExists(String email) {
+        return userRepository.existsByEmail(email);
     }
 
     /**
-     * Cập nhật role của user
-     * @param userId ID của user
-     * @param newRole Role mới
-     * @return User đã được cập nhật
+     * Kiểm tra username đã tồn tại chưa (cho update)
      */
-    public User updateUserRole(Long userId, User.Role newRole) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy user với ID: " + userId));
-
-        user.setRole(newRole);
-        user.setUpdatedAt(LocalDateTime.now());
-
-        return userRepository.save(user);
+    public boolean isUsernameExists(String username, Long excludeId) {
+        return userRepository.existsByUsernameAndIdNot(username, excludeId);
     }
 
     /**
-     * Tìm active instructors
-     * @return Danh sách active instructors
+     * Kiểm tra email đã tồn tại chưa (cho update)
      */
-    public List<User> findActiveInstructors() {
-        return userRepository.findByRoleAndActiveOrderByFullName(User.Role.INSTRUCTOR, true);
+    public boolean isEmailExists(String email, Long excludeId) {
+        return userRepository.existsByEmailAndIdNot(email, excludeId);
     }
 
-    /**
-     * Đếm active students
-     * @return Số lượng active students
-     */
-    public Long countActiveStudents() {
-        return userRepository.countByRoleAndActive(User.Role.STUDENT, true);
-    }
+    // ===== COMPATIBILITY METHODS =====
 
     /**
-     * Đếm active instructors
-     * @return Số lượng active instructors
-     */
-    public Long countActiveInstructors() {
-        return userRepository.countByRoleAndActive(User.Role.INSTRUCTOR, true);
-    }
-
-    /**
-     * Đếm tất cả active courses (alias method)
-     * @return Số lượng active courses
+     * Đếm tất cả active courses (placeholder - should be in CourseService)
      */
     public Long countAllActiveCourses() {
-        // This method should be in CourseService, but adding here for compatibility
         return 0L; // Placeholder - should call courseService.countActiveCourses()
     }
 
+    // ===== PRIVATE VALIDATION METHODS =====
+
     /**
-     * Validation tổng thể
-     * @param user User cần validate
+     * Validation cho registration
      */
     private void validateUserForRegistration(User user) {
+        validateUser(user);
+
+        if (!StringUtils.hasText(user.getPassword())) {
+            throw new RuntimeException("Password không được để trống");
+        }
+
+        if (userRepository.existsByUsername(user.getUsername())) {
+            throw new RuntimeException("Username đã tồn tại: " + user.getUsername());
+        }
+
+        if (userRepository.existsByEmail(user.getEmail())) {
+            throw new RuntimeException("Email đã tồn tại: " + user.getEmail());
+        }
+    }
+
+    /**
+     * Validate thông tin user trước khi save
+     */
+    private void validateUser(User user) {
+        if (user == null) {
+            throw new RuntimeException("User không được để trống");
+        }
+
         if (!StringUtils.hasText(user.getUsername())) {
             throw new RuntimeException("Username không được để trống");
         }
@@ -414,18 +584,22 @@ public class UserService implements UserDetailsService {
             throw new RuntimeException("Email không được để trống");
         }
 
-        if (!StringUtils.hasText(user.getPassword())) {
-            throw new RuntimeException("Password không được để trống");
+        if (!StringUtils.hasText(user.getFullName())) {
+            throw new RuntimeException("Họ tên không được để trống");
         }
 
-        // Kiểm tra username đã tồn tại
-        if (userRepository.existsByUsername(user.getUsername())) {
-            throw new RuntimeException("Username đã tồn tại: " + user.getUsername());
+        if (user.getRole() == null) {
+            throw new RuntimeException("Role không được để trống");
         }
 
-        // Kiểm tra email đã tồn tại
-        if (userRepository.existsByEmail(user.getEmail())) {
-            throw new RuntimeException("Email đã tồn tại: " + user.getEmail());
+        // Validate email format
+        if (!user.getEmail().matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
+            throw new RuntimeException("Email không đúng định dạng");
+        }
+
+        // Validate username length
+        if (user.getUsername().length() < 3 || user.getUsername().length() > 50) {
+            throw new RuntimeException("Username phải từ 3-50 ký tự");
         }
     }
 }

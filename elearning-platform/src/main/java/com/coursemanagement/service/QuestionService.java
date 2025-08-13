@@ -2,16 +2,18 @@ package com.coursemanagement.service;
 
 import com.coursemanagement.entity.Question;
 import com.coursemanagement.entity.Quiz;
+import com.coursemanagement.entity.Question.DifficultyLevel;
+import com.coursemanagement.entity.QuestionType;
 import com.coursemanagement.repository.QuestionRepository;
-import com.coursemanagement.utils.CourseUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Service class cho việc quản lý câu hỏi trong bài kiểm tra
@@ -23,6 +25,8 @@ public class QuestionService {
 
     @Autowired
     private QuestionRepository questionRepository;
+
+    // ==================== BASIC CRUD OPERATIONS ====================
 
     /**
      * Tìm tất cả câu hỏi của một quiz theo thứ tự display order
@@ -62,16 +66,49 @@ public class QuestionService {
     }
 
     /**
+     * Tìm questions theo quiz với pagination
+     * @param quiz Quiz
+     * @param pageable Pagination info
+     * @return Page chứa questions
+     */
+    public Page<Question> findByQuiz(Quiz quiz, Pageable pageable) {
+        return questionRepository.findByQuiz(quiz, pageable);
+    }
+
+    // ==================== SEARCH AND FILTER OPERATIONS ====================
+
+    /**
      * Tìm câu hỏi theo độ khó
      * @param quiz Quiz
      * @param difficultyLevel Độ khó
      * @return Danh sách câu hỏi theo độ khó
      */
-    public List<Question> findByQuizAndDifficultyLevel(Quiz quiz, Question.DifficultyLevel difficultyLevel) {
+    public List<Question> findByQuizAndDifficultyLevel(Quiz quiz, DifficultyLevel difficultyLevel) {
         if (quiz == null || difficultyLevel == null) {
             return new ArrayList<>();
         }
         return questionRepository.findByQuizAndDifficultyLevel(quiz, difficultyLevel);
+    }
+
+    /**
+     * Tìm questions theo difficulty với pagination
+     * @param quiz Quiz
+     * @param difficultyLevel Độ khó
+     * @param pageable Pagination info
+     * @return Page chứa questions
+     */
+    public Page<Question> findByQuizAndDifficultyLevel(Quiz quiz, DifficultyLevel difficultyLevel, Pageable pageable) {
+        return questionRepository.findByQuizAndDifficultyLevel(quiz, difficultyLevel, pageable);
+    }
+
+    /**
+     * Đếm questions theo difficulty level
+     * @param quiz Quiz
+     * @param difficultyLevel Độ khó
+     * @return Số lượng questions
+     */
+    public Long countByQuizAndDifficultyLevel(Quiz quiz, DifficultyLevel difficultyLevel) {
+        return questionRepository.countByQuizAndDifficultyLevel(quiz, difficultyLevel);
     }
 
     /**
@@ -88,105 +125,195 @@ public class QuestionService {
     }
 
     /**
-     * Tạo câu hỏi mới với validation đầy đủ
-     * @param question Câu hỏi cần tạo
-     * @return Câu hỏi đã được tạo
+     * Tìm questions theo quiz và correct option
+     * @param quiz Quiz
+     * @param correctOption Đáp án đúng (A, B, C, D)
+     * @return Danh sách questions có đáp án đúng tương ứng
      */
-    public Question createQuestion(Question question) {
-        // Validate dữ liệu đầu vào
-        validateQuestion(question);
-
-        // Set thời gian tạo
-        question.setCreatedAt(LocalDateTime.now());
-        question.setUpdatedAt(LocalDateTime.now());
-
-        // Tự động set display order nếu chưa có
-        if (question.getDisplayOrder() == null) {
-            int nextOrder = getNextDisplayOrder(question.getQuiz());
-            question.setDisplayOrder(nextOrder);
+    public List<Question> findByQuizAndCorrectOption(Quiz quiz, String correctOption) {
+        if (quiz == null || !StringUtils.hasText(correctOption)) {
+            return new ArrayList<>();
         }
-
-        // Chuẩn hóa dữ liệu
-        normalizeQuestionData(question);
-
-        return questionRepository.save(question);
+        return questionRepository.findByQuizAndCorrectOption(quiz, correctOption);
     }
 
     /**
-     * Cập nhật câu hỏi
-     * @param question Câu hỏi cần cập nhật
-     * @return Câu hỏi đã được cập nhật
+     * Tìm questions theo quiz và question type
+     * @param quiz Quiz
+     * @param questionType Loại câu hỏi
+     * @return Danh sách questions
      */
-    public Question updateQuestion(Question question) {
-        if (question.getId() == null) {
-            throw new RuntimeException("ID câu hỏi không được để trống khi cập nhật");
-        }
-
-        // Kiểm tra câu hỏi có tồn tại không
-        Question existingQuestion = questionRepository.findById(question.getId())
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy câu hỏi với ID: " + question.getId()));
-
-        // Validate dữ liệu
-        validateQuestion(question);
-
-        // Giữ lại thời gian tạo, cập nhật thời gian sửa
-        question.setCreatedAt(existingQuestion.getCreatedAt());
-        question.setUpdatedAt(LocalDateTime.now());
-
-        // Chuẩn hóa dữ liệu
-        normalizeQuestionData(question);
-
-        return questionRepository.save(question);
+    public List<Question> findByQuizAndQuestionType(Quiz quiz, QuestionType questionType) {
+        return questionRepository.findByQuizAndQuestionType(quiz, questionType);
     }
 
     /**
-     * Xóa câu hỏi (với kiểm tra ràng buộc)
-     * @param questionId ID câu hỏi cần xóa
+     * Đếm questions theo question type
+     * @param quiz Quiz
+     * @param questionType Loại câu hỏi
+     * @return Số lượng questions
      */
-    public void deleteQuestion(Long questionId) {
-        if (questionId == null) {
-            throw new RuntimeException("ID câu hỏi không hợp lệ");
-        }
-
-        Question question = questionRepository.findById(questionId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy câu hỏi với ID: " + questionId));
-
-        // Kiểm tra xem có kết quả bài thi nào liên quan không
-        // (Có thể implement thêm logic kiểm tra ở đây)
-
-        questionRepository.delete(question);
-
-        // Cập nhật lại display order cho các câu hỏi còn lại
-        reorderQuestions(question.getQuiz());
+    public Long countByQuizAndQuestionType(Quiz quiz, QuestionType questionType) {
+        return questionRepository.countByQuizAndQuestionType(quiz, questionType);
     }
 
     /**
-     * Thay đổi thứ tự câu hỏi
-     * @param questionId ID câu hỏi
-     * @param newOrder Thứ tự mới
+     * Tìm kiếm câu hỏi theo từ khóa
+     * @param quiz Quiz cần tìm
+     * @param keyword Từ khóa tìm kiếm
+     * @return Danh sách câu hỏi phù hợp
      */
-    public void reorderQuestion(Long questionId, int newOrder) {
-        Question question = questionRepository.findById(questionId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy câu hỏi"));
+    public List<Question> searchQuestions(Quiz quiz, String keyword) {
+        if (quiz == null || !StringUtils.hasText(keyword)) {
+            return findByQuizOrderByDisplayOrder(quiz);
+        }
+        return questionRepository.findByQuizAndQuestionTextContainingIgnoreCase(quiz, keyword.trim());
+    }
 
-        if (newOrder < 1) {
-            throw new RuntimeException("Thứ tự câu hỏi phải >= 1");
+    /**
+     * Tìm questions theo quiz và question text chứa keyword với pagination
+     * @param quiz Quiz
+     * @param keyword Từ khóa tìm kiếm
+     * @param pageable Pagination info
+     * @return Page chứa questions tìm thấy
+     */
+    public Page<Question> findByQuizAndQuestionTextContainingIgnoreCase(Quiz quiz, String keyword, Pageable pageable) {
+        return questionRepository.findByQuizAndQuestionTextContainingIgnoreCase(quiz, keyword, pageable);
+    }
+
+    /**
+     * Tìm questions theo multiple filters
+     * @param quiz Quiz
+     * @param difficultyLevel Độ khó (có thể null)
+     * @param questionType Loại câu hỏi (có thể null)
+     * @param minPoints Điểm tối thiểu (có thể null)
+     * @param maxPoints Điểm tối đa (có thể null)
+     * @return Danh sách questions phù hợp
+     */
+    public List<Question> findByQuizWithFilters(Quiz quiz, DifficultyLevel difficultyLevel,
+                                                QuestionType questionType, Double minPoints, Double maxPoints) {
+        return questionRepository.findByQuizWithFilters(quiz, difficultyLevel, questionType, minPoints, maxPoints);
+    }
+
+    /**
+     * Tìm questions theo tags
+     * @param quiz Quiz
+     * @param tag Tag cần tìm
+     * @return Danh sách questions có tag
+     */
+    public List<Question> findByQuizAndTagsContaining(Quiz quiz, String tag) {
+        return questionRepository.findByQuizAndTagsContaining(quiz, tag);
+    }
+
+    // ==================== ORDERING AND POINTS OPERATIONS ====================
+
+    /**
+     * Tìm questions theo quiz sắp xếp theo points giảm dần
+     * @param quiz Quiz
+     * @return Danh sách questions theo points
+     */
+    public List<Question> findByQuizOrderByPointsDesc(Quiz quiz) {
+        return questionRepository.findByQuizOrderByPointsDesc(quiz);
+    }
+
+    /**
+     * Tính tổng points của tất cả questions trong quiz
+     * @param quiz Quiz
+     * @return Tổng points
+     */
+    public Double sumPointsByQuiz(Quiz quiz) {
+        return questionRepository.sumPointsByQuiz(quiz);
+    }
+
+    /**
+     * Lấy question có points cao nhất trong quiz
+     * @param quiz Quiz
+     * @return Optional chứa question có points cao nhất
+     */
+    public Optional<Question> findTopByQuizOrderByPointsDesc(Quiz quiz) {
+        return questionRepository.findTopByQuizOrderByPointsDesc(quiz);
+    }
+
+    /**
+     * Tìm max display order trong quiz
+     * @param quiz Quiz
+     * @return Max display order
+     */
+    public Integer findMaxDisplayOrderByQuiz(Quiz quiz) {
+        Integer maxOrder = questionRepository.findMaxDisplayOrderByQuiz(quiz);
+        return maxOrder != null ? maxOrder : 0;
+    }
+
+    /**
+     * Lấy next display order cho question mới
+     * @param quiz Quiz
+     * @return Display order tiếp theo
+     */
+    public Integer getNextDisplayOrder(Quiz quiz) {
+        return questionRepository.getNextDisplayOrder(quiz);
+    }
+
+    /**
+     * Kiểm tra display order đã tồn tại trong quiz chưa
+     * @param quiz Quiz
+     * @param displayOrder Display order
+     * @return true nếu đã tồn tại
+     */
+    public boolean existsByQuizAndDisplayOrder(Quiz quiz, Integer displayOrder) {
+        return questionRepository.existsByQuizAndDisplayOrder(quiz, displayOrder);
+    }
+
+    /**
+     * Kiểm tra display order đã tồn tại (exclude ID hiện tại)
+     * @param quiz Quiz
+     * @param displayOrder Display order
+     * @param excludeId ID cần exclude
+     * @return true nếu đã tồn tại
+     */
+    public boolean existsByQuizAndDisplayOrder(Quiz quiz, Integer displayOrder, Long excludeId) {
+        return questionRepository.existsByQuizAndDisplayOrderAndIdNot(quiz, displayOrder, excludeId);
+    }
+
+    // ==================== RANDOM AND STATISTICS OPERATIONS ====================
+
+    /**
+     * Lấy câu hỏi ngẫu nhiên từ quiz
+     * @param quiz Quiz
+     * @param count Số lượng câu hỏi cần lấy
+     * @return Danh sách câu hỏi ngẫu nhiên
+     */
+    public List<Question> getRandomQuestions(Quiz quiz, int count) {
+        if (quiz == null || count <= 0) {
+            return new ArrayList<>();
         }
 
-        Quiz quiz = question.getQuiz();
         List<Question> allQuestions = findByQuizOrderByDisplayOrder(quiz);
 
-        // Tính toán lại thứ tự cho tất cả câu hỏi
-        allQuestions.remove(question);
-        allQuestions.add(Math.min(newOrder - 1, allQuestions.size()), question);
-
-        // Cập nhật display order
-        for (int i = 0; i < allQuestions.size(); i++) {
-            allQuestions.get(i).setDisplayOrder(i + 1);
-            allQuestions.get(i).setUpdatedAt(LocalDateTime.now());
+        if (allQuestions.size() <= count) {
+            return allQuestions;
         }
 
-        questionRepository.saveAll(allQuestions);
+        Collections.shuffle(allQuestions);
+        return allQuestions.subList(0, count);
+    }
+
+    /**
+     * Tìm random questions từ quiz
+     * @param quiz Quiz
+     * @param limit Số lượng questions
+     * @return Danh sách random questions
+     */
+    public List<Question> findRandomQuestionsByQuiz(Quiz quiz, int limit) {
+        return questionRepository.findRandomQuestionsByQuiz(quiz.getId(), limit);
+    }
+
+    /**
+     * Kiểm tra có question nào trong quiz có image không
+     * @param quiz Quiz
+     * @return true nếu có question có image
+     */
+    public boolean hasQuestionsWithImages(Quiz quiz) {
+        return questionRepository.hasQuestionsWithImages(quiz);
     }
 
     /**
@@ -219,13 +346,247 @@ public class QuestionService {
         }
 
         Map<String, Long> distribution = new HashMap<>();
-        for (Question.DifficultyLevel level : Question.DifficultyLevel.values()) {
+        for (DifficultyLevel level : DifficultyLevel.values()) {
             long count = findByQuizAndDifficultyLevel(quiz, level).size();
             distribution.put(level.toString(), count);
         }
 
         return distribution;
     }
+
+    /**
+     * Lấy thống kê questions theo difficulty level
+     * @param quiz Quiz
+     * @return Map chứa thống kê [DifficultyLevel -> Count]
+     */
+    public Map<DifficultyLevel, Long> getQuestionStatsByDifficulty(Quiz quiz) {
+        List<Object[]> results = questionRepository.getQuestionStatsByDifficulty(quiz);
+        Map<DifficultyLevel, Long> stats = new HashMap<>();
+
+        for (Object[] result : results) {
+            DifficultyLevel level = (DifficultyLevel) result[0];
+            Long count = (Long) result[1];
+            stats.put(level, count);
+        }
+
+        return stats;
+    }
+
+    /**
+     * Lấy thống kê questions theo question type
+     * @param quiz Quiz
+     * @return Map chứa thống kê [QuestionType -> Count]
+     */
+    public Map<QuestionType, Long> getQuestionStatsByType(Quiz quiz) {
+        List<Object[]> results = questionRepository.getQuestionStatsByType(quiz);
+        Map<QuestionType, Long> stats = new HashMap<>();
+
+        for (Object[] result : results) {
+            QuestionType type = (QuestionType) result[0];
+            Long count = (Long) result[1];
+            stats.put(type, count);
+        }
+
+        return stats;
+    }
+
+    /**
+     * Lấy thống kê tổng quan của questions trong quiz
+     * @param quiz Quiz
+     * @return Map chứa thống kê
+     */
+    public Map<String, Object> getQuizQuestionStats(Quiz quiz) {
+        Map<String, Object> stats = new HashMap<>();
+
+        // Tổng số questions
+        long totalQuestions = countByQuiz(quiz);
+        stats.put("totalQuestions", totalQuestions);
+
+        // Thống kê theo difficulty
+        Map<DifficultyLevel, Long> difficultyStats = getQuestionStatsByDifficulty(quiz);
+        stats.put("difficultyStats", difficultyStats);
+
+        // Thống kê theo question type
+        Map<QuestionType, Long> typeStats = getQuestionStatsByType(quiz);
+        stats.put("typeStats", typeStats);
+
+        // Tổng points
+        Double totalPoints = sumPointsByQuiz(quiz);
+        stats.put("totalPoints", totalPoints != null ? totalPoints : 0.0);
+
+        // Questions có images
+        boolean hasImages = hasQuestionsWithImages(quiz);
+        stats.put("hasImages", hasImages);
+
+        return stats;
+    }
+
+    // ==================== CRUD OPERATIONS ====================
+
+    /**
+     * Tạo câu hỏi mới với validation đầy đủ
+     * @param question Câu hỏi cần tạo
+     * @return Câu hỏi đã được tạo
+     */
+    public Question createQuestion(Question question) {
+        validateQuestion(question);
+
+        // Set display order mới nếu chưa có
+        if (question.getDisplayOrder() == null) {
+            question.setDisplayOrder(getNextDisplayOrder(question.getQuiz()));
+        } else {
+            // Kiểm tra display order đã tồn tại chưa
+            if (existsByQuizAndDisplayOrder(question.getQuiz(), question.getDisplayOrder())) {
+                throw new RuntimeException("Display order đã tồn tại trong quiz này");
+            }
+        }
+
+        // Set default values
+        if (question.getDifficultyLevel() == null) {
+            question.setDifficultyLevel(DifficultyLevel.MEDIUM);
+        }
+
+        if (question.getQuestionType() == null) {
+            question.setQuestionType(QuestionType.MULTIPLE_CHOICE);
+        }
+
+        if (question.getPoints() == null) {
+            question.setPoints(1.0);
+        }
+
+        // Set thời gian tạo
+        question.setCreatedAt(LocalDateTime.now());
+        question.setUpdatedAt(LocalDateTime.now());
+
+        // Chuẩn hóa dữ liệu
+        normalizeQuestionData(question);
+
+        return questionRepository.save(question);
+    }
+
+    /**
+     * Cập nhật câu hỏi
+     * @param question Câu hỏi cần cập nhật
+     * @return Câu hỏi đã được cập nhật
+     */
+    public Question updateQuestion(Question question) {
+        if (question.getId() == null) {
+            throw new RuntimeException("ID question không được để trống khi cập nhật");
+        }
+
+        Question existingQuestion = questionRepository.findById(question.getId())
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy question với ID: " + question.getId()));
+
+        validateQuestion(question);
+
+        // Kiểm tra display order có thay đổi không
+        if (!existingQuestion.getDisplayOrder().equals(question.getDisplayOrder())) {
+            if (existsByQuizAndDisplayOrder(question.getQuiz(), question.getDisplayOrder(), question.getId())) {
+                throw new RuntimeException("Display order đã tồn tại trong quiz này");
+            }
+        }
+
+        // Cập nhật thông tin
+        existingQuestion.setQuestionText(question.getQuestionText());
+        existingQuestion.setOptionA(question.getOptionA());
+        existingQuestion.setOptionB(question.getOptionB());
+        existingQuestion.setOptionC(question.getOptionC());
+        existingQuestion.setOptionD(question.getOptionD());
+        existingQuestion.setCorrectOption(question.getCorrectOption());
+        existingQuestion.setDisplayOrder(question.getDisplayOrder());
+        existingQuestion.setDifficultyLevel(question.getDifficultyLevel());
+        existingQuestion.setQuestionType(question.getQuestionType());
+        existingQuestion.setPoints(question.getPoints());
+        existingQuestion.setTags(question.getTags());
+        existingQuestion.setImageUrl(question.getImageUrl());
+        existingQuestion.setExplanation(question.getExplanation());
+        existingQuestion.setUpdatedAt(LocalDateTime.now());
+
+        // Chuẩn hóa dữ liệu
+        normalizeQuestionData(existingQuestion);
+
+        return questionRepository.save(existingQuestion);
+    }
+
+    /**
+     * Xóa câu hỏi (với kiểm tra ràng buộc)
+     * @param questionId ID câu hỏi cần xóa
+     */
+    public void deleteQuestion(Long questionId) {
+        if (questionId == null) {
+            throw new RuntimeException("ID câu hỏi không hợp lệ");
+        }
+
+        Question question = questionRepository.findById(questionId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy câu hỏi với ID: " + questionId));
+
+        // Kiểm tra xem có kết quả bài thi nào liên quan không
+        // (Có thể implement thêm logic kiểm tra ở đây)
+
+        questionRepository.delete(question);
+
+        // Cập nhật lại display order cho các câu hỏi còn lại
+        reorderQuestions(question.getQuiz());
+    }
+
+    /**
+     * Bulk create questions từ danh sách
+     * @param quiz Quiz
+     * @param questions Danh sách questions
+     * @return Danh sách questions đã được tạo
+     */
+    public List<Question> bulkCreateQuestions(Quiz quiz, List<Question> questions) {
+        if (questions == null || questions.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        List<Question> createdQuestions = new ArrayList<>();
+        int currentMaxOrder = findMaxDisplayOrderByQuiz(quiz);
+
+        for (int i = 0; i < questions.size(); i++) {
+            Question question = questions.get(i);
+            question.setQuiz(quiz);
+            question.setDisplayOrder(currentMaxOrder + i + 1);
+
+            Question createdQuestion = createQuestion(question);
+            createdQuestions.add(createdQuestion);
+        }
+
+        return createdQuestions;
+    }
+
+    // ==================== ORDERING OPERATIONS ====================
+
+    /**
+     * Thay đổi thứ tự câu hỏi
+     * @param questionId ID câu hỏi
+     * @param newOrder Thứ tự mới
+     */
+    public void reorderQuestion(Long questionId, int newOrder) {
+        Question question = questionRepository.findById(questionId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy câu hỏi"));
+
+        if (newOrder < 1) {
+            throw new RuntimeException("Thứ tự câu hỏi phải >= 1");
+        }
+
+        Quiz quiz = question.getQuiz();
+        List<Question> allQuestions = findByQuizOrderByDisplayOrder(quiz);
+
+        // Tính toán lại thứ tự cho tất cả câu hỏi
+        allQuestions.remove(question);
+        allQuestions.add(Math.min(newOrder - 1, allQuestions.size()), question);
+
+        // Cập nhật display order
+        for (int i = 0; i < allQuestions.size(); i++) {
+            allQuestions.get(i).setDisplayOrder(i + 1);
+            allQuestions.get(i).setUpdatedAt(LocalDateTime.now());
+        }
+
+        questionRepository.saveAll(allQuestions);
+    }
+
+    // ==================== IMPORT/EXPORT OPERATIONS ====================
 
     /**
      * Import câu hỏi từ danh sách
@@ -239,7 +600,7 @@ public class QuestionService {
         }
 
         int successCount = 0;
-        int startOrder = getNextDisplayOrder(quiz);
+        int startOrder = getNextDisplayOrderPrivate(quiz);
 
         for (int i = 0; i < questions.size(); i++) {
             try {
@@ -280,8 +641,8 @@ public class QuestionService {
             question.setCorrectOption("A");
             question.setExplanation("Giải thích cho câu hỏi mẫu số " + i);
             question.setPoints(1.0);
-            question.setDifficultyLevel(Question.DifficultyLevel.EASY);
-            question.setQuestionType(Question.QuestionType.MULTIPLE_CHOICE);
+            question.setDifficultyLevel(DifficultyLevel.EASY);
+            question.setQuestionType(QuestionType.MULTIPLE_CHOICE);
 
             createQuestion(question);
         }
@@ -299,7 +660,7 @@ public class QuestionService {
         }
 
         List<Question> sourceQuestions = findByQuizOrderByDisplayOrder(sourceQuiz);
-        int startOrder = getNextDisplayOrder(targetQuiz);
+        int startOrder = getNextDisplayOrderPrivate(targetQuiz);
         int successCount = 0;
 
         for (int i = 0; i < sourceQuestions.size(); i++) {
@@ -334,26 +695,26 @@ public class QuestionService {
         return successCount;
     }
 
+    // ==================== VALIDATION AND UTILITY METHODS ====================
+
     /**
-     * Validate thông tin câu hỏi một cách đầy đủ
-     * @param question Câu hỏi cần validate
-     * @throws RuntimeException Nếu validation fail
+     * Validate question data (Enhanced version)
+     * @param question Question cần validate
      */
     private void validateQuestion(Question question) {
         if (question == null) {
-            throw new RuntimeException("Thông tin câu hỏi không được để trống");
+            throw new RuntimeException("Question không được để trống");
         }
 
-        // Validate quiz
-        if (question.getQuiz() == null) {
-            throw new RuntimeException("Câu hỏi phải thuộc về một bài kiểm tra");
-        }
-
-        // Validate question text
         if (!StringUtils.hasText(question.getQuestionText())) {
             throw new RuntimeException("Nội dung câu hỏi không được để trống");
         }
 
+        if (question.getQuiz() == null) {
+            throw new RuntimeException("Quiz không được để trống");
+        }
+
+        // Validate question text length
         if (question.getQuestionText().trim().length() < 10) {
             throw new RuntimeException("Nội dung câu hỏi phải có ít nhất 10 ký tự");
         }
@@ -362,33 +723,22 @@ public class QuestionService {
             throw new RuntimeException("Nội dung câu hỏi không được vượt quá 1000 ký tự");
         }
 
-        // Validate options cho multiple choice
-        if (question.getQuestionType() == Question.QuestionType.MULTIPLE_CHOICE) {
+        // Validate theo question type
+        QuestionType type = question.getQuestionType();
+        if (type != null && type == QuestionType.MULTIPLE_CHOICE) {
             validateMultipleChoiceOptions(question);
         }
 
-        // Validate points
-        if (question.getPoints() == null || question.getPoints() <= 0) {
-            throw new RuntimeException("Điểm số phải là số dương");
+        if (question.getPoints() != null && question.getPoints() <= 0) {
+            throw new RuntimeException("Điểm số phải lớn hơn 0");
         }
 
-        if (question.getPoints() > 10) {
+        if (question.getPoints() != null && question.getPoints() > 10) {
             throw new RuntimeException("Điểm số không được vượt quá 10");
         }
 
-        // Validate difficulty level
-        if (question.getDifficultyLevel() == null) {
-            question.setDifficultyLevel(Question.DifficultyLevel.MEDIUM); // Default value
-        }
-
-        // Validate question type
-        if (question.getQuestionType() == null) {
-            question.setQuestionType(Question.QuestionType.MULTIPLE_CHOICE); // Default value
-        }
-
-        // Validate display order
         if (question.getDisplayOrder() != null && question.getDisplayOrder() <= 0) {
-            throw new RuntimeException("Thứ tự hiển thị phải là số dương");
+            throw new RuntimeException("Thứ tự hiển thị phải lớn hơn 0");
         }
     }
 
@@ -476,9 +826,9 @@ public class QuestionService {
     }
 
     /**
-     * Lấy display order tiếp theo cho quiz
+     * Lấy display order tiếp theo cho quiz (private version for backward compatibility)
      */
-    private int getNextDisplayOrder(Quiz quiz) {
+    private int getNextDisplayOrderPrivate(Quiz quiz) {
         List<Question> existingQuestions = findByQuizOrderByDisplayOrder(quiz);
         if (existingQuestions.isEmpty()) {
             return 1;
@@ -499,40 +849,5 @@ public class QuestionService {
         }
 
         questionRepository.saveAll(questions);
-    }
-
-    /**
-     * Tìm kiếm câu hỏi theo từ khóa
-     * @param quiz Quiz cần tìm
-     * @param keyword Từ khóa tìm kiếm
-     * @return Danh sách câu hỏi phù hợp
-     */
-    public List<Question> searchQuestions(Quiz quiz, String keyword) {
-        if (quiz == null || !StringUtils.hasText(keyword)) {
-            return findByQuizOrderByDisplayOrder(quiz);
-        }
-
-        return questionRepository.findByQuizAndQuestionTextContainingIgnoreCase(quiz, keyword.trim());
-    }
-
-    /**
-     * Lấy câu hỏi ngẫu nhiên từ quiz
-     * @param quiz Quiz
-     * @param count Số lượng câu hỏi cần lấy
-     * @return Danh sách câu hỏi ngẫu nhiên
-     */
-    public List<Question> getRandomQuestions(Quiz quiz, int count) {
-        if (quiz == null || count <= 0) {
-            return new ArrayList<>();
-        }
-
-        List<Question> allQuestions = findByQuizOrderByDisplayOrder(quiz);
-
-        if (allQuestions.size() <= count) {
-            return allQuestions;
-        }
-
-        Collections.shuffle(allQuestions);
-        return allQuestions.subList(0, count);
     }
 }

@@ -419,4 +419,144 @@ public class Course {
     public int hashCode() {
         return getClass().hashCode();
     }
+
+    /**
+     * Enum định nghĩa các mức độ khó của câu hỏi và quiz
+     * Sử dụng trong Question và Quiz entities
+     */
+    public enum DifficultyLevel {
+        EASY("Dễ", 1),
+        MEDIUM("Trung bình", 2),
+        HARD("Khó", 3),
+        EXPERT("Chuyên gia", 4);
+
+        private final String displayName;
+        private final int level;
+
+        /**
+         * Constructor cho DifficultyLevel
+         * @param displayName Tên hiển thị bằng tiếng Việt
+         * @param level Mức độ khó (1-4)
+         */
+        DifficultyLevel(String displayName, int level) {
+            this.displayName = displayName;
+            this.level = level;
+        }
+
+        /**
+         * Lấy tên hiển thị của mức độ khó
+         * @return Tên hiển thị bằng tiếng Việt
+         */
+        public String getDisplayName() {
+            return displayName;
+        }
+
+        /**
+         * Lấy level số của độ khó (1-4)
+         * @return Level số
+         */
+        public int getLevel() {
+            return level;
+        }
+
+        /**
+         * Lấy màu CSS class cho hiển thị UI
+         * @return CSS class name
+         */
+        public String getCssClass() {
+            switch (this) {
+                case EASY:
+                    return "badge-success";
+                case MEDIUM:
+                    return "badge-warning";
+                case HARD:
+                    return "badge-danger";
+                case EXPERT:
+                    return "badge-dark";
+                default:
+                    return "badge-secondary";
+            }
+        }
+
+        /**
+         * Lấy icon class cho hiển thị UI
+         * @return Icon class name
+         */
+        public String getIconClass() {
+            switch (this) {
+                case EASY:
+                    return "fas fa-star";
+                case MEDIUM:
+                    return "fas fa-star-half-alt";
+                case HARD:
+                    return "fas fa-fire";
+                case EXPERT:
+                    return "fas fa-crown";
+                default:
+                    return "fas fa-question";
+            }
+        }
+
+        /**
+         * Kiểm tra độ khó có khó hơn level khác không
+         * @param other DifficultyLevel khác
+         * @return true nếu khó hơn
+         */
+        public boolean isHarderThan(DifficultyLevel other) {
+            return this.level > other.level;
+        }
+
+        /**
+         * Kiểm tra độ khó có dễ hơn level khác không
+         * @param other DifficultyLevel khác
+         * @return true nếu dễ hơn
+         */
+        public boolean isEasierThan(DifficultyLevel other) {
+            return this.level < other.level;
+        }
+
+        /**
+         * Lấy DifficultyLevel từ level số
+         * @param level Level số (1-4)
+         * @return DifficultyLevel tương ứng
+         */
+        public static DifficultyLevel fromLevel(int level) {
+            for (DifficultyLevel difficulty : values()) {
+                if (difficulty.level == level) {
+                    return difficulty;
+                }
+            }
+            return MEDIUM; // Default
+        }
+
+        /**
+         * Lấy DifficultyLevel từ điểm phần trăm
+         * @param percentage Điểm phần trăm (0-100)
+         * @return DifficultyLevel phù hợp
+         */
+        public static DifficultyLevel fromPercentage(double percentage) {
+            if (percentage >= 90) {
+                return EASY;
+            } else if (percentage >= 70) {
+                return MEDIUM;
+            } else if (percentage >= 50) {
+                return HARD;
+            } else {
+                return EXPERT;
+            }
+        }
+
+        /**
+         * Lấy tất cả DifficultyLevel dưới dạng array cho dropdown
+         * @return Array các DifficultyLevel
+         */
+        public static DifficultyLevel[] getAllLevels() {
+            return values();
+        }
+
+        @Override
+        public String toString() {
+            return displayName;
+        }
+    }
 }

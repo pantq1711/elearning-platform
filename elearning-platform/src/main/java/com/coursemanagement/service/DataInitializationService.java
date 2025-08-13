@@ -82,6 +82,8 @@ public class DataInitializationService {
             admin.setActive(true);
             admin.setPhoneNumber("0901234567");
             admin.setBio("Quản trị viên chính của hệ thống e-learning platform");
+            admin.setCreatedAt(LocalDateTime.now());
+            admin.setUpdatedAt(LocalDateTime.now());
             userRepository.save(admin);
 
             // Tạo các giảng viên mẫu với thông tin chi tiết
@@ -99,16 +101,20 @@ public class DataInitializationService {
             };
 
             for (String[] data : instructorData) {
-                User instructor = new User();
-                instructor.setUsername(data[0]);
-                instructor.setPassword(passwordEncoder.encode("instructor123"));
-                instructor.setFullName(data[1]);
-                instructor.setEmail(data[2]);
-                instructor.setRole(User.Role.INSTRUCTOR);
-                instructor.setActive(true);
-                instructor.setPhoneNumber(data[3]);
-                instructor.setBio(data[4]);
-                userRepository.save(instructor);
+                if (!userRepository.existsByUsername(data[0])) {
+                    User instructor = new User();
+                    instructor.setUsername(data[0]);
+                    instructor.setPassword(passwordEncoder.encode("instructor123"));
+                    instructor.setFullName(data[1]);
+                    instructor.setEmail(data[2]);
+                    instructor.setRole(User.Role.INSTRUCTOR);
+                    instructor.setActive(true);
+                    instructor.setPhoneNumber(data[3]);
+                    instructor.setBio(data[4]);
+                    instructor.setCreatedAt(LocalDateTime.now().minusDays(random.nextInt(60)));
+                    instructor.setUpdatedAt(LocalDateTime.now());
+                    userRepository.save(instructor);
+                }
             }
 
             // Tạo học viên mẫu với đa dạng background
@@ -132,22 +138,27 @@ public class DataInitializationService {
             };
 
             for (String[] data : studentData) {
-                User student = new User();
-                student.setUsername(data[0]);
-                student.setPassword(passwordEncoder.encode("student123"));
-                student.setFullName(data[1]);
-                student.setEmail(data[2]);
-                student.setRole(User.Role.STUDENT);
-                student.setActive(true);
-                student.setPhoneNumber(data[3]);
-                student.setBio(data[4]);
-                userRepository.save(student);
+                if (!userRepository.existsByUsername(data[0])) {
+                    User student = new User();
+                    student.setUsername(data[0]);
+                    student.setPassword(passwordEncoder.encode("student123"));
+                    student.setFullName(data[1]);
+                    student.setEmail(data[2]);
+                    student.setRole(User.Role.STUDENT);
+                    student.setActive(true);
+                    student.setPhoneNumber(data[3]);
+                    student.setBio(data[4]);
+                    student.setCreatedAt(LocalDateTime.now().minusDays(random.nextInt(90)));
+                    student.setUpdatedAt(LocalDateTime.now());
+                    userRepository.save(student);
+                }
             }
 
             System.out.println("✅ Đã tạo " + (1 + instructorData.length + studentData.length) + " người dùng mẫu");
 
         } catch (Exception e) {
             System.err.println("❌ Lỗi tạo người dùng mẫu: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
@@ -175,19 +186,25 @@ public class DataInitializationService {
             };
 
             for (String[] data : categoryData) {
-                Category category = new Category();
-                category.setName(data[0]);
-                category.setDescription(data[1]);
-                category.setColorCode(data[2]);
-                category.setIconClass(data[3]);
-                category.setFeatured(true);
-                categoryRepository.save(category);
+                if (!categoryRepository.existsByName(data[0])) {
+                    Category category = new Category();
+                    category.setName(data[0]);
+                    category.setDescription(data[1]);
+                    category.setColorCode(data[2]);
+                    category.setIconClass(data[3]);
+                    category.setFeatured(true);
+                    category.setActive(true);
+                    category.setCreatedAt(LocalDateTime.now().minusDays(random.nextInt(30)));
+                    category.setUpdatedAt(LocalDateTime.now());
+                    categoryRepository.save(category);
+                }
             }
 
             System.out.println("✅ Đã tạo " + categoryData.length + " danh mục mẫu");
 
         } catch (Exception e) {
             System.err.println("❌ Lỗi tạo danh mục mẫu: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
@@ -287,6 +304,9 @@ public class DataInitializationService {
                 course.setActive(true);
                 course.setLanguage("Vietnamese");
 
+                // Tạo slug từ tên
+                course.setSlug(createSlugFromName(course.getName()));
+
                 // Tìm category phù hợp
                 String categoryName = (String) data[2];
                 Category category = categories.stream()
@@ -299,6 +319,9 @@ public class DataInitializationService {
                 User instructor = instructors.get(random.nextInt(instructors.size()));
                 course.setInstructor(instructor);
 
+                course.setCreatedAt(LocalDateTime.now().minusDays(random.nextInt(30)));
+                course.setUpdatedAt(LocalDateTime.now());
+
                 courseRepository.save(course);
             }
 
@@ -306,6 +329,7 @@ public class DataInitializationService {
 
         } catch (Exception e) {
             System.err.println("❌ Lỗi tạo khóa học mẫu: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
@@ -426,6 +450,8 @@ public class DataInitializationService {
                     lesson.setActive(true);
                     lesson.setEstimatedDuration(30 + (i * 5) + random.nextInt(15)); // 30-70 phút
                     lesson.setPreview(i == 0); // Bài đầu cho preview miễn phí
+                    lesson.setCreatedAt(LocalDateTime.now().minusDays(random.nextInt(10)));
+                    lesson.setUpdatedAt(LocalDateTime.now());
 
                     lessonRepository.save(lesson);
                 }
@@ -435,6 +461,7 @@ public class DataInitializationService {
 
         } catch (Exception e) {
             System.err.println("❌ Lỗi tạo bài giảng mẫu: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
@@ -446,104 +473,141 @@ public class DataInitializationService {
 
         try {
             List<Course> courses = courseRepository.findAll();
-            if (courses.isEmpty()) return;
+            if (courses.isEmpty()) {
+                System.out.println("⚠️ Không có course nào để tạo quiz");
+                return;
+            }
 
             for (Course course : courses) {
-                // Tạo 2 quiz cho mỗi khóa học
-                for (int quizIndex = 1; quizIndex <= 2; quizIndex++) {
+                // Tạo 2-3 quiz cho mỗi course
+                int quizCount = 2 + random.nextInt(2); // 2-3 quiz
+
+                for (int i = 1; i <= quizCount; i++) {
                     Quiz quiz = new Quiz();
-                    quiz.setTitle("Kiểm tra " + (quizIndex == 1 ? "giữa khóa" : "cuối khóa") + " - " + course.getName());
-                    quiz.setDescription("Bài kiểm tra " + (quizIndex == 1 ? "đánh giá kiến thức cơ bản" : "tổng hợp toàn khóa"));
-                    quiz.setDuration(quizIndex == 1 ? 30 : 60); // 30 hoặc 60 phút
-                    quiz.setMaxScore(100.0);
-                    quiz.setPassScore(70.0);
-                    quiz.setActive(true);
-                    quiz.setShowCorrectAnswers(true);
-                    quiz.setShuffleQuestions(true);
-                    quiz.setRequireLogin(true);
+                    quiz.setTitle("Quiz " + i + " - " + course.getName());
+                    quiz.setDescription("Bài kiểm tra " + i + " cho khóa học " + course.getName());
                     quiz.setCourse(course);
+                    quiz.setDuration(30 + random.nextInt(31)); // 30-60 phút
+                    quiz.setMaxScore(100.0);
+                    quiz.setPassScore(60.0 + random.nextInt(21)); // 60-80 điểm để pass
+                    quiz.setActive(true);
+                    quiz.setShowCorrectAnswers(random.nextBoolean());
+                    quiz.setShuffleQuestions(random.nextBoolean());
+                    quiz.setShuffleAnswers(random.nextBoolean());
+                    quiz.setRequireLogin(true);
+
+                    // Set available time
+                    quiz.setAvailableFrom(LocalDateTime.now().minusDays(random.nextInt(10)));
+                    quiz.setAvailableUntil(LocalDateTime.now().plusDays(30 + random.nextInt(60)));
+
+                    quiz.setCreatedAt(LocalDateTime.now().minusDays(random.nextInt(15)));
+                    quiz.setUpdatedAt(LocalDateTime.now());
 
                     Quiz savedQuiz = quizRepository.save(quiz);
 
-                    // Tạo câu hỏi cho quiz
-                    createQuestionsForQuiz(savedQuiz, course.getName());
+                    // Tạo questions cho quiz này
+                    createQuestionsForQuiz(savedQuiz);
                 }
             }
 
-            System.out.println("✅ Đã tạo quiz và câu hỏi cho tất cả khóa học");
+            System.out.println("✅ Đã tạo quiz mẫu");
 
         } catch (Exception e) {
             System.err.println("❌ Lỗi tạo quiz mẫu: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
     /**
-     * Tạo câu hỏi specific cho từng quiz dựa trên tên khóa học
+     * Tạo câu hỏi specific cho từng quiz
      */
-    private void createQuestionsForQuiz(Quiz quiz, String courseName) {
-        String[][] questionData;
+    private void createQuestionsForQuiz(Quiz quiz) {
+        try {
+            String courseName = quiz.getCourse().getName();
+            String[][] questionData;
 
-        if (courseName.contains("Java")) {
-            questionData = new String[][]{
-                    {"Java là ngôn ngữ lập trình thuộc loại nào?",
-                            "Compiled", "Interpreted", "Compiled và Interpreted", "Assembly", "C"},
-                    {"Từ khóa nào được sử dụng để kế thừa trong Java?",
-                            "implements", "extends", "inherits", "super", "B"},
-                    {"Phương thức main trong Java có đặc điểm gì?",
-                            "Private và static", "Public và dynamic", "Public và static", "Protected và final", "C"},
-                    {"JVM viết tắt của cụm từ nào?",
-                            "Java Virtual Machine", "Java Variable Method", "Java Version Manager", "Java Visual Mode", "A"},
-                    {"Kiểu dữ liệu nào là primitive type trong Java?",
-                            "String", "ArrayList", "int", "Scanner", "C"}
-            };
-        } else if (courseName.contains("UI/UX") || courseName.contains("Figma")) {
-            questionData = new String[][]{
-                    {"UX viết tắt của cụm từ nào?",
-                            "User Experience", "User Extension", "Unique Experience", "Universal Extension", "A"},
-                    {"Wireframe trong thiết kế UI/UX là gì?",
-                            "Màu sắc giao diện", "Bản phác thảo khung giao diện", "Font chữ sử dụng", "Hiệu ứng animation", "B"},
-                    {"Figma là công cụ dùng để làm gì?",
-                            "Lập trình web", "Thiết kế giao diện", "Quản lý dự án", "Viết documentation", "B"},
-                    {"Nguyên tắc nào quan trọng nhất trong UI Design?",
-                            "Màu sắc đẹp", "Nhiều hiệu ứng", "Usability", "Font chữ đặc biệt", "C"}
-            };
-        } else if (courseName.contains("Python")) {
-            questionData = new String[][]{
-                    {"Python là ngôn ngữ lập trình gì?",
-                            "Compiled", "Interpreted", "Assembly", "Machine code", "B"},
-                    {"Thư viện nào dùng cho Data Analysis?",
-                            "Pandas", "Tkinter", "Flask", "Django", "A"},
-                    {"NumPy chủ yếu được sử dụng để làm gì?",
-                            "Web development", "Scientific computing", "Game development", "Mobile app", "B"},
-                    {"Phương thức đọc CSV trong Pandas?",
-                            "read_csv()", "load_csv()", "import_csv()", "open_csv()", "A"}
-            };
-        } else {
-            // Câu hỏi chung
-            questionData = new String[][]{
-                    {"Mục tiêu chính của việc học online là gì?",
-                            "Giải trí", "Phát triển kỹ năng", "Giao lưu", "Thi đua", "B"},
-                    {"Thái độ học tập hiệu quả nhất là gì?",
-                            "Thụ động", "Tích cực và chủ động", "Thờ ơ", "Máy móc", "B"},
-                    {"Yếu tố quan trọng nhất khi học online?",
-                            "Tự giác và kỷ luật", "Máy tính đắt tiền", "Học nhiều giờ", "Ghi chép nhiều", "A"}
-            };
-        }
+            if (courseName.contains("Java")) {
+                questionData = new String[][]{
+                        {"Java là ngôn ngữ lập trình thuộc loại nào?",
+                                "Compiled", "Interpreted", "Compiled và Interpreted", "Assembly", "C"},
+                        {"Từ khóa nào được sử dụng để kế thừa trong Java?",
+                                "implements", "extends", "inherits", "super", "B"},
+                        {"Phương thức main trong Java có đặc điểm gì?",
+                                "Private và static", "Public và dynamic", "Public và static", "Protected và final", "C"},
+                        {"JVM viết tắt của cụm từ nào?",
+                                "Java Virtual Machine", "Java Variable Method", "Java Version Manager", "Java Visual Mode", "A"},
+                        {"Kiểu dữ liệu nào là primitive type trong Java?",
+                                "String", "ArrayList", "int", "Scanner", "C"}
+                };
+            } else if (courseName.contains("UI/UX") || courseName.contains("Figma")) {
+                questionData = new String[][]{
+                        {"UX viết tắt của cụm từ nào?",
+                                "User Experience", "User Extension", "Unique Experience", "Universal Extension", "A"},
+                        {"Wireframe trong thiết kế UI/UX là gì?",
+                                "Màu sắc giao diện", "Bản phác thảo khung giao diện", "Font chữ sử dụng", "Hiệu ứng animation", "B"},
+                        {"Figma là công cụ dùng để làm gì?",
+                                "Lập trình web", "Thiết kế giao diện", "Quản lý dự án", "Viết documentation", "B"},
+                        {"Nguyên tắc nào quan trọng nhất trong UI Design?",
+                                "Màu sắc đẹp", "Nhiều hiệu ứng", "Usability", "Font chữ đặc biệt", "C"}
+                };
+            } else if (courseName.contains("Python")) {
+                questionData = new String[][]{
+                        {"Python là ngôn ngữ lập trình gì?",
+                                "Compiled", "Interpreted", "Assembly", "Machine code", "B"},
+                        {"Thư viện nào dùng cho Data Analysis?",
+                                "Pandas", "Tkinter", "Flask", "Django", "A"},
+                        {"NumPy chủ yếu được sử dụng để làm gì?",
+                                "Web development", "Scientific computing", "Game development", "Mobile app", "B"},
+                        {"Phương thức đọc CSV trong Pandas?",
+                                "read_csv()", "load_csv()", "import_csv()", "open_csv()", "A"}
+                };
+            } else {
+                // Câu hỏi chung cho các khóa học khác
+                int questionCount = 5 + random.nextInt(6); // 5-10 questions
+                questionData = new String[questionCount][];
 
-        for (int i = 0; i < questionData.length; i++) {
-            Question question = new Question();
-            question.setQuestionText(questionData[i][0]);
-            question.setOptionA(questionData[i][1]);
-            question.setOptionB(questionData[i][2]);
-            question.setOptionC(questionData[i][3]);
-            question.setOptionD(questionData[i][4]);
-            question.setCorrectOption(questionData[i][5]);
-            question.setExplanation("Giải thích chi tiết cho câu hỏi này sẽ được cập nhật...");
-            question.setPoints(10.0);
-            question.setDisplayOrder(i + 1);
-            question.setQuiz(quiz);
+                for (int i = 0; i < questionCount; i++) {
+                    questionData[i] = new String[]{
+                            "Câu hỏi " + (i + 1) + " cho " + quiz.getTitle() + "?",
+                            "Đáp án A", "Đáp án B", "Đáp án C", "Đáp án D",
+                            String.valueOf((char) ('A' + random.nextInt(4))) // Random correct answer
+                    };
+                }
+            }
 
-            questionRepository.save(question);
+            for (int i = 0; i < questionData.length; i++) {
+                Question question = new Question();
+                question.setQuiz(quiz);
+                question.setQuestionText(questionData[i][0]);
+                question.setOptionA(questionData[i][1]);
+                question.setOptionB(questionData[i][2]);
+                question.setOptionC(questionData[i][3]);
+                question.setOptionD(questionData[i][4]);
+                question.setCorrectOption(questionData[i][5]);
+                question.setDisplayOrder(i + 1);
+
+                // Set difficulty level từ enum
+                Question.DifficultyLevel[] difficulties = {
+                        Question.DifficultyLevel.EASY,
+                        Question.DifficultyLevel.MEDIUM,
+                        Question.DifficultyLevel.HARD
+                };
+                question.setDifficultyLevel(difficulties[random.nextInt(3)]);
+
+                // Set question type
+                question.setQuestionType(Question.QuestionType.MULTIPLE_CHOICE);
+
+                question.setPoints(1.0 + random.nextDouble() * 2); // 1-3 điểm
+                question.setTags("sample,demo,test");
+                question.setExplanation("Giải thích cho câu hỏi " + (i + 1));
+                question.setCreatedAt(LocalDateTime.now().minusDays(random.nextInt(10)));
+                question.setUpdatedAt(LocalDateTime.now());
+
+                questionRepository.save(question);
+            }
+
+        } catch (Exception e) {
+            System.err.println("❌ Lỗi tạo questions cho quiz " + quiz.getTitle() + ": " + e.getMessage());
         }
     }
 
@@ -557,7 +621,10 @@ public class DataInitializationService {
             List<User> students = userRepository.findByRole(User.Role.STUDENT);
             List<Course> courses = courseRepository.findAll();
 
-            if (students.isEmpty() || courses.isEmpty()) return;
+            if (students.isEmpty() || courses.isEmpty()) {
+                System.out.println("⚠️ Cần có students và courses để tạo enrollments");
+                return;
+            }
 
             // Mỗi học viên đăng ký random 2-4 khóa học
             for (User student : students) {
@@ -595,7 +662,30 @@ public class DataInitializationService {
 
         } catch (Exception e) {
             System.err.println("❌ Lỗi tạo enrollment mẫu: " + e.getMessage());
+            e.printStackTrace();
         }
+    }
+
+    /**
+     * Tạo slug từ tên
+     * @param name Tên cần tạo slug
+     * @return Slug string
+     */
+    private String createSlugFromName(String name) {
+        if (name == null) return "";
+
+        return name.toLowerCase()
+                .replaceAll("[àáạảãâầấậẩẫăằắặẳẵ]", "a")
+                .replaceAll("[èéẹẻẽêềếệểễ]", "e")
+                .replaceAll("[ìíịỉĩ]", "i")
+                .replaceAll("[òóọỏõôồốộổỗơờớợởỡ]", "o")
+                .replaceAll("[ùúụủũưừứựửữ]", "u")
+                .replaceAll("[ỳýỵỷỹ]", "y")
+                .replaceAll("[đ]", "d")
+                .replaceAll("[^a-z0-9\\s-]", "")
+                .replaceAll("\\s+", "-")
+                .replaceAll("-+", "-")
+                .replaceAll("^-|-$", "");
     }
 
     /**

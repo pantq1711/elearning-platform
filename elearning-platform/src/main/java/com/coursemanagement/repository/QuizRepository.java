@@ -2,6 +2,7 @@ package com.coursemanagement.repository;
 
 import com.coursemanagement.entity.Course;
 import com.coursemanagement.entity.Quiz;
+import com.coursemanagement.entity.QuizResult;
 import com.coursemanagement.entity.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -17,7 +18,6 @@ import java.util.Optional;
 /**
  * Repository interface cho Quiz entity
  * Chứa các custom queries cho quiz management
- * Cập nhật với đầy đủ methods cần thiết
  */
 @Repository
 public interface QuizRepository extends JpaRepository<Quiz, Long> {
@@ -26,26 +26,16 @@ public interface QuizRepository extends JpaRepository<Quiz, Long> {
 
     /**
      * Tìm quiz theo ID và course (cho security)
-     * @param id ID quiz
-     * @param course Course chứa quiz
-     * @return Optional chứa Quiz nếu tìm thấy
      */
     Optional<Quiz> findByIdAndCourse(Long id, Course course);
 
     /**
      * Kiểm tra title quiz đã tồn tại trong course chưa
-     * @param title Title quiz
-     * @param course Course
-     * @return true nếu đã tồn tại
      */
     boolean existsByTitleAndCourse(String title, Course course);
 
     /**
      * Kiểm tra title quiz đã tồn tại trong course chưa (exclude ID hiện tại)
-     * @param title Title quiz
-     * @param course Course
-     * @param id ID cần exclude
-     * @return true nếu đã tồn tại
      */
     boolean existsByTitleAndCourseAndIdNot(String title, Course course, Long id);
 
@@ -53,66 +43,74 @@ public interface QuizRepository extends JpaRepository<Quiz, Long> {
 
     /**
      * Tìm quizzes theo course sắp xếp theo ngày tạo
-     * @param course Course
-     * @return Danh sách quizzes
      */
     List<Quiz> findByCourseOrderByCreatedAtDesc(Course course);
 
     /**
-     * Tìm active quizzes theo course
-     * @param course Course
-     * @param active Trạng thái active
-     * @return Danh sách active quizzes
+     * Tìm active quizzes theo course (với order by)
      */
     List<Quiz> findByCourseAndActiveOrderByCreatedAtDesc(Course course, boolean active);
 
     /**
+     * Tìm active quizzes theo course (không order by)
+     */
+    List<Quiz> findByCourseAndActive(Course course, boolean active);
+
+    /**
      * Tìm quizzes theo course với pagination
-     * @param course Course
-     * @param pageable Pagination info
-     * @return Page chứa quizzes
      */
     Page<Quiz> findByCourse(Course course, Pageable pageable);
 
     /**
      * Đếm quizzes theo course
-     * @param course Course
-     * @return Số lượng quizzes
+     */
+    Long countByCourse(Course course);
+
+    /**
+     * Đếm quizzes theo course (alternative method name)
      */
     Long countQuizzesByCourse(Course course);
 
     /**
      * Đếm active quizzes theo course
-     * @param course Course
-     * @param active Trạng thái active
-     * @return Số lượng active quizzes
      */
     Long countByCourseAndActive(Course course, boolean active);
+
+    /**
+     * Đếm quiz attempts cho course
+     */
+    @Query("SELECT COUNT(qr) FROM QuizResult qr WHERE qr.quiz.course = :course")
+    Long countByCourseQuizzes(@Param("course") Course course);
+
+    /**
+     * Đếm passed quiz attempts cho course
+     */
+    @Query("SELECT COUNT(qr) FROM QuizResult qr WHERE qr.quiz.course = :course " +
+            "AND qr.score >= qr.quiz.passScore")
+    Long countPassedByCourse(@Param("course") Course course);
 
     // ===== INSTRUCTOR-RELATED QUERIES =====
 
     /**
-     * Tìm quizzes theo instructor
-     * @param instructor Instructor
-     * @param pageable Pagination info
-     * @return Page chứa quizzes
+     * Tìm quizzes theo instructor (List version)
+     */
+    @Query("SELECT q FROM Quiz q WHERE q.course.instructor = :instructor ORDER BY q.createdAt DESC")
+    List<Quiz> findByInstructor(@Param("instructor") User instructor);
+
+    /**
+     * Tìm quizzes theo instructor với pagination
      */
     @Query("SELECT q FROM Quiz q WHERE q.course.instructor = :instructor ORDER BY q.createdAt DESC")
     Page<Quiz> findByInstructor(@Param("instructor") User instructor, Pageable pageable);
 
     /**
      * Đếm quizzes của instructor
-     * @param instructor Instructor
-     * @return Số lượng quizzes
      */
     @Query("SELECT COUNT(q) FROM Quiz q WHERE q.course.instructor = :instructor")
     Long countByInstructor(@Param("instructor") User instructor);
 
     /**
      * Đếm active quizzes của instructor
-     * @param instructor Instructor
-     * @param active Trạng thái active
-     * @return Số lượng active quizzes
      */
     @Query("SELECT COUNT(q) FROM Quiz q WHERE q.course.instructor = :instructor AND q.active = :active")
     Long countByInstructorAndActive(@Param("instructor") User instructor, @Param("active") boolean active);
@@ -121,9 +119,6 @@ public interface QuizRepository extends JpaRepository<Quiz, Long> {
 
     /**
      * Tìm available quizzes (trong thời gian cho phép)
-     * @param course Course
-     * @param currentTime Thời gian hiện tại
-     * @return Danh sách available quizzes
      */
     @Query("SELECT q FROM Quiz q WHERE q.course = :course AND q.active = true AND " +
             "(q.availableFrom IS NULL OR q.availableFrom <= :currentTime) AND " +
@@ -131,9 +126,16 @@ public interface QuizRepository extends JpaRepository<Quiz, Long> {
     List<Quiz> findAvailableQuizzes(@Param("course") Course course, @Param("currentTime") LocalDateTime currentTime);
 
     /**
-     * Tìm quizzes sắp hết hạn
-     * @param beforeTime Thời gian trước đó
-     * @return Danh sách quizzes sắp hết hạn
+     * Tìm quizzes available cho student (chưa làm và trong thời gian mở)
+     */
+    @Query("SELECT q FROM Quiz q WHERE q.active = true " +
+            "AND (q.availableFrom IS NULL OR q.availableFrom <= CURRENT_TIMESTAMP) " +
+            "AND (q.availableUntil IS NULL OR q.availableUntil >= CURRENT_TIMESTAMP) " +
+            "AND NOT EXISTS (SELECT qr FROM QuizResult qr WHERE qr.quiz = q AND qr.user.id = :studentId)")
+    List<Quiz> findAvailableQuizzesForStudent(@Param("studentId") Long studentId);
+
+    /**
+     * Tìm quizzes sắp hết hạn (trong khoảng thời gian)
      */
     @Query("SELECT q FROM Quiz q WHERE q.active = true AND q.availableUntil IS NOT NULL AND " +
             "q.availableUntil BETWEEN :beforeTime AND :currentTime")
@@ -141,9 +143,14 @@ public interface QuizRepository extends JpaRepository<Quiz, Long> {
                                          @Param("currentTime") LocalDateTime currentTime);
 
     /**
+     * Tìm quizzes sắp hết hạn (expire trong X ngày)
+     */
+    @Query("SELECT q FROM Quiz q WHERE q.active = true AND q.availableUntil IS NOT NULL " +
+            "AND q.availableUntil BETWEEN CURRENT_TIMESTAMP AND :expireDate")
+    List<Quiz> findQuizzesExpiringWithin(@Param("expireDate") LocalDateTime expireDate);
+
+    /**
      * Tìm quizzes chưa bắt đầu
-     * @param currentTime Thời gian hiện tại
-     * @return Danh sách quizzes chưa bắt đầu
      */
     @Query("SELECT q FROM Quiz q WHERE q.active = true AND q.availableFrom IS NOT NULL AND " +
             "q.availableFrom > :currentTime")
@@ -152,10 +159,7 @@ public interface QuizRepository extends JpaRepository<Quiz, Long> {
     // ===== SEARCH METHODS =====
 
     /**
-     * Search quizzes theo title hoặc description
-     * @param course Course
-     * @param keyword Từ khóa tìm kiếm
-     * @return Danh sách quizzes tìm thấy
+     * Search quizzes theo title hoặc description trong course
      */
     @Query("SELECT q FROM Quiz q WHERE q.course = :course AND " +
             "(LOWER(q.title) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
@@ -164,21 +168,71 @@ public interface QuizRepository extends JpaRepository<Quiz, Long> {
 
     /**
      * Search quizzes global với pagination
-     * @param keyword Từ khóa tìm kiếm
-     * @param pageable Pagination info
-     * @return Page chứa quizzes tìm thấy
      */
     @Query("SELECT q FROM Quiz q WHERE q.active = true AND " +
             "(LOWER(q.title) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(q.description) LIKE LOWER(CONCAT('%', :keyword, '%')))")
     Page<Quiz> searchQuizzes(@Param("keyword") String keyword, Pageable pageable);
 
+    /**
+     * Tìm quizzes theo title chứa keyword
+     */
+    @Query("SELECT q FROM Quiz q WHERE LOWER(q.title) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+            "ORDER BY q.createdAt DESC")
+    Page<Quiz> findByTitleContainingIgnoreCase(@Param("keyword") String keyword, Pageable pageable);
+
+    // ===== STUDENT-RELATED QUERIES =====
+
+    /**
+     * Tìm quizzes mà student chưa attempt
+     */
+    @Query("SELECT q FROM Quiz q WHERE q.course = :course AND q.active = true AND " +
+            "q.id NOT IN (SELECT qr.quiz.id FROM QuizResult qr WHERE qr.user = :student)")
+    List<Quiz> findUnattemptedQuizzesByStudent(@Param("student") User student, @Param("course") Course course);
+
+    /**
+     * Tìm quizzes mà student đã attempt
+     */
+    @Query("SELECT DISTINCT q FROM Quiz q JOIN q.quizResults qr " +
+            "WHERE q.course = :course AND qr.user = :student")
+    List<Quiz> findAttemptedQuizzesByStudent(@Param("student") User student, @Param("course") Course course);
+
+    /**
+     * Tìm quizzes mà student đã pass
+     */
+    @Query("SELECT DISTINCT q FROM Quiz q JOIN q.quizResults qr " +
+            "WHERE q.course = :course AND qr.user = :student AND qr.passed = true")
+    List<Quiz> findPassedQuizzesByStudent(@Param("student") User student, @Param("course") Course course);
+
+    /**
+     * Tìm completed quizzes cho student
+     */
+    @Query("SELECT DISTINCT qr.quiz FROM QuizResult qr WHERE qr.user.id = :studentId " +
+            "ORDER BY qr.submittedAt DESC")
+    List<Quiz> findCompletedQuizzesForStudent(@Param("studentId") Long studentId);
+
+    /**
+     * Kiểm tra student đã làm quiz chưa
+     */
+    @Query("SELECT COUNT(qr) > 0 FROM QuizResult qr WHERE qr.user = :student AND qr.quiz = :quiz")
+    boolean existsByStudentAndQuiz(@Param("student") User student, @Param("quiz") Quiz quiz);
+
+    /**
+     * Tìm quiz result theo student và quiz
+     */
+    @Query("SELECT qr FROM QuizResult qr WHERE qr.user = :student AND qr.quiz = :quiz")
+    Optional<QuizResult> findByStudentAndQuiz(@Param("student") User student, @Param("quiz") Quiz quiz);
+
+    /**
+     * Tìm quiz results theo student sắp xếp theo attempt date
+     */
+    @Query("SELECT qr FROM QuizResult qr WHERE qr.user = :student ORDER BY qr.submittedAt DESC")
+    List<QuizResult> findByStudentOrderByAttemptDateDesc(@Param("student") User student);
+
     // ===== ANALYTICS QUERIES =====
 
     /**
      * Lấy thống kê quiz theo course
-     * @param course Course
-     * @return Map chứa thống kê
      */
     @Query("SELECT " +
             "COUNT(q) as totalQuizzes, " +
@@ -190,8 +244,6 @@ public interface QuizRepository extends JpaRepository<Quiz, Long> {
 
     /**
      * Lấy quiz performance stats
-     * @param quiz Quiz
-     * @return Performance stats
      */
     @Query("SELECT " +
             "COUNT(qr) as totalAttempts, " +
@@ -204,16 +256,12 @@ public interface QuizRepository extends JpaRepository<Quiz, Long> {
 
     /**
      * Lấy recent quizzes với limit
-     * @param limit Số lượng quizzes
-     * @return Danh sách recent quizzes
      */
     @Query("SELECT q FROM Quiz q WHERE q.active = true ORDER BY q.createdAt DESC")
     List<Quiz> findRecentQuizzes(@Param("limit") int limit);
 
     /**
      * Lấy popular quizzes (nhiều attempts)
-     * @param limit Số lượng quizzes
-     * @return Danh sách popular quizzes
      */
     @Query("SELECT q, COUNT(qr) as attemptCount FROM Quiz q " +
             "LEFT JOIN q.quizResults qr " +
@@ -224,9 +272,6 @@ public interface QuizRepository extends JpaRepository<Quiz, Long> {
 
     /**
      * Lấy quizzes theo difficulty level (dựa trên pass score)
-     * @param minPassScorePercent Minimum pass score percentage
-     * @param maxPassScorePercent Maximum pass score percentage
-     * @return Danh sách quizzes trong range difficulty
      */
     @Query("SELECT q FROM Quiz q WHERE q.active = true AND " +
             "(q.passScore / q.maxScore * 100) BETWEEN :minPassScorePercent AND :maxPassScorePercent")
@@ -235,7 +280,6 @@ public interface QuizRepository extends JpaRepository<Quiz, Long> {
 
     /**
      * Lấy quizzes chưa có câu hỏi
-     * @return Danh sách empty quizzes
      */
     @Query("SELECT q FROM Quiz q WHERE q.active = true AND " +
             "(SELECT COUNT(qu) FROM Question qu WHERE qu.quiz = q) = 0")
@@ -243,16 +287,12 @@ public interface QuizRepository extends JpaRepository<Quiz, Long> {
 
     /**
      * Lấy average completion time cho quiz
-     * @param quiz Quiz
-     * @return Average completion time (minutes)
      */
     @Query("SELECT AVG(qr.timeTaken) FROM QuizResult qr WHERE qr.quiz = :quiz AND qr.timeTaken IS NOT NULL")
     Double getAverageCompletionTime(@Param("quiz") Quiz quiz);
 
     /**
      * Lấy pass rate của quiz
-     * @param quiz Quiz
-     * @return Pass rate (0.0 - 1.0)
      */
     @Query("SELECT CASE WHEN COUNT(qr) = 0 THEN 0.0 ELSE " +
             "CAST(COUNT(CASE WHEN qr.passed = true THEN 1 END) AS double) / COUNT(qr) END " +
@@ -261,9 +301,6 @@ public interface QuizRepository extends JpaRepository<Quiz, Long> {
 
     /**
      * Lấy quiz attempts trong khoảng thời gian
-     * @param startDate Ngày bắt đầu
-     * @param endDate Ngày kết thúc
-     * @return Số lượng attempts
      */
     @Query("SELECT COUNT(qr) FROM QuizResult qr WHERE qr.quiz = :quiz AND " +
             "qr.submittedAt BETWEEN :startDate AND :endDate")
@@ -271,35 +308,33 @@ public interface QuizRepository extends JpaRepository<Quiz, Long> {
                                    @Param("startDate") LocalDateTime startDate,
                                    @Param("endDate") LocalDateTime endDate);
 
-    // ===== STUDENT RELATED QUERIES =====
+    /**
+     * Lấy average score của quiz
+     */
+    @Query("SELECT AVG(qr.score) FROM QuizResult qr WHERE qr.quiz = :quiz")
+    Double getAverageScore(@Param("quiz") Quiz quiz);
 
     /**
-     * Tìm quizzes mà student chưa attempt
-     * @param student Student
-     * @param course Course
-     * @return Danh sách quizzes chưa attempt
+     * Lấy highest score của quiz
      */
-    @Query("SELECT q FROM Quiz q WHERE q.course = :course AND q.active = true AND " +
-            "q.id NOT IN (SELECT qr.quiz.id FROM QuizResult qr WHERE qr.user = :student)")
-    List<Quiz> findUnattemptedQuizzesByStudent(@Param("student") User student, @Param("course") Course course);
+    @Query("SELECT MAX(qr.score) FROM QuizResult qr WHERE qr.quiz = :quiz")
+    Double getHighestScore(@Param("quiz") Quiz quiz);
 
     /**
-     * Tìm quizzes mà student đã attempt
-     * @param student Student
-     * @param course Course
-     * @return Danh sách quizzes đã attempt
+     * Lấy lowest score của quiz
      */
-    @Query("SELECT DISTINCT q FROM Quiz q JOIN q.quizResults qr " +
-            "WHERE q.course = :course AND qr.user = :student")
-    List<Quiz> findAttemptedQuizzesByStudent(@Param("student") User student, @Param("course") Course course);
+    @Query("SELECT MIN(qr.score) FROM QuizResult qr WHERE qr.quiz = :quiz")
+    Double getLowestScore(@Param("quiz") Quiz quiz);
 
     /**
-     * Tìm quizzes mà student đã pass
-     * @param student Student
-     * @param course Course
-     * @return Danh sách quizzes đã pass
+     * Đếm students đã attempt quiz
      */
-    @Query("SELECT DISTINCT q FROM Quiz q JOIN q.quizResults qr " +
-            "WHERE q.course = :course AND qr.user = :student AND qr.passed = true")
-    List<Quiz> findPassedQuizzesByStudent(@Param("student") User student, @Param("course") Course course);
+    @Query("SELECT COUNT(DISTINCT qr.user) FROM QuizResult qr WHERE qr.quiz = :quiz")
+    Long countAttemptsByQuiz(@Param("quiz") Quiz quiz);
+
+    /**
+     * Tìm recent quiz results với pagination
+     */
+    @Query("SELECT qr FROM QuizResult qr WHERE qr.quiz = :quiz ORDER BY qr.submittedAt DESC")
+    Page<QuizResult> findRecentResultsByQuiz(@Param("quiz") Quiz quiz, Pageable pageable);
 }

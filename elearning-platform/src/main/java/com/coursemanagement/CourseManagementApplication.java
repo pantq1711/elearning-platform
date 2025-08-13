@@ -105,6 +105,40 @@ public class CourseManagementApplication implements CommandLineRunner {
             System.err.println("❌ Lỗi tạo default users: " + e.getMessage());
         }
     }
+    private void createDefaultInstructorsIfNotExists() {
+        try {
+            // Kiểm tra đã có instructor chưa
+            if (userService.countByRole(User.Role.INSTRUCTOR) == 0) {
+                System.out.println("📝 Tạo giảng viên mẫu...");
+
+                // Tạo 3 instructor mẫu
+                String[][] instructorData = {
+                        {"instructor1", "instructor1@coursemanagement.com", "Nguyễn Văn A", "123456"},
+                        {"instructor2", "instructor2@coursemanagement.com", "Trần Thị B", "123456"},
+                        {"instructor3", "instructor3@coursemanagement.com", "Lê Văn C", "123456"}
+                };
+
+                for (String[] data : instructorData) {
+                    User instructor = new User();
+                    instructor.setUsername(data[0]);
+                    instructor.setEmail(data[1]);
+                    instructor.setFullName(data[2]);
+                    instructor.setPassword(passwordEncoder.encode(data[3]));
+                    instructor.setRole(User.Role.INSTRUCTOR);
+                    instructor.setActive(true);
+                    instructor.setCreatedAt(LocalDateTime.now());
+                    instructor.setUpdatedAt(LocalDateTime.now());
+
+                    userService.save(instructor);
+                }
+
+                System.out.println("✅ Đã tạo " + instructorData.length + " giảng viên mẫu");
+            }
+        } catch (Exception e) {
+            System.err.println("❌ Lỗi tạo instructors mẫu: " + e.getMessage());
+        }
+    }
+
 
     /**
      * Tạo các category mặc định nếu chưa tồn tại
@@ -146,5 +180,62 @@ public class CourseManagementApplication implements CommandLineRunner {
         } catch (Exception e) {
             System.err.println("❌ Lỗi tạo default categories: " + e.getMessage());
         }
+    }
+    /**
+     * Tạo students mẫu nếu chưa có
+     */
+    private void createDefaultStudentsIfNotExists() {
+        try {
+            // Kiểm tra đã có student chưa
+            if (userService.countByRole(User.Role.STUDENT) == 0) {
+                System.out.println("📝 Tạo học viên mẫu...");
+
+                // Tạo 5 student mẫu
+                String[][] studentData = {
+                        {"student1", "student1@coursemanagement.com", "Phạm Văn D", "123456"},
+                        {"student2", "student2@coursemanagement.com", "Hoàng Thị E", "123456"},
+                        {"student3", "student3@coursemanagement.com", "Vũ Văn F", "123456"},
+                        {"student4", "student4@coursemanagement.com", "Đỗ Thị G", "123456"},
+                        {"student5", "student5@coursemanagement.com", "Bùi Văn H", "123456"}
+                };
+
+                for (String[] data : studentData) {
+                    User student = new User();
+                    student.setUsername(data[0]);
+                    student.setEmail(data[1]);
+                    student.setFullName(data[2]);
+                    student.setPassword(passwordEncoder.encode(data[3]));
+                    student.setRole(User.Role.STUDENT);
+                    student.setActive(true);
+                    student.setCreatedAt(LocalDateTime.now());
+                    student.setUpdatedAt(LocalDateTime.now());
+
+                    userService.save(student);
+                }
+
+                System.out.println("✅ Đã tạo " + studentData.length + " học viên mẫu");
+            }
+        } catch (Exception e) {
+            System.err.println("❌ Lỗi tạo students mẫu: " + e.getMessage());
+        }
+    }
+
+    /**
+     * In thông tin hệ thống sau khi khởi tạo
+     */
+    private void printSystemInfo() {
+        System.out.println("\n" + "=".repeat(50));
+        System.out.println("🎓 COURSE MANAGEMENT SYSTEM");
+        System.out.println("=".repeat(50));
+        System.out.println("📊 Thống kê hệ thống:");
+        System.out.println("👥 Tổng số người dùng: " + userService.countAll());
+        System.out.println("👨‍💼 Quản trị viên: " + userService.countByRole(User.Role.ADMIN));
+        System.out.println("👨‍🏫 Giảng viên: " + userService.countByRole(User.Role.INSTRUCTOR));
+        System.out.println("👨‍🎓 Học viên: " + userService.countByRole(User.Role.STUDENT));
+        System.out.println("📁 Danh mục: " + categoryService.countAllCategories());
+        System.out.println("=".repeat(50));
+        System.out.println("🌐 Truy cập hệ thống tại: http://localhost:8080");
+        System.out.println("🔑 Tài khoản admin: admin / admin123");
+        System.out.println("=".repeat(50) + "\n");
     }
 }
