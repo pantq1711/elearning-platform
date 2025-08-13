@@ -8,6 +8,7 @@ import java.util.List;
 /**
  * Entity đại diện cho bài kiểm tra trong khóa học
  * Chứa câu hỏi, thời gian làm bài và điểm số
+ * Cập nhật với đầy đủ các tính năng cần thiết
  */
 @Entity
 @Table(name = "quizzes")
@@ -36,8 +37,29 @@ public class Quiz {
     @Column(name = "pass_score", nullable = false, precision = 5, scale = 2)
     private Double passScore;
 
+    @Column(name = "points", precision = 5, scale = 2)
+    private Double points = 100.0; // Tổng điểm của quiz
+
     @Column(name = "is_active")
     private boolean active = true;
+
+    @Column(name = "show_correct_answers")
+    private boolean showCorrectAnswers = true; // Hiển thị đáp án sau khi nộp bài
+
+    @Column(name = "shuffle_questions")
+    private boolean shuffleQuestions = false; // Xáo trộn thứ tự câu hỏi
+
+    @Column(name = "shuffle_answers")
+    private boolean shuffleAnswers = false; // Xáo trộn thứ tự đáp án
+
+    @Column(name = "require_login")
+    private boolean requireLogin = true; // Yêu cầu đăng nhập để làm bài
+
+    @Column(name = "available_from")
+    private LocalDateTime availableFrom; // Thời gian bắt đầu có thể làm bài
+
+    @Column(name = "available_until")
+    private LocalDateTime availableUntil; // Thời gian kết thúc làm bài
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -103,82 +125,27 @@ public class Quiz {
     }
 
     /**
-     * Lấy số lượng attempts
-     * @return Số lượng attempts
+     * Kiểm tra quiz có đang available không
+     * @return true nếu có thể làm bài
      */
-    public int getAttemptCount() {
-        return quizResults != null ? quizResults.size() : 0;
+    public boolean isAvailable() {
+        LocalDateTime now = LocalDateTime.now();
+        return active &&
+                (availableFrom == null || now.isAfter(availableFrom)) &&
+                (availableUntil == null || now.isBefore(availableUntil));
     }
 
     /**
-     * Lấy formatted duration
-     * @return Duration được format
+     * Tính tổng điểm của tất cả câu hỏi
+     * @return Tổng điểm
      */
-    public String getFormattedDuration() {
-        if (duration == null || duration == 0) {
-            return "Không giới hạn";
-        }
-
-        if (duration < 60) {
-            return duration + " phút";
-        } else {
-            int hours = duration / 60;
-            int minutes = duration % 60;
-            if (minutes == 0) {
-                return hours + " giờ";
-            } else {
-                return hours + " giờ " + minutes + " phút";
-            }
-        }
-    }
-
-    /**
-     * Lấy pass rate percentage
-     * @return Pass rate
-     */
-    public double getPassRate() {
-        if (quizResults == null || quizResults.isEmpty()) {
-            return 0.0;
-        }
-
-        long passedCount = quizResults.stream()
-                .mapToLong(result -> result.isPassed() ? 1 : 0)
+    public double calculateTotalPoints() {
+        return questions.stream()
+                .mapToDouble(q -> q.getPoints() != null ? q.getPoints() : 0.0)
                 .sum();
-
-        return (double) passedCount / quizResults.size() * 100;
     }
 
-    /**
-     * Lấy average score
-     * @return Average score
-     */
-    public double getAverageScore() {
-        if (quizResults == null || quizResults.isEmpty()) {
-            return 0.0;
-        }
-
-        return quizResults.stream()
-                .filter(QuizResult::isCompleted)
-                .mapToDouble(QuizResult::getScore)
-                .average()
-                .orElse(0.0);
-    }
-
-    /**
-     * Kiểm tra student đã làm quiz này chưa
-     * @param student Student
-     * @return true nếu đã làm
-     */
-    public boolean isAttemptedByStudent(User student) {
-        if (quizResults == null || student == null) {
-            return false;
-        }
-
-        return quizResults.stream()
-                .anyMatch(result -> result.getStudent().getId().equals(student.getId()));
-    }
-
-    // Getters và Setters
+    // Getters and Setters
     public Long getId() {
         return id;
     }
@@ -235,12 +202,68 @@ public class Quiz {
         this.passScore = passScore;
     }
 
+    public Double getPoints() {
+        return points;
+    }
+
+    public void setPoints(Double points) {
+        this.points = points;
+    }
+
     public boolean isActive() {
         return active;
     }
 
     public void setActive(boolean active) {
         this.active = active;
+    }
+
+    public boolean isShowCorrectAnswers() {
+        return showCorrectAnswers;
+    }
+
+    public void setShowCorrectAnswers(boolean showCorrectAnswers) {
+        this.showCorrectAnswers = showCorrectAnswers;
+    }
+
+    public boolean isShuffleQuestions() {
+        return shuffleQuestions;
+    }
+
+    public void setShuffleQuestions(boolean shuffleQuestions) {
+        this.shuffleQuestions = shuffleQuestions;
+    }
+
+    public boolean isShuffleAnswers() {
+        return shuffleAnswers;
+    }
+
+    public void setShuffleAnswers(boolean shuffleAnswers) {
+        this.shuffleAnswers = shuffleAnswers;
+    }
+
+    public boolean isRequireLogin() {
+        return requireLogin;
+    }
+
+    public void setRequireLogin(boolean requireLogin) {
+        this.requireLogin = requireLogin;
+    }
+
+    public LocalDateTime getAvailableFrom() {
+        return availableFrom;
+    }
+
+    public void setAvailableFrom(LocalDateTime availableFrom) {
+        this.availableFrom = availableFrom;
+    }
+
+    public LocalDateTime getAvailableUntil() {
+        return availableUntil;
+    }
+
+    public void setAvailableUntil(LocalDateTime availableUntil) {
+        this.availableUntil = availableUntil;
     }
 
     public LocalDateTime getCreatedAt() {
@@ -273,39 +296,5 @@ public class Quiz {
 
     public void setQuizResults(List<QuizResult> quizResults) {
         this.quizResults = quizResults;
-    }
-
-    /**
-     * Override toString để debug dễ dàng
-     */
-    @Override
-    public String toString() {
-        return "Quiz{" +
-                "id=" + id +
-                ", title='" + title + '\'' +
-                ", courseId=" + (course != null ? course.getId() : "null") +
-                ", duration=" + duration +
-                ", maxScore=" + maxScore +
-                ", passScore=" + passScore +
-                ", isActive=" + active +
-                ", questionCount=" + getQuestionCount() +
-                ", attemptCount=" + getAttemptCount() +
-                '}';
-    }
-
-    /**
-     * Override equals và hashCode cho JPA
-     */
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof Quiz)) return false;
-        Quiz quiz = (Quiz) o;
-        return id != null && id.equals(quiz.id);
-    }
-
-    @Override
-    public int hashCode() {
-        return getClass().hashCode();
     }
 }

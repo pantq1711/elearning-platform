@@ -6,6 +6,7 @@ import java.time.LocalDateTime;
 /**
  * Entity đại diện cho câu hỏi trong bài kiểm tra
  * Chứa nội dung câu hỏi, các lựa chọn và đáp án đúng
+ * Cập nhật với đầy đủ fields cần thiết
  */
 @Entity
 @Table(name = "questions")
@@ -22,19 +23,19 @@ public class Question {
     @Column(name = "question_text", nullable = false, columnDefinition = "TEXT")
     private String questionText;
 
-    @Column(name = "option_a", nullable = false, length = 500)
+    @Column(name = "option_a", length = 500)
     private String optionA;
 
-    @Column(name = "option_b", nullable = false, length = 500)
+    @Column(name = "option_b", length = 500)
     private String optionB;
 
-    @Column(name = "option_c", nullable = false, length = 500)
+    @Column(name = "option_c", length = 500)
     private String optionC;
 
-    @Column(name = "option_d", nullable = false, length = 500)
+    @Column(name = "option_d", length = 500)
     private String optionD;
 
-    @Column(name = "correct_option", nullable = false, length = 1)
+    @Column(name = "correct_option", length = 1)
     private String correctOption; // A, B, C, D
 
     @Column(name = "display_order")
@@ -43,6 +44,19 @@ public class Question {
     @Enumerated(EnumType.STRING)
     @Column(name = "difficulty_level")
     private DifficultyLevel difficultyLevel = DifficultyLevel.MEDIUM;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "question_type")
+    private QuestionType questionType = QuestionType.MULTIPLE_CHOICE;
+
+    @Column(name = "points", precision = 5, scale = 2)
+    private Double points = 1.0; // Điểm số cho câu hỏi này
+
+    @Column(name = "tags", length = 500)
+    private String tags; // Tags phân cách bằng dấu phẩy
+
+    @Column(name = "image_url", length = 500)
+    private String imageUrl; // URL hình ảnh đính kèm
 
     @Column(columnDefinition = "TEXT")
     private String explanation; // Giải thích đáp án
@@ -112,58 +126,22 @@ public class Question {
     }
 
     /**
-     * Lấy text của đáp án đúng
-     * @return Text đáp án đúng
+     * Lấy tùy chọn theo ký tự (A, B, C, D)
+     * @param option Ký tự tùy chọn
+     * @return Nội dung tùy chọn
      */
-    public String getCorrectAnswerText() {
-        switch (correctOption) {
-            case "A": return optionA;
-            case "B": return optionB;
-            case "C": return optionC;
-            case "D": return optionD;
-            default: return "";
-        }
+    public String getOptionByLetter(String option) {
+        if (option == null) return "";
+        return switch (option.toUpperCase()) {
+            case "A" -> optionA;
+            case "B" -> optionB;
+            case "C" -> optionC;
+            case "D" -> optionD;
+            default -> "";
+        };
     }
 
-    /**
-     * Lấy text của option theo letter
-     * @param option Option letter (A, B, C, D)
-     * @return Text của option
-     */
-    public String getOptionText(String option) {
-        switch (option.toUpperCase()) {
-            case "A": return optionA;
-            case "B": return optionB;
-            case "C": return optionC;
-            case "D": return optionD;
-            default: return "";
-        }
-    }
-
-    /**
-     * Lấy formatted difficulty level
-     * @return Difficulty display name
-     */
-    public String getFormattedDifficulty() {
-        return difficultyLevel != null ? difficultyLevel.getDisplayName() : "Không xác định";
-    }
-
-    /**
-     * Lấy CSS class cho difficulty level
-     * @return CSS class
-     */
-    public String getDifficultyCssClass() {
-        if (difficultyLevel == null) return "badge-secondary";
-
-        switch (difficultyLevel) {
-            case EASY: return "badge-success";
-            case MEDIUM: return "badge-warning";
-            case HARD: return "badge-danger";
-            default: return "badge-secondary";
-        }
-    }
-
-    // Getters và Setters
+    // Getters and Setters
     public Long getId() {
         return id;
     }
@@ -244,6 +222,38 @@ public class Question {
         this.difficultyLevel = difficultyLevel;
     }
 
+    public QuestionType getQuestionType() {
+        return questionType;
+    }
+
+    public void setQuestionType(QuestionType questionType) {
+        this.questionType = questionType;
+    }
+
+    public Double getPoints() {
+        return points;
+    }
+
+    public void setPoints(Double points) {
+        this.points = points;
+    }
+
+    public String getTags() {
+        return tags;
+    }
+
+    public void setTags(String tags) {
+        this.tags = tags;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
+    }
+
     public String getExplanation() {
         return explanation;
     }
@@ -266,35 +276,5 @@ public class Question {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
-    }
-
-    /**
-     * Override toString để debug dễ dàng
-     */
-    @Override
-    public String toString() {
-        return "Question{" +
-                "id=" + id +
-                ", quizId=" + (quiz != null ? quiz.getId() : "null") +
-                ", correctOption='" + correctOption + '\'' +
-                ", difficultyLevel=" + difficultyLevel +
-                ", displayOrder=" + displayOrder +
-                '}';
-    }
-
-    /**
-     * Override equals và hashCode cho JPA
-     */
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof Question)) return false;
-        Question question = (Question) o;
-        return id != null && id.equals(question.id);
-    }
-
-    @Override
-    public int hashCode() {
-        return getClass().hashCode();
     }
 }

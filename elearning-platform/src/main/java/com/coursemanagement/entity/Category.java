@@ -7,7 +7,8 @@ import java.util.List;
 
 /**
  * Entity đại diện cho danh mục khóa học
- * Nhóm các khóa học theo chủ đề
+ * Chứa thông tin về danh mục, màu sắc, icon và số lượng khóa học
+ * Cập nhật với đầy đủ các field cần thiết
  */
 @Entity
 @Table(name = "categories")
@@ -17,20 +18,23 @@ public class Category {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(unique = true, nullable = false, length = 100)
+    @Column(nullable = false, unique = true, length = 100)
     private String name;
 
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    @Column(unique = true, length = 150)
-    private String slug;
+    @Column(name = "color_code", length = 7)
+    private String colorCode; // Mã màu hex (#FF5733)
 
-    @Column(name = "is_featured")
-    private Boolean featured = false;
+    @Column(name = "icon_class", length = 50)
+    private String iconClass; // Class icon CSS (fa-graduation-cap)
+
+    @Column(name = "featured")
+    private boolean featured = false; // Danh mục nổi bật
 
     @Column(name = "course_count")
-    private Long courseCount = 0L;
+    private int courseCount = 0; // Số lượng khóa học trong danh mục
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -38,7 +42,7 @@ public class Category {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    // Relationships
+    // Relationship với Course
     @OneToMany(mappedBy = "category", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Course> courses = new ArrayList<>();
 
@@ -48,6 +52,15 @@ public class Category {
     public Category(String name, String description) {
         this.name = name;
         this.description = description;
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    public Category(String name, String description, String colorCode, String iconClass) {
+        this.name = name;
+        this.description = description;
+        this.colorCode = colorCode;
+        this.iconClass = iconClass;
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
     }
@@ -67,47 +80,54 @@ public class Category {
     }
 
     /**
-     * Cập nhật course count từ relationship
+     * Cập nhật số lượng khóa học trong danh mục
      */
     public void updateCourseCount() {
-        this.courseCount = courses != null ? (long) courses.size() : 0L;
+        this.courseCount = courses != null ? courses.size() : 0;
     }
 
     /**
-     * Lấy số lượng active courses
-     * @return Số active courses
+     * Thêm khóa học vào danh mục
+     * @param course Khóa học cần thêm
      */
-    public long getActiveCourseCount() {
-        if (courses == null) return 0;
-
-        return courses.stream()
-                .mapToLong(course -> course.isActive() ? 1 : 0)
-                .sum();
+    public void addCourse(Course course) {
+        if (courses == null) {
+            courses = new ArrayList<>();
+        }
+        courses.add(course);
+        course.setCategory(this);
+        updateCourseCount();
     }
 
     /**
-     * Kiểm tra category có featured không
-     * @return true nếu featured
+     * Xóa khóa học khỏi danh mục
+     * @param course Khóa học cần xóa
      */
-    public boolean isFeatured() {
-        return featured != null && featured;
-    }
-
-    /**
-     * Lấy formatted course count
-     * @return Formatted text
-     */
-    public String getFormattedCourseCount() {
-        if (courseCount == null || courseCount == 0) {
-            return "Chưa có khóa học";
-        } else if (courseCount == 1) {
-            return "1 khóa học";
-        } else {
-            return courseCount + " khóa học";
+    public void removeCourse(Course course) {
+        if (courses != null) {
+            courses.remove(course);
+            course.setCategory(null);
+            updateCourseCount();
         }
     }
 
-    // Getters và Setters
+    /**
+     * Lấy màu sắc mặc định nếu chưa set
+     * @return Color code
+     */
+    public String getDisplayColorCode() {
+        return colorCode != null ? colorCode : "#007bff"; // Bootstrap primary blue
+    }
+
+    /**
+     * Lấy icon mặc định nếu chưa set
+     * @return Icon class
+     */
+    public String getDisplayIconClass() {
+        return iconClass != null ? iconClass : "fa-folder"; // Default folder icon
+    }
+
+    // Getters and Setters
     public Long getId() {
         return id;
     }
@@ -132,31 +152,35 @@ public class Category {
         this.description = description;
     }
 
-    public String getSlug() {
-        return slug;
+    public String getColorCode() {
+        return colorCode;
     }
 
-    public void setSlug(String slug) {
-        this.slug = slug;
+    public void setColorCode(String colorCode) {
+        this.colorCode = colorCode;
     }
 
-    public Boolean getFeatured() {
+    public String getIconClass() {
+        return iconClass;
+    }
+
+    public void setIconClass(String iconClass) {
+        this.iconClass = iconClass;
+    }
+
+    public boolean isFeatured() {
         return featured;
     }
 
-    public void setFeatured(Boolean featured) {
+    public void setFeatured(boolean featured) {
         this.featured = featured;
     }
 
-    public Long getCourseCount() {
+    public int getCourseCount() {
         return courseCount;
     }
 
-    public void setCourseCount(Long courseCount) {
-        this.courseCount = courseCount;
-    }
-
-    public void setCourseCount(long courseCount) {
+    public void setCourseCount(int courseCount) {
         this.courseCount = courseCount;
     }
 
@@ -192,9 +216,8 @@ public class Category {
         return "Category{" +
                 "id=" + id +
                 ", name='" + name + '\'' +
-                ", slug='" + slug + '\'' +
-                ", featured=" + featured +
                 ", courseCount=" + courseCount +
+                ", featured=" + featured +
                 '}';
     }
 

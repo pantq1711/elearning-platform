@@ -13,7 +13,6 @@ import org.springframework.security.config.annotation.authentication.configurati
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.session.SessionRegistry;
@@ -97,15 +96,15 @@ public class SecurityConfig {
     public RememberMeServices rememberMeServices() {
         TokenBasedRememberMeServices rememberMeServices =
                 new TokenBasedRememberMeServices(REMEMBER_ME_KEY, userService);
-        rememberMeServices.setTokenValiditySeconds(86400 * 7); // 7 ngày
+        rememberMeServices.setTokenValiditySeconds(30 * 24 * 60 * 60); // 30 ngày
+        rememberMeServices.setCookieName("elearning-remember-me");
         rememberMeServices.setParameter("remember-me");
-        rememberMeServices.setCookieName("ELEARNING_REMEMBER_ME");
         return rememberMeServices;
     }
 
     /**
-     * Custom Authentication Success Handler
-     * Điều hướng user đến trang phù hợp sau khi đăng nhập thành công
+     * Success Handler để redirect theo role
+     * @return AuthenticationSuccessHandler
      */
     @Bean
     public AuthenticationSuccessHandler authenticationSuccessHandler() {
@@ -115,34 +114,27 @@ public class SecurityConfig {
                                                 HttpServletResponse response,
                                                 Authentication authentication) throws IOException, ServletException {
 
-                // Lấy thông tin user để xác định role
-                Object principal = authentication.getPrincipal();
-                if (principal instanceof org.springframework.security.core.userdetails.UserDetails) {
-                    var userDetails = (org.springframework.security.core.userdetails.UserDetails) principal;
+                // Lấy authorities của user
+                var authorities = authentication.getAuthorities();
 
-                    // Điều hướng dựa trên role
-                    String redirectUrl = "/dashboard"; // Default fallback
+                // Redirect theo role
+                String redirectURL = "/dashboard"; // Default
 
-                    if (userDetails.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_ADMIN"))) {
-                        redirectUrl = "/admin/dashboard";
-                    } else if (userDetails.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_INSTRUCTOR"))) {
-                        redirectUrl = "/instructor/dashboard";
-                    } else if (userDetails.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_STUDENT"))) {
-                        redirectUrl = "/student/dashboard";
-                    }
-
-                    // Redirect về trang đích
-                    response.sendRedirect(redirectUrl);
-                } else {
-                    // Fallback redirect
-                    response.sendRedirect("/dashboard");
+                if (authorities.contains(new SimpleGrantedAuthority("ROLE_ADMIN"))) {
+                    redirectURL = "/admin/dashboard";
+                } else if (authorities.contains(new SimpleGrantedAuthority("ROLE_INSTRUCTOR"))) {
+                    redirectURL = "/instructor/dashboard";
+                } else if (authorities.contains(new SimpleGrantedAuthority("ROLE_STUDENT"))) {
+                    redirectURL = "/student/dashboard";
                 }
+
+                response.sendRedirect(redirectURL);
             }
         };
     }
 
     /**
-     * Cấu hình Security Filter Chain chính
+     * Cấu hình Security Filter Chain chính - Spring Security 6.x syntax
      * Đây là phần cốt lõi của Spring Security configuration
      * @param http HttpSecurity configuration object
      * @return SecurityFilterChain đã được cấu hình
@@ -159,6 +151,7 @@ public class SecurityConfig {
                         .requestMatchers("/public/**", "/about", "/contact").permitAll()
                         .requestMatchers("/api/v1/public/**").permitAll()
                         .requestMatchers("/actuator/health").permitAll()
+                        .requestMatchers("/h2-console/**").permitAll() // H2 console trong dev
 
                         // Admin-only endpoints
                         .requestMatchers("/admin/**").hasRole("ADMIN")
@@ -181,13 +174,13 @@ public class SecurityConfig {
                         .anyRequest().authenticated()
                 )
 
-                // Cấu hình form login
+                // Cấu hình form login với syntax mới Spring Security 6.x
                 .formLogin(form -> form
                         .loginPage("/login")
-                        .loginProcessingUrl("/perform_login") // URL xử lý login
+                        .loginProcessingUrl("/login")
                         .usernameParameter("username")
                         .passwordParameter("password")
-                        .successHandler(authenticationSuccessHandler()) // Custom success handler
+                        .successHandler(authenticationSuccessHandler())
                         .failureUrl("/login?error=true")
                         .permitAll()
                 )
@@ -196,36 +189,26 @@ public class SecurityConfig {
                 .logout(logout -> logout
                         .logoutRequestMatcher(new AntPathRequestMatcher("/logout"))
                         .logoutSuccessUrl("/login?logout=true")
-                        .deleteCookies("JSESSIONID", "ELEARNING_REMEMBER_ME")
                         .invalidateHttpSession(true)
+                        .deleteCookies("JSESSIONID", "elearning-remember-me")
                         .clearAuthentication(true)
                         .permitAll()
                 )
 
-                // Remember me configuration
-                .rememberMe(remember -> remember
+                // Cấu hình Remember Me
+                .rememberMe(rememberMe -> rememberMe
                         .rememberMeServices(rememberMeServices())
                         .key(REMEMBER_ME_KEY)
-                        .tokenValiditySeconds(86400 * 7) // 7 ngày
-                        .userDetailsService(userService)
+                        .tokenValiditySeconds(30 * 24 * 60 * 60) // 30 ngày
                 )
 
-                // Exception handling
-                .exceptionHandling(exceptions -> exceptions
-                        .accessDeniedPage("/access-denied")
-                        .authenticationEntryPoint((request, response, authException) -> {
-                            response.sendRedirect("/login?required=true");
-                        })
-                )
-
-                // Session management với Spring Security 6.x syntax
+                // Cấu hình session management với syntax mới
                 .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
-                        .maximumSessions(3) // Tối đa 3 sessions đồng thời
-                        .maxSessionsPreventsLogin(false) // Cho phép login mới, kick old sessions
-                        .expiredUrl("/login?expired=true") // URL khi session hết hạn
+                        .maximumSessions(1) // Chỉ cho phép 1 session per user
+                        .maxSessionsPreventsLogin(false) // Session mới sẽ kick session cũ
                         .sessionRegistry(sessionRegistry())
-                        .sessionFixation().migrateSession() // Fix: không dùng .and()
+                        .and()
+                        .sessionFixation(sessionFixation -> sessionFixation.migrateSession()) // Fix session fixation
                         .invalidSessionUrl("/login?invalid=true")
                 )
 
@@ -235,16 +218,16 @@ public class SecurityConfig {
                         .csrfTokenRepository(org.springframework.security.web.csrf.CookieCsrfTokenRepository.withHttpOnlyFalse())
                 )
 
-                // Cấu hình headers security với syntax mới
+                // Cấu hình headers security với syntax mới Spring Security 6.x
                 .headers(headers -> headers
-                        .frameOptions(frameOptions -> frameOptions.deny()) // Sửa: không dùng deprecated DENY
-                        .contentTypeOptions() // Fix: không dùng .and()
+                        .frameOptions(frameOptions -> frameOptions.deny()) // Fix: sử dụng lambda
+                        .contentTypeOptions(contentTypeOptions -> {}) // Fix: không còn deprecated
                         .httpStrictTransportSecurity(hstsConfig -> hstsConfig
                                 .maxAgeInSeconds(31536000) // HSTS 1 năm
-                                .includeSubDomains(true) // Fix: chính xác method name
+                                .includeSubdomains(true) // Fix: method name chính xác
                                 .preload(true)
                         )
-                        .referrerPolicy(org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN) // Fix: full class path
+                        .referrerPolicy(ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN)
                 );
 
         return http.build();

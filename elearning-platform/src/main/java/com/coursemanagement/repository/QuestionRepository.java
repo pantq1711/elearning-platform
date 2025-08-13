@@ -15,6 +15,7 @@ import java.util.Optional;
 /**
  * Repository interface cho Question entity
  * Chứa các custom queries cho question management
+ * Cập nhật với đầy đủ methods cần thiết
  */
 @Repository
 public interface QuestionRepository extends JpaRepository<Question, Long> {
@@ -43,6 +44,25 @@ public interface QuestionRepository extends JpaRepository<Question, Long> {
      */
     Long countByQuiz(Quiz quiz);
 
+    // ===== SEARCH METHODS =====
+
+    /**
+     * Tìm questions theo quiz và question text chứa keyword (không phân biệt hoa thường)
+     * @param quiz Quiz chứa questions
+     * @param keyword Từ khóa tìm kiếm
+     * @return Danh sách questions tìm thấy
+     */
+    List<Question> findByQuizAndQuestionTextContainingIgnoreCase(Quiz quiz, String keyword);
+
+    /**
+     * Tìm questions theo quiz và question text chứa keyword với pagination
+     * @param quiz Quiz chứa questions
+     * @param keyword Từ khóa tìm kiếm
+     * @param pageable Pagination info
+     * @return Page chứa questions tìm thấy
+     */
+    Page<Question> findByQuizAndQuestionTextContainingIgnoreCase(Quiz quiz, String keyword, Pageable pageable);
+
     // ===== DIFFICULTY-BASED QUERIES =====
 
     /**
@@ -66,212 +86,124 @@ public interface QuestionRepository extends JpaRepository<Question, Long> {
      * @param quiz Quiz
      * @param difficultyLevel Độ khó
      * @param pageable Pagination info
-     * @return Page questions
+     * @return Page chứa questions
      */
-    Page<Question> findByQuizAndDifficultyLevelOrderByDisplayOrder(Quiz quiz,
-                                                                   Question.DifficultyLevel difficultyLevel,
-                                                                   Pageable pageable);
+    Page<Question> findByQuizAndDifficultyLevel(Quiz quiz, Question.DifficultyLevel difficultyLevel, Pageable pageable);
 
-    // ===== CORRECT ANSWER QUERIES =====
+    // ===== QUESTION TYPE QUERIES =====
 
     /**
-     * Tìm questions theo correct option
+     * Tìm questions theo quiz và question type
      * @param quiz Quiz
-     * @param correctOption Đáp án đúng (A, B, C, D)
+     * @param questionType Loại câu hỏi
      * @return Danh sách questions
      */
-    @Query("SELECT q FROM Question q WHERE q.quiz = :quiz AND q.correctOption = :correctOption " +
-            "ORDER BY q.displayOrder")
-    List<Question> findByQuizAndCorrectOption(@Param("quiz") Quiz quiz,
-                                              @Param("correctOption") String correctOption);
+    List<Question> findByQuizAndQuestionType(Quiz quiz, QuestionType questionType);
 
     /**
-     * Đếm questions theo correct option
+     * Đếm questions theo question type
      * @param quiz Quiz
-     * @param correctOption Đáp án đúng
+     * @param questionType Loại câu hỏi
      * @return Số lượng questions
      */
-    Long countByQuizAndCorrectOption(Quiz quiz, String correctOption);
+    Long countByQuizAndQuestionType(Quiz quiz, QuestionType questionType);
 
-    // ===== DISPLAY ORDER MANAGEMENT =====
-
-    /**
-     * Tìm max display order trong quiz
-     * @param quiz Quiz
-     * @return Max display order
-     */
-    @Query("SELECT MAX(q.displayOrder) FROM Question q WHERE q.quiz = :quiz")
-    Integer findMaxDisplayOrderByQuiz(@Param("quiz") Quiz quiz);
+    // ===== POINTS QUERIES =====
 
     /**
-     * Tìm question theo display order
+     * Tìm questions theo quiz sắp xếp theo points giảm dần
      * @param quiz Quiz
-     * @param displayOrder Display order
-     * @return Optional chứa Question
+     * @return Danh sách questions theo points
      */
-    Optional<Question> findByQuizAndDisplayOrder(Quiz quiz, Integer displayOrder);
+    List<Question> findByQuizOrderByPointsDesc(Quiz quiz);
 
     /**
-     * Tìm questions trong range display order
+     * Tính tổng points của tất cả questions trong quiz
      * @param quiz Quiz
-     * @param startOrder Start order
-     * @param endOrder End order
-     * @return Danh sách questions
+     * @return Tổng points
      */
-    @Query("SELECT q FROM Question q WHERE q.quiz = :quiz AND " +
-            "q.displayOrder >= :startOrder AND q.displayOrder <= :endOrder " +
+    @Query("SELECT SUM(q.points) FROM Question q WHERE q.quiz = :quiz")
+    Double sumPointsByQuiz(@Param("quiz") Quiz quiz);
+
+    /**
+     * Lấy question có points cao nhất trong quiz
+     * @param quiz Quiz
+     * @return Optional chứa question có points cao nhất
+     */
+    Optional<Question> findTopByQuizOrderByPointsDesc(Quiz quiz);
+
+    // ===== ADVANCED QUERIES =====
+
+    /**
+     * Tìm questions theo multiple filters
+     * @param quiz Quiz
+     * @param difficultyLevel Độ khó (có thể null)
+     * @param questionType Loại câu hỏi (có thể null)
+     * @param minPoints Điểm tối thiểu (có thể null)
+     * @param maxPoints Điểm tối đa (có thể null)
+     * @return Danh sách questions phù hợp
+     */
+    @Query("SELECT q FROM Question q WHERE q.quiz = :quiz " +
+            "AND (:difficultyLevel IS NULL OR q.difficultyLevel = :difficultyLevel) " +
+            "AND (:questionType IS NULL OR q.questionType = :questionType) " +
+            "AND (:minPoints IS NULL OR q.points >= :minPoints) " +
+            "AND (:maxPoints IS NULL OR q.points <= :maxPoints) " +
             "ORDER BY q.displayOrder")
-    List<Question> findByDisplayOrderRange(@Param("quiz") Quiz quiz,
-                                           @Param("startOrder") Integer startOrder,
-                                           @Param("endOrder") Integer endOrder);
-
-    // ===== SEARCH AND FILTER =====
-
-    /**
-     * Tìm questions theo keyword trong question text
-     * @param quiz Quiz
-     * @param keyword Từ khóa tìm kiếm
-     * @return Danh sách questions
-     */
-    @Query("SELECT q FROM Question q WHERE q.quiz = :quiz AND " +
-            "LOWER(q.questionText) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
-            "ORDER BY q.displayOrder")
-    List<Question> findByQuizAndKeyword(@Param("quiz") Quiz quiz,
-                                        @Param("keyword") String keyword);
+    List<Question> findByQuizWithFilters(
+            @Param("quiz") Quiz quiz,
+            @Param("difficultyLevel") Question.DifficultyLevel difficultyLevel,
+            @Param("questionType") QuestionType questionType,
+            @Param("minPoints") Double minPoints,
+            @Param("maxPoints") Double maxPoints);
 
     /**
-     * Tìm questions theo keyword với pagination
+     * Tìm questions theo tags
      * @param quiz Quiz
-     * @param keyword Từ khóa tìm kiếm
-     * @param pageable Pagination info
-     * @return Page questions
+     * @param tag Tag cần tìm
+     * @return Danh sách questions có tag
      */
-    @Query("SELECT q FROM Question q WHERE q.quiz = :quiz AND " +
-            "LOWER(q.questionText) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
-            "ORDER BY q.displayOrder")
-    Page<Question> findByQuizAndKeyword(@Param("quiz") Quiz quiz,
-                                        @Param("keyword") String keyword,
-                                        Pageable pageable);
-
-    // ===== VALIDATION QUERIES =====
+    @Query("SELECT q FROM Question q WHERE q.quiz = :quiz AND q.tags LIKE CONCAT('%', :tag, '%')")
+    List<Question> findByQuizAndTagsContaining(@Param("quiz") Quiz quiz, @Param("tag") String tag);
 
     /**
-     * Tìm questions có explanation
+     * Lấy thống kê questions theo difficulty level
      * @param quiz Quiz
-     * @return Danh sách questions có explanation
+     * @return Danh sách thống kê [DifficultyLevel, Count]
      */
-    @Query("SELECT q FROM Question q WHERE q.quiz = :quiz AND " +
-            "q.explanation IS NOT NULL AND q.explanation != '' " +
-            "ORDER BY q.displayOrder")
-    List<Question> findQuestionsWithExplanation(@Param("quiz") Quiz quiz);
-
-    /**
-     * Tìm questions chưa có explanation
-     * @param quiz Quiz
-     * @return Danh sách questions chưa có explanation
-     */
-    @Query("SELECT q FROM Question q WHERE q.quiz = :quiz AND " +
-            "(q.explanation IS NULL OR q.explanation = '') " +
-            "ORDER BY q.displayOrder")
-    List<Question> findQuestionsWithoutExplanation(@Param("quiz") Quiz quiz);
-
-    /**
-     * Kiểm tra questions có options hợp lệ không
-     * @param quiz Quiz
-     * @return Danh sách questions có thể có vấn đề
-     */
-    @Query("SELECT q FROM Question q WHERE q.quiz = :quiz AND " +
-            "(q.optionA IS NULL OR q.optionA = '' OR " +
-            " q.optionB IS NULL OR q.optionB = '' OR " +
-            " q.optionC IS NULL OR q.optionC = '' OR " +
-            " q.optionD IS NULL OR q.optionD = '') " +
-            "ORDER BY q.displayOrder")
-    List<Question> findQuestionsWithIncompleteOptions(@Param("quiz") Quiz quiz);
-
-    // ===== STATISTICS QUERIES =====
-
-    /**
-     * Lấy thống kê questions theo difficulty
-     * @param quiz Quiz
-     * @return List array [difficultyLevel, count]
-     */
-    @Query("SELECT q.difficultyLevel, COUNT(q) FROM Question q WHERE q.quiz = :quiz " +
-            "GROUP BY q.difficultyLevel ORDER BY q.difficultyLevel")
+    @Query("SELECT q.difficultyLevel, COUNT(q) FROM Question q WHERE q.quiz = :quiz GROUP BY q.difficultyLevel")
     List<Object[]> getQuestionStatsByDifficulty(@Param("quiz") Quiz quiz);
 
     /**
-     * Lấy thống kê correct answers distribution
+     * Lấy thống kê questions theo question type
      * @param quiz Quiz
-     * @return List array [correctOption, count]
+     * @return Danh sách thống kê [QuestionType, Count]
      */
-    @Query("SELECT q.correctOption, COUNT(q) FROM Question q WHERE q.quiz = :quiz " +
-            "GROUP BY q.correctOption ORDER BY q.correctOption")
-    List<Object[]> getCorrectAnswerDistribution(@Param("quiz") Quiz quiz);
-
-    /**
-     * Đếm total questions trong hệ thống
-     * @return Tổng số questions
-     */
-    @Query("SELECT COUNT(q) FROM Question q")
-    Long countAllQuestions();
-
-    /**
-     * Lấy thống kê questions theo instructor
-     * @return List array [instructorId, instructorName, questionCount]
-     */
-    @Query("SELECT q.quiz.course.instructor.id, q.quiz.course.instructor.fullName, COUNT(q) " +
-            "FROM Question q " +
-            "GROUP BY q.quiz.course.instructor.id, q.quiz.course.instructor.fullName " +
-            "ORDER BY COUNT(q) DESC")
-    List<Object[]> getQuestionCountByInstructor();
-
-    // ===== BULK OPERATIONS HELPERS =====
-
-    /**
-     * Tìm questions có duplicate content trong quiz
-     * @param quiz Quiz
-     * @return List array [questionText, count]
-     */
-    @Query("SELECT q.questionText, COUNT(q) FROM Question q WHERE q.quiz = :quiz " +
-            "GROUP BY q.questionText HAVING COUNT(q) > 1")
-    List<Object[]> findDuplicateQuestions(@Param("quiz") Quiz quiz);
-
-    /**
-     * Tìm questions theo quiz với pagination (all questions)
-     * @param quiz Quiz
-     * @param pageable Pagination info
-     * @return Page questions
-     */
-    Page<Question> findByQuizOrderByDisplayOrder(Quiz quiz, Pageable pageable);
-
-    /**
-     * Xóa tất cả questions của quiz
-     * @param quiz Quiz
-     */
-    void deleteByQuiz(Quiz quiz);
-
-    // ===== RANDOM SELECTION =====
-
-    /**
-     * Tìm random questions theo difficulty (for dynamic quiz generation)
-     * @param quiz Quiz
-     * @param difficultyLevel Difficulty level
-     * @param limit Số lượng cần lấy
-     * @return Danh sách random questions
-     */
-    @Query(value = "SELECT * FROM questions q WHERE q.quiz_id = :quizId AND q.difficulty_level = :difficultyLevel " +
-            "ORDER BY RAND() LIMIT :limit", nativeQuery = true)
-    List<Question> findRandomQuestionsByDifficulty(@Param("quizId") Long quizId,
-                                                   @Param("difficultyLevel") String difficultyLevel,
-                                                   @Param("limit") int limit);
+    @Query("SELECT q.questionType, COUNT(q) FROM Question q WHERE q.quiz = :quiz GROUP BY q.questionType")
+    List<Object[]> getQuestionStatsByType(@Param("quiz") Quiz quiz);
 
     /**
      * Tìm random questions từ quiz
      * @param quiz Quiz
-     * @param limit Số lượng cần lấy
+     * @param limit Số lượng questions
      * @return Danh sách random questions
      */
-    @Query(value = "SELECT * FROM questions q WHERE q.quiz_id = :quizId " +
-            "ORDER BY RAND() LIMIT :limit", nativeQuery = true)
-    List<Question> findRandomQuestions(@Param("quizId") Long quizId, @Param("limit") int limit);
+    @Query(value = "SELECT * FROM questions q WHERE q.quiz_id = :quizId ORDER BY RAND() LIMIT :limit",
+            nativeQuery = true)
+    List<Question> findRandomQuestionsByQuiz(@Param("quizId") Long quizId, @Param("limit") int limit);
+
+    /**
+     * Kiểm tra có question nào trong quiz có image không
+     * @param quiz Quiz
+     * @return true nếu có question có image
+     */
+    @Query("SELECT COUNT(q) > 0 FROM Question q WHERE q.quiz = :quiz AND q.imageUrl IS NOT NULL")
+    boolean hasQuestionsWithImages(@Param("quiz") Quiz quiz);
+
+    /**
+     * Lấy next display order cho question mới
+     * @param quiz Quiz
+     * @return Display order tiếp theo
+     */
+    @Query("SELECT COALESCE(MAX(q.displayOrder), 0) + 1 FROM Question q WHERE q.quiz = :quiz")
+    Integer getNextDisplayOrder(@Param("quiz") Quiz quiz);
 }

@@ -1,11 +1,14 @@
 package com.coursemanagement.repository;
 
 import com.coursemanagement.entity.Category;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -13,6 +16,7 @@ import java.util.Optional;
 /**
  * Repository interface cho Category entity
  * Chứa các custom queries cho category management
+ * Cập nhật với đầy đủ methods cần thiết
  */
 @Repository
 public interface CategoryRepository extends JpaRepository<Category, Long> {
@@ -20,11 +24,11 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
     // ===== BASIC FINDER METHODS =====
 
     /**
-     * Tìm category theo slug
-     * @param slug Slug của category
+     * Tìm category theo tên
+     * @param name Tên category
      * @return Optional chứa Category nếu tìm thấy
      */
-    Optional<Category> findBySlug(String slug);
+    Optional<Category> findByName(String name);
 
     /**
      * Kiểm tra tên category đã tồn tại chưa
@@ -34,27 +38,14 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
     boolean existsByName(String name);
 
     /**
-     * Kiểm tra slug đã tồn tại chưa
-     * @param slug Slug
-     * @return true nếu đã tồn tại
-     */
-    boolean existsBySlug(String slug);
-
-    /**
-     * Kiểm tra slug đã tồn tại chưa (exclude ID hiện tại)
-     * @param slug Slug
+     * Kiểm tra tên category đã tồn tại chưa (exclude ID hiện tại)
+     * @param name Tên category
      * @param id ID cần exclude
      * @return true nếu đã tồn tại
      */
-    boolean existsBySlugAndIdNot(String slug, Long id);
+    boolean existsByNameAndIdNot(String name, Long id);
 
-    // ===== SORTING AND ORDERING =====
-
-    /**
-     * Tìm tất cả categories sắp xếp theo tên
-     * @return Danh sách categories theo alphabet
-     */
-    List<Category> findAllByOrderByNameAsc();
+    // ===== FEATURED CATEGORIES =====
 
     /**
      * Tìm categories theo featured status
@@ -63,159 +54,191 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
      */
     List<Category> findByFeaturedOrderByNameAsc(boolean featured);
 
-    // ===== SEARCH METHODS =====
-
     /**
-     * Tìm categories theo keyword trong tên
-     * @param keyword Từ khóa tìm kiếm
+     * Tìm featured categories với pagination
+     * @param featured Featured status
+     * @param pageable Pagination info
      * @return Danh sách categories
      */
-    List<Category> findByNameContainingIgnoreCaseOrderByName(String keyword);
-
-    // ===== ACTIVE CATEGORIES WITH COURSES =====
+    List<Category> findByFeatured(boolean featured, Pageable pageable);
 
     /**
-     * Tìm categories có courses (active)
-     * @return Danh sách active categories
-     */
-    @Query("SELECT DISTINCT c FROM Category c " +
-            "WHERE EXISTS (SELECT 1 FROM Course co WHERE co.category = c AND co.active = true)")
-    List<Category> findActiveCategoriesWithCourses();
-
-    /**
-     * Đếm categories có courses
-     * @return Số lượng categories có courses
-     */
-    @Query("SELECT COUNT(DISTINCT c) FROM Category c " +
-            "WHERE EXISTS (SELECT 1 FROM Course co WHERE co.category = c AND co.active = true)")
-    Long countActiveCategoriesWithCourses();
-
-    // ===== COURSE COUNT METHODS =====
-
-    /**
-     * Đếm courses trong category
-     * @param categoryId ID của category
-     * @return Số lượng courses
-     */
-    @Query("SELECT COUNT(c) FROM Course c WHERE c.category.id = :categoryId AND c.active = true")
-    Long countCoursesByCategory(@Param("categoryId") Long categoryId);
-
-    /**
-     * Tìm top categories theo số lượng courses
-     * @param pageable Pagination info
-     * @return List array [categoryId, categoryName, courseCount]
-     */
-    @Query("SELECT c.id, c.name, COUNT(co) " +
-            "FROM Category c LEFT JOIN c.courses co " +
-            "WHERE co.active = true " +
-            "GROUP BY c.id, c.name " +
-            "ORDER BY COUNT(co) DESC")
-    List<Object[]> findTopCategoriesByCourseCount(Pageable pageable);
-
-    // ===== FEATURED CATEGORIES =====
-
-    /**
-     * Tìm featured categories có courses
-     * @return Danh sách featured categories có courses
-     */
-    @Query("SELECT c FROM Category c " +
-            "WHERE c.featured = true AND " +
-            "EXISTS (SELECT 1 FROM Course co WHERE co.category = c AND co.active = true) " +
-            "ORDER BY c.name ASC")
-    List<Category> findFeaturedCategoriesWithCourses();
-
-    /**
-     * Đếm featured categories
-     * @return Số lượng featured categories
+     * Đếm categories theo featured status
+     * @param featured Featured status
+     * @return Số lượng categories
      */
     Long countByFeatured(boolean featured);
 
-    // ===== STATISTICS METHODS =====
-
     /**
-     * Lấy thống kê categories với course count
-     * @return List array [categoryId, categoryName, courseCount, enrollmentCount]
+     * Cập nhật featured status của category
+     * @param id ID category
+     * @param featured Featured status mới
      */
-    @Query("SELECT c.id, c.name, COUNT(DISTINCT co), COUNT(DISTINCT e) " +
-            "FROM Category c " +
-            "LEFT JOIN c.courses co ON co.active = true " +
-            "LEFT JOIN co.enrollments e " +
-            "GROUP BY c.id, c.name " +
-            "ORDER BY COUNT(DISTINCT co) DESC")
-    List<Object[]> getCategoryStatistics();
+    @Modifying
+    @Transactional
+    @Query("UPDATE Category c SET c.featured = :featured WHERE c.id = :id")
+    void updateFeaturedStatus(@Param("id") Long id, @Param("featured") boolean featured);
+
+    // ===== SEARCH METHODS =====
 
     /**
-     * Tìm categories phổ biến nhất (nhiều enrollments)
-     * @param limit Số lượng giới hạn
-     * @return Danh sách popular categories
+     * Search categories theo tên (không phân biệt hoa thường)
+     * @param keyword Từ khóa tìm kiếm
+     * @param pageable Pagination info
+     * @return Page chứa categories tìm thấy
      */
-    @Query("SELECT c.id, c.name, COUNT(e) as enrollmentCount " +
-            "FROM Category c " +
-            "JOIN c.courses co " +
-            "JOIN co.enrollments e " +
-            "WHERE co.active = true " +
-            "GROUP BY c.id, c.name " +
-            "ORDER BY COUNT(e) DESC")
-    List<Object[]> findPopularCategories(Pageable pageable);
-
-    // ===== CUSTOM COMPLEX QUERIES =====
+    @Query("SELECT c FROM Category c WHERE LOWER(c.name) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(c.description) LIKE LOWER(CONCAT('%', :keyword, '%'))")
+    Page<Category> searchByName(@Param("keyword") String keyword, Pageable pageable);
 
     /**
-     * Tìm categories với thông tin tóm tắt
-     * @return List array [categoryId, categoryName, courseCount, avgPrice, totalEnrollments]
+     * Search categories với limit
+     * @param keyword Từ khóa tìm kiếm
+     * @param limit Số lượng kết quả
+     * @return Danh sách categories tìm thấy
      */
-    @Query("SELECT c.id, c.name, " +
-            "COUNT(DISTINCT co) as courseCount, " +
-            "AVG(co.price) as avgPrice, " +
-            "COUNT(e) as totalEnrollments " +
-            "FROM Category c " +
-            "LEFT JOIN c.courses co ON co.active = true " +
-            "LEFT JOIN co.enrollments e " +
-            "GROUP BY c.id, c.name " +
-            "ORDER BY c.name ASC")
-    List<Object[]> findCategoriesWithSummary();
+    @Query("SELECT c FROM Category c WHERE " +
+            "LOWER(c.name) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(c.description) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+            "ORDER BY c.name")
+    List<Category> searchCategories(@Param("keyword") String keyword, @Param("limit") int limit);
+
+    // ===== COURSE COUNT QUERIES =====
 
     /**
-     * Tìm categories có revenue cao nhất
-     * @param limit Số lượng giới hạn
-     * @return List array [categoryId, categoryName, totalRevenue]
+     * Cập nhật course count cho category
+     * @param id ID category
+     * @param courseCount Số lượng courses mới
      */
-    @Query("SELECT c.id, c.name, SUM(co.price) as totalRevenue " +
-            "FROM Category c " +
-            "JOIN c.courses co " +
-            "JOIN co.enrollments e " +
-            "WHERE co.active = true " +
-            "GROUP BY c.id, c.name " +
-            "ORDER BY SUM(co.price) DESC")
-    List<Object[]> findTopRevenueCategories(Pageable pageable);
-
-    // ===== ADMIN MANAGEMENT QUERIES =====
+    @Modifying
+    @Transactional
+    @Query("UPDATE Category c SET c.courseCount = :courseCount WHERE c.id = :id")
+    void updateCourseCount(@Param("id") Long id, @Param("courseCount") int courseCount);
 
     /**
-     * Tìm categories không có courses nào
+     * Đếm categories có ít nhất 1 course
+     * @return Số lượng categories có courses
+     */
+    @Query("SELECT COUNT(c) FROM Category c WHERE c.courseCount > 0")
+    Long countCategoriesWithCourses();
+
+    /**
+     * Lấy average courses per category
+     * @return Average courses per category
+     */
+    @Query("SELECT AVG(c.courseCount) FROM Category c")
+    Double getAverageCoursesPerCategory();
+
+    // ===== ANALYTICS QUERIES =====
+
+    /**
+     * Lấy top categories theo course count
+     * @param limit Số lượng categories
+     * @return Danh sách [Category, CourseCount]
+     */
+    @Query("SELECT c FROM Category c ORDER BY c.courseCount DESC")
+    List<Category> getTopCategoriesByCourseCount(@Param("limit") int limit);
+
+    /**
+     * Lấy category performance stats
+     * @return Danh sách [CategoryName, CourseCount, EnrollmentCount]
+     */
+    @Query("SELECT c.name, c.courseCount, " +
+            "(SELECT COUNT(e) FROM Enrollment e WHERE e.course.category = c) as enrollmentCount " +
+            "FROM Category c " +
+            "ORDER BY enrollmentCount DESC")
+    List<Object[]> getCategoryPerformanceStats();
+
+    /**
+     * Lấy thống kê categories theo course count ranges
+     * @return Danh sách [Range, Count]
+     */
+    @Query("SELECT " +
+            "CASE " +
+            "WHEN c.courseCount = 0 THEN 'No courses' " +
+            "WHEN c.courseCount <= 5 THEN '1-5 courses' " +
+            "WHEN c.courseCount <= 10 THEN '6-10 courses' " +
+            "WHEN c.courseCount <= 20 THEN '11-20 courses' " +
+            "ELSE '20+ courses' END as courseRange, " +
+            "COUNT(c) " +
+            "FROM Category c " +
+            "GROUP BY " +
+            "CASE " +
+            "WHEN c.courseCount = 0 THEN 'No courses' " +
+            "WHEN c.courseCount <= 5 THEN '1-5 courses' " +
+            "WHEN c.courseCount <= 10 THEN '6-10 courses' " +
+            "WHEN c.courseCount <= 20 THEN '11-20 courses' " +
+            "ELSE '20+ courses' END")
+    List<Object[]> getCategoryDistributionStats();
+
+    /**
+     * Tìm categories chưa có courses
      * @return Danh sách empty categories
      */
-    @Query("SELECT c FROM Category c " +
-            "WHERE NOT EXISTS (SELECT 1 FROM Course co WHERE co.category = c)")
+    @Query("SELECT c FROM Category c WHERE c.courseCount = 0")
     List<Category> findEmptyCategories();
 
     /**
-     * Đếm categories không có courses
-     * @return Số lượng empty categories
+     * Tìm categories có nhiều courses nhất
+     * @param limit Số lượng categories
+     * @return Danh sách popular categories
      */
-    @Query("SELECT COUNT(c) FROM Category c " +
-            "WHERE NOT EXISTS (SELECT 1 FROM Course co WHERE co.category = c)")
-    Long countEmptyCategories();
+    @Query("SELECT c FROM Category c WHERE c.courseCount > 0 ORDER BY c.courseCount DESC")
+    List<Category> findMostPopularCategories(@Param("limit") int limit);
 
     /**
-     * Tìm categories cần attention (ít courses, ít enrollments)
-     * @param minCourses Số courses tối thiểu
-     * @param minEnrollments Số enrollments tối thiểu
-     * @return Danh sách categories cần attention
+     * Lấy categories được tạo gần đây
+     * @param limit Số lượng categories
+     * @return Danh sách recent categories
      */
-    @Query("SELECT c FROM Category c " +
-            "WHERE (SELECT COUNT(co) FROM Course co WHERE co.category = c AND co.active = true) < :minCourses " +
-            "OR (SELECT COUNT(e) FROM Course co JOIN co.enrollments e WHERE co.category = c AND co.active = true) < :minEnrollments")
-    List<Category> findCategoriesNeedingAttention(@Param("minCourses") Long minCourses,
-                                                  @Param("minEnrollments") Long minEnrollments);
+    @Query("SELECT c FROM Category c ORDER BY c.createdAt DESC")
+    List<Category> findRecentCategories(@Param("limit") int limit);
+
+    /**
+     * Tìm categories theo color code
+     * @param colorCode Mã màu
+     * @return Danh sách categories có cùng màu
+     */
+    List<Category> findByColorCode(String colorCode);
+
+    /**
+     * Tìm categories theo icon class
+     * @param iconClass Icon class
+     * @return Danh sách categories có cùng icon
+     */
+    List<Category> findByIconClass(String iconClass);
+
+    /**
+     * Lấy tất cả color codes đang sử dụng
+     * @return Danh sách color codes
+     */
+    @Query("SELECT DISTINCT c.colorCode FROM Category c WHERE c.colorCode IS NOT NULL")
+    List<String> findAllUsedColorCodes();
+
+    /**
+     * Lấy tất cả icon classes đang sử dụng
+     * @return Danh sách icon classes
+     */
+    @Query("SELECT DISTINCT c.iconClass FROM Category c WHERE c.iconClass IS NOT NULL")
+    List<String> findAllUsedIconClasses();
+
+    /**
+     * Lấy category stats với enrollment data
+     * @return Danh sách [CategoryId, CategoryName, CourseCount, TotalEnrollments, CompletedEnrollments]
+     */
+    @Query("SELECT c.id, c.name, c.courseCount, " +
+            "COALESCE(SUM(ec.enrollmentCount), 0) as totalEnrollments, " +
+            "COALESCE(SUM(ec.completedCount), 0) as completedEnrollments " +
+            "FROM Category c " +
+            "LEFT JOIN (" +
+            "    SELECT co.category.id as categoryId, " +
+            "           COUNT(e) as enrollmentCount, " +
+            "           SUM(CASE WHEN e.completed = true THEN 1 ELSE 0 END) as completedCount " +
+            "    FROM Course co " +
+            "    LEFT JOIN co.enrollments e " +
+            "    GROUP BY co.category.id" +
+            ") ec ON c.id = ec.categoryId " +
+            "GROUP BY c.id, c.name, c.courseCount " +
+            "ORDER BY totalEnrollments DESC")
+    List<Object[]> getCategoriesWithEnrollmentStats();
 }

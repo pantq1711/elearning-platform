@@ -64,38 +64,25 @@ public interface CourseRepository extends JpaRepository<Course, Long>, JpaSpecif
     List<Course> findByInstructorOrderByCreatedAtDesc(User instructor);
 
     /**
-     * Tìm courses của instructor với pagination
+     * Tìm courses theo instructor với pagination
      * @param instructor Instructor
      * @param pageable Pagination info
-     * @return Page courses
+     * @return Page chứa courses
      */
-    Page<Course> findByInstructorOrderByCreatedAtDesc(User instructor, Pageable pageable);
-
-    /**
-     * Tìm courses của instructor với pagination (List version)
-     * @param instructor Instructor
-     * @param pageable Pagination info
-     * @return Danh sách courses
-     */
-    List<Course> findByInstructor(User instructor, Pageable pageable);
-
-    /**
-     * Tìm courses của instructor theo keyword
-     * @param instructor Instructor
-     * @param keyword Từ khóa tìm kiếm
-     * @return Danh sách courses
-     */
-    @Query("SELECT c FROM Course c WHERE c.instructor = :instructor AND " +
-            "(LOWER(c.name) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            " LOWER(c.description) LIKE LOWER(CONCAT('%', :keyword, '%')))")
-    List<Course> findByInstructorAndKeyword(@Param("instructor") User instructor,
-                                            @Param("keyword") String keyword);
+    Page<Course> findByInstructor(User instructor, Pageable pageable);
 
     /**
      * Đếm courses của instructor
      * @param instructor Instructor
-     * @param active Trạng thái active
      * @return Số lượng courses
+     */
+    Long countByInstructor(User instructor);
+
+    /**
+     * Đếm active courses của instructor
+     * @param instructor Instructor
+     * @param active Trạng thái active
+     * @return Số lượng active courses
      */
     Long countByInstructorAndActive(User instructor, boolean active);
 
@@ -104,89 +91,156 @@ public interface CourseRepository extends JpaRepository<Course, Long>, JpaSpecif
     /**
      * Tìm courses theo category
      * @param category Category
-     * @param active Trạng thái active
      * @return Danh sách courses
      */
-    List<Course> findByCategoryAndActiveOrderByCreatedAtDesc(Category category, boolean active);
+    List<Course> findByCategory(Category category);
 
     /**
-     * Tìm courses theo category ID
+     * Tìm courses theo category ID với pagination
      * @param categoryId ID của category
-     * @param active Trạng thái active
-     * @return Danh sách courses
+     * @param pageable Pagination info
+     * @return Page chứa courses
      */
-    List<Course> findByCategoryIdAndActiveOrderByCreatedAtDesc(Long categoryId, boolean active);
+    Page<Course> findByCategoryId(Long categoryId, Pageable pageable);
 
     /**
-     * Đếm courses theo category
+     * Đếm courses trong category
      * @param category Category
      * @return Số lượng courses
      */
     Long countByCategory(Category category);
 
-    // ===== ACTIVE/STATUS QUERIES =====
+    // ===== FEATURED & ACTIVE QUERIES =====
 
     /**
-     * Tìm courses active
+     * Đếm courses theo featured và active status
+     * @param featured Trạng thái featured
      * @param active Trạng thái active
-     * @return Danh sách courses
+     * @return Số lượng courses
+     */
+    Long countByFeaturedAndActive(boolean featured, boolean active);
+
+    /**
+     * Tìm featured courses với limit
+     * @param featured Trạng thái featured
+     * @param active Trạng thái active
+     * @param pageable Pagination info
+     * @return Danh sách featured courses
+     */
+    Page<Course> findByFeaturedAndActiveOrderByCreatedAtDesc(boolean featured, boolean active, Pageable pageable);
+
+    /**
+     * Tìm featured courses với limit bằng query method
+     * @param limit Số lượng courses
+     * @return Danh sách featured courses
+     */
+    @Query("SELECT c FROM Course c WHERE c.featured = true AND c.active = true ORDER BY c.createdAt DESC")
+    List<Course> findFeaturedCourses(@Param("limit") int limit);
+
+    /**
+     * Tìm active courses
+     * @param active Trạng thái active
+     * @return Danh sách active courses
      */
     List<Course> findByActiveOrderByCreatedAtDesc(boolean active);
 
     /**
-     * Đếm courses theo trạng thái active
-     * @param active Trạng thái active
-     * @return Số lượng courses
+     * Đếm tất cả active courses
+     * @return Số lượng active courses
      */
-    Long countByActive(boolean active);
-
-    /**
-     * Tìm featured courses
-     * @param featured Trạng thái featured
-     * @param active Trạng thái active
-     * @return Danh sách courses
-     */
-    List<Course> findByFeaturedAndActiveOrderByCreatedAtDesc(boolean featured, boolean active);
+    @Query("SELECT COUNT(c) FROM Course c WHERE c.active = true")
+    Long countAllActiveCourses();
 
     // ===== SEARCH QUERIES =====
 
     /**
-     * Tìm courses theo tên (search)
-     * @param name Tên course
-     * @param active Trạng thái active
-     * @return Danh sách courses
-     */
-    List<Course> findByNameContainingIgnoreCaseAndActive(String name, boolean active);
-
-    /**
-     * Search courses theo multiple criteria
+     * Search courses theo tên hoặc description
      * @param keyword Từ khóa tìm kiếm
-     * @param active Trạng thái active
      * @param pageable Pagination info
-     * @return Page courses
+     * @return Page chứa courses tìm thấy
      */
-    @Query("SELECT c FROM Course c WHERE c.active = :active AND " +
+    @Query("SELECT c FROM Course c WHERE " +
             "(LOWER(c.name) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            " LOWER(c.description) LIKE LOWER(CONCAT('%', :keyword, '%')))")
-    Page<Course> findByKeywordAndActive(@Param("keyword") String keyword,
-                                        @Param("active") boolean active,
-                                        Pageable pageable);
-
-    // ===== POPULAR/ANALYTICS QUERIES =====
+            "LOWER(c.description) LIKE LOWER(CONCAT('%', :keyword, '%'))) AND " +
+            "c.active = true")
+    Page<Course> searchCourses(@Param("keyword") String keyword, Pageable pageable);
 
     /**
-     * Tìm popular courses theo enrollment count
-     * @param pageable Pagination info
-     * @return Danh sách popular courses
+     * Search courses với limit
+     * @param keyword Từ khóa tìm kiếm
+     * @param limit Số lượng kết quả
+     * @return Danh sách courses tìm thấy
      */
-    @Query("SELECT c FROM Course c LEFT JOIN c.enrollments e " +
+    @Query("SELECT c FROM Course c WHERE " +
+            "(LOWER(c.name) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(c.description) LIKE LOWER(CONCAT('%', :keyword, '%'))) AND " +
+            "c.active = true " +
+            "ORDER BY c.createdAt DESC")
+    List<Course> searchCourses(@Param("keyword") String keyword, @Param("limit") int limit);
+
+    // ===== ANALYTICS QUERIES =====
+
+    /**
+     * Lấy thống kê enrollment theo tháng
+     * @return Danh sách thống kê
+     */
+    @Query("SELECT MONTH(e.enrollmentDate), YEAR(e.enrollmentDate), COUNT(e) " +
+            "FROM Enrollment e " +
+            "GROUP BY YEAR(e.enrollmentDate), MONTH(e.enrollmentDate) " +
+            "ORDER BY YEAR(e.enrollmentDate) DESC, MONTH(e.enrollmentDate) DESC")
+    List<Object[]> getMonthlyEnrollmentStats();
+
+    /**
+     * Lấy top courses theo số lượng enrollments
+     * @param limit Số lượng courses
+     * @return Danh sách top courses
+     */
+    @Query("SELECT c, COUNT(e) as enrollmentCount " +
+            "FROM Course c LEFT JOIN c.enrollments e " +
             "WHERE c.active = true " +
-            "GROUP BY c.id, c.name, c.description, c.createdAt, c.updatedAt, " +
-            "c.instructor, c.category, c.duration, c.price, c.featured, " +
-            "c.active, c.slug, c.imageUrl, c.difficultyLevel, c.language, " +
-            "c.prerequisites, c.learningObjectives " +
-            "ORDER BY COUNT(e) DESC")
-    List<Course> findPopularCourses(Pageable pageable);
+            "GROUP BY c " +
+            "ORDER BY enrollmentCount DESC")
+    List<Object[]> getTopCoursesByEnrollments(@Param("limit") int limit);
+
+    /**
+     * Lấy courses mới nhất
+     * @param days Số ngày gần đây
+     * @param pageable Pagination info
+     * @return Page chứa courses mới
+     */
+    @Query("SELECT c FROM Course c WHERE c.createdAt >= :since AND c.active = true ORDER BY c.createdAt DESC")
+    Page<Course> findRecentCourses(@Param("since") LocalDateTime since, Pageable pageable);
+
+    /**
+     * Advanced search với filters
+     * @param keyword Từ khóa
+     * @param categoryId ID category
+     * @param instructorId ID instructor
+     * @param difficultyLevel Độ khó
+     * @param minPrice Giá tối thiểu
+     * @param maxPrice Giá tối đa
+     * @param pageable Pagination info
+     * @return Page chứa courses phù hợp
+     */
+    @Query("SELECT c FROM Course c WHERE " +
+            "(:keyword IS NULL OR " +
+            " LOWER(c.name) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            " LOWER(c.description) LIKE LOWER(CONCAT('%', :keyword, '%'))) AND " +
+            "(:categoryId IS NULL OR c.category.id = :categoryId) AND " +
+            "(:instructorId IS NULL OR c.instructor.id = :instructorId) AND " +
+            "(:difficultyLevel IS NULL OR c.difficultyLevel = :difficultyLevel) AND " +
+            "(:minPrice IS NULL OR c.price >= :minPrice) AND " +
+            "(:maxPrice IS NULL OR c.price <= :maxPrice) AND " +
+            "c.active = true " +
+            "ORDER BY c.createdAt DESC")
+    Page<Course> findCoursesWithFilters(
+            @Param("keyword") String keyword,
+            @Param("categoryId") Long categoryId,
+            @Param("instructorId") Long instructorId,
+            @Param("difficultyLevel") String difficultyLevel,
+            @Param("minPrice") Double minPrice,
+            @Param("maxPrice") Double maxPrice,
+            Pageable pageable);
 
     /**
      * Tìm available courses cho student (chưa đăng ký)
@@ -196,99 +250,4 @@ public interface CourseRepository extends JpaRepository<Course, Long>, JpaSpecif
     @Query("SELECT c FROM Course c WHERE c.active = true AND " +
             "c.id NOT IN (SELECT e.course.id FROM Enrollment e WHERE e.student.id = :studentId)")
     List<Course> findAvailableCoursesForStudent(@Param("studentId") Long studentId);
-
-    // ===== STATISTICS QUERIES =====
-
-    /**
-     * Lấy thống kê courses theo category
-     * @return List array [categoryId, categoryName, courseCount]
-     */
-    @Query("SELECT c.category.id, c.category.name, COUNT(c) " +
-            "FROM Course c " +
-            "WHERE c.active = true " +
-            "GROUP BY c.category.id, c.category.name " +
-            "ORDER BY COUNT(c) DESC")
-    List<Object[]> getCourseCountByCategory();
-
-    /**
-     * Lấy thống kê courses theo instructor
-     * @return List array [instructorId, instructorName, courseCount]
-     */
-    @Query("SELECT c.instructor.id, c.instructor.fullName, COUNT(c) " +
-            "FROM Course c " +
-            "WHERE c.active = true " +
-            "GROUP BY c.instructor.id, c.instructor.fullName " +
-            "ORDER BY COUNT(c) DESC")
-    List<Object[]> getCourseCountByInstructor();
-
-    /**
-     * Lấy thống kê courses theo tháng
-     * @param startDate Ngày bắt đầu
-     * @return List array [month, year, count]
-     */
-    @Query("SELECT MONTH(c.createdAt), YEAR(c.createdAt), COUNT(c) " +
-            "FROM Course c " +
-            "WHERE c.createdAt >= :startDate " +
-            "GROUP BY YEAR(c.createdAt), MONTH(c.createdAt) " +
-            "ORDER BY YEAR(c.createdAt), MONTH(c.createdAt)")
-    List<Object[]> getCourseStatsByMonth(@Param("startDate") LocalDateTime startDate);
-
-    /**
-     * Lấy revenue theo instructor
-     * @param instructor Instructor
-     * @return Tổng revenue
-     */
-    @Query("SELECT SUM(c.price * SIZE(c.enrollments)) " +
-            "FROM Course c " +
-            "WHERE c.instructor = :instructor")
-    Double calculateRevenueByInstructor(@Param("instructor") User instructor);
-
-    // ===== ADVANCED QUERIES =====
-
-    /**
-     * Tìm courses theo price range
-     * @param minPrice Giá tối thiểu
-     * @param maxPrice Giá tối đa
-     * @param active Trạng thái active
-     * @return Danh sách courses
-     */
-    @Query("SELECT c FROM Course c WHERE c.active = :active AND " +
-            "c.price >= :minPrice AND c.price <= :maxPrice " +
-            "ORDER BY c.price ASC")
-    List<Course> findByPriceRangeAndActive(@Param("minPrice") Double minPrice,
-                                           @Param("maxPrice") Double maxPrice,
-                                           @Param("active") boolean active);
-
-    /**
-     * Tìm courses theo difficulty level
-     * @param difficultyLevel Độ khó
-     * @param active Trạng thái active
-     * @return Danh sách courses
-     */
-    List<Course> findByDifficultyLevelAndActiveOrderByCreatedAtDesc(String difficultyLevel, boolean active);
-
-    /**
-     * Tìm recent courses (trong X ngày gần đây)
-     * @param days Số ngày
-     * @param active Trạng thái active
-     * @return Danh sách recent courses
-     */
-    @Query("SELECT c FROM Course c WHERE c.active = :active AND " +
-            "c.createdAt >= :startDate " +
-            "ORDER BY c.createdAt DESC")
-    List<Course> findRecentCourses(@Param("startDate") LocalDateTime startDate,
-                                   @Param("active") boolean active);
-
-    /**
-     * Tìm courses có nhiều enrollments nhất
-     * @param limit Số lượng giới hạn
-     * @return Danh sách courses
-     */
-    @Query(value = "SELECT c.* FROM courses c " +
-            "LEFT JOIN enrollments e ON c.id = e.course_id " +
-            "WHERE c.active = true " +
-            "GROUP BY c.id " +
-            "ORDER BY COUNT(e.id) DESC " +
-            "LIMIT :limit", nativeQuery = true)
-    List<Course> findMostEnrolledCourses(@Param("limit") int limit);
 }
