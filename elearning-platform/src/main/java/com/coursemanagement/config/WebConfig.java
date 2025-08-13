@@ -36,15 +36,7 @@ public class WebConfig implements WebMvcConfigurer {
         resolver.setSuffix(".jsp");
         resolver.setOrder(1);
 
-        // Cấu hình thêm cho JSP và JSTL
-        resolver.setExposeContextBeansAsAttributes(true);
-        resolver.setExposedContextBeanNames("messageSource");
-
-        // Expose request attributes cho JSP
-        resolver.setExposeRequestAttributes(true);
-        resolver.setExposeSessionAttributes(true);
-
-        // Cache views trong production
+        // Cấu hình cache views trong production
         resolver.setCache(true);
         resolver.setCacheLimit(1024);
 
@@ -69,55 +61,51 @@ public class WebConfig implements WebMvcConfigurer {
                 .setCachePeriod(3600)
                 .resourceChain(true);
 
-        // Image files với cache 24 giờ
+        // Image files với cache 1 ngày
         registry.addResourceHandler("/images/**")
                 .addResourceLocations("/WEB-INF/static/images/", "classpath:/static/images/")
                 .setCachePeriod(86400)
                 .resourceChain(true);
 
-        // Favicon với cache 24 giờ
-        registry.addResourceHandler("/favicon.ico")
-                .addResourceLocations("/WEB-INF/static/", "classpath:/static/")
-                .setCachePeriod(86400)
-                .resourceChain(true);
-
-        // Fonts với cache 24 giờ
+        // Font files với cache 1 tuần
         registry.addResourceHandler("/fonts/**")
                 .addResourceLocations("/WEB-INF/static/fonts/", "classpath:/static/fonts/")
+                .setCachePeriod(604800)
+                .resourceChain(true);
+
+        // Video files với cache 1 ngày (nếu có)
+        registry.addResourceHandler("/videos/**")
+                .addResourceLocations("/WEB-INF/static/videos/", "classpath:/static/videos/")
                 .setCachePeriod(86400)
                 .resourceChain(true);
 
-        // Upload directory cho file upload
+        // Uploads directory cho user-generated content
         registry.addResourceHandler("/uploads/**")
                 .addResourceLocations("file:uploads/")
-                .setCachePeriod(3600)
-                .resourceChain(true);
+                .setCachePeriod(3600); // Cache ngắn cho user uploads
 
-        // WebJars support cho các thư viện JS/CSS từ Maven
+        // Favicon và manifest files
+        registry.addResourceHandler("/favicon.ico")
+                .addResourceLocations("/WEB-INF/static/")
+                .setCachePeriod(604800);
+
+        // WebJars support (Bootstrap, jQuery từ Maven dependencies)
         registry.addResourceHandler("/webjars/**")
                 .addResourceLocations("classpath:/META-INF/resources/webjars/")
-                .setCachePeriod(86400)
+                .setCachePeriod(604800)
                 .resourceChain(true);
     }
 
     /**
-     * Cấu hình Default Servlet Handler
-     * Cho phép serving static content từ servlet container
-     */
-    @Override
-    public void configureDefaultServletHandling(DefaultServletHandlerConfigurer configurer) {
-        configurer.enable();
-    }
-
-    /**
-     * Cấu hình View Controllers cho các trang không cần logic phức tạp
-     * Mapping trực tiếp URL đến view không cần controller
+     * Cấu hình default view controllers
+     * Mapping trực tiếp URL đến view mà không cần controller
      */
     @Override
     public void addViewControllers(ViewControllerRegistry registry) {
-        // Error pages
-        registry.addViewController("/404").setViewName("error/404");
-        registry.addViewController("/500").setViewName("error/500");
+        // Error pages mapping
+        registry.addViewController("/error/404").setViewName("error/404");
+        registry.addViewController("/error/403").setViewName("error/403");
+        registry.addViewController("/error/500").setViewName("error/500");
         registry.addViewController("/access-denied").setViewName("error/access-denied");
 
         // Static pages
@@ -230,5 +218,33 @@ public class WebConfig implements WebMvcConfigurer {
                 .defaultContentType(org.springframework.http.MediaType.TEXT_HTML)
                 .mediaType("json", org.springframework.http.MediaType.APPLICATION_JSON)
                 .mediaType("xml", org.springframework.http.MediaType.APPLICATION_XML);
+    }
+
+    /**
+     * Cấu hình Path Match
+     * Để đảm bảo URL matching works correctly
+     */
+    @Override
+    public void configurePathMatch(PathMatchConfigurer configurer) {
+        configurer.setUseSuffixPatternMatch(false)
+                .setUseTrailingSlashMatch(false);
+    }
+
+    /**
+     * Cấu hình Default Servlet Handling
+     * Cho phép serve static content từ servlet container default servlet
+     */
+    @Override
+    public void configureDefaultServletHandling(DefaultServletHandlerConfigurer configurer) {
+        configurer.enable();
+    }
+
+    /**
+     * Cấu hình View Resolution
+     * Thứ tự ưu tiên cho các view resolver
+     */
+    @Override
+    public void configureViewResolvers(ViewResolverRegistry registry) {
+        registry.jsp("/WEB-INF/views/", ".jsp");
     }
 }

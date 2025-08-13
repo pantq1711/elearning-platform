@@ -1,18 +1,24 @@
 package com.coursemanagement.service;
 
-import com.coursemanagement.entity.Lesson;
 import com.coursemanagement.entity.Course;
+import com.coursemanagement.entity.Lesson;
 import com.coursemanagement.entity.User;
 import com.coursemanagement.repository.LessonRepository;
+import com.coursemanagement.utils.CourseUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
 /**
  * Service class để xử lý business logic liên quan đến Lesson
+ * Quản lý CRUD operations, file uploads và business rules cho lessons
  */
 @Service
 @Transactional
@@ -21,359 +27,403 @@ public class LessonService {
     @Autowired
     private LessonRepository lessonRepository;
 
-    @Autowired
-    private EnrollmentService enrollmentService;
+    private static final String UPLOAD_DIR = "uploads/lessons/";
 
     /**
-     * Tạo bài giảng mới
-     * @param lesson Bài giảng cần tạo
-     * @return Lesson đã được tạo
-     * @throws RuntimeException Nếu có lỗi validation
-     */
-    public Lesson createLesson(Lesson lesson) {
-        // Validate thông tin bài giảng
-        validateLesson(lesson);
-
-        // Đảm bảo bài giảng được kích hoạt
-        lesson.setActive(true);
-
-        // Tự động set order index nếu chưa có
-        if (lesson.getOrderIndex() == null || lesson.getOrderIndex() <= 0) {
-            int nextOrder = getNextOrderIndex(lesson.getCourse());
-            lesson.setOrderIndex(nextOrder);
-        }
-
-        return lessonRepository.save(lesson);
-    }
-
-    /**
-     * Cập nhật thông tin bài giảng
-     * @param id ID của bài giảng cần cập nhật
-     * @param updatedLesson Thông tin bài giảng mới
-     * @return Lesson đã được cập nhật
-     * @throws RuntimeException Nếu không tìm thấy bài giảng hoặc có lỗi validation
-     */
-    public Lesson updateLesson(Long id, Lesson updatedLesson) {
-        // Tìm bài giảng hiện tại
-        Lesson existingLesson = lessonRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy bài giảng với ID: " + id));
-
-        // Validate thông tin bài giảng mới
-        validateLesson(updatedLesson);
-
-        // Cập nhật thông tin
-        existingLesson.setTitle(updatedLesson.getTitle());
-        existingLesson.setContent(updatedLesson.getContent());
-        existingLesson.setVideoLink(updatedLesson.getVideoLink());
-        existingLesson.setOrderIndex(updatedLesson.getOrderIndex());
-        existingLesson.setActive(updatedLesson.isActive());
-
-        return lessonRepository.save(existingLesson);
-    }
-
-    /**
-     * Xóa bài giảng
-     * @param id ID của bài giảng cần xóa
-     * @throws RuntimeException Nếu không tìm thấy bài giảng
-     */
-    public void deleteLesson(Long id) {
-        Lesson lesson = lessonRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy bài giảng với ID: " + id));
-
-        lessonRepository.delete(lesson);
-    }
-
-    /**
-     * Tìm bài giảng theo ID
-     * @param id ID của bài giảng
-     * @return Optional<Lesson>
+     * Tìm lesson theo ID
+     * @param id ID của lesson
+     * @return Optional chứa Lesson nếu tìm thấy
      */
     public Optional<Lesson> findById(Long id) {
         return lessonRepository.findById(id);
     }
 
     /**
-     * Tìm bài giảng theo khóa học
-     * @param course Khóa học
-     * @return Danh sách bài giảng trong khóa học
+     * Tìm lessons theo course, sắp xếp theo order index
+     * @param course Course chứa lessons
+     * @return Danh sách lessons đã sắp xếp
      */
-    public List<Lesson> findByCourse(Course course) {
-        if (course == null) {
-            throw new RuntimeException("Khóa học không hợp lệ");
-        }
-        return lessonRepository.findByCourseOrderByOrderIndexAsc(course);
+    public List<Lesson> findByCourseOrderByOrderIndex(Course course) {
+        return lessonRepository.findByCourseOrderByOrderIndex(course);
     }
 
     /**
-     * Tìm bài giảng đang hoạt động theo khóa học
-     * @param course Khóa học
-     * @return Danh sách bài giảng đang hoạt động
-     */
-    public List<Lesson> findActiveByCourse(Course course) {
-        if (course == null) {
-            throw new RuntimeException("Khóa học không hợp lệ");
-        }
-        return lessonRepository.findByCourseAndIsActiveOrderByOrderIndexAsc(course, true);
-    }
-
-    /**
-     * Tìm bài giảng theo ID và khóa học (để đảm bảo quyền truy cập)
-     * @param id ID của bài giảng
-     * @param course Khóa học
-     * @return Optional<Lesson>
+     * Tìm lesson theo ID và course (cho security)
+     * @param id ID lesson
+     * @param course Course chứa lesson
+     * @return Optional chứa Lesson nếu tìm thấy
      */
     public Optional<Lesson> findByIdAndCourse(Long id, Course course) {
-        if (course == null) {
-            return Optional.empty();
-        }
         return lessonRepository.findByIdAndCourse(id, course);
     }
 
     /**
-     * Tìm kiếm bài giảng theo từ khóa
-     * @param course Khóa học
-     * @param keyword Từ khóa tìm kiếm
-     * @return Danh sách bài giảng chứa từ khóa
+     * Đếm số lessons trong một course
+     * @param course Course cần đếm
+     * @return Số lượng lessons
      */
-    public List<Lesson> searchLessons(Course course, String keyword) {
-        if (course == null) {
-            throw new RuntimeException("Khóa học không hợp lệ");
-        }
-
-        if (keyword == null || keyword.trim().isEmpty()) {
-            return findByCourse(course);
-        }
-
-        return lessonRepository.findByCourseAndTitleContainingIgnoreCaseOrderByOrderIndexAsc(
-                course, keyword.trim());
-    }
-
-    /**
-     * Kiểm tra học viên có thể xem bài giảng không
-     * @param lesson Bài giảng
-     * @param student Học viên
-     * @return true nếu có thể xem, false nếu không thể
-     */
-    public boolean canStudentViewLesson(Lesson lesson, User student) {
-        if (lesson == null || student == null) {
-            return false;
-        }
-
-        // Kiểm tra vai trò học viên
-        if (student.getRole() != User.Role.STUDENT) {
-            return false;
-        }
-
-        // Kiểm tra bài giảng có đang hoạt động không
-        if (!lesson.isActive()) {
-            return false;
-        }
-
-        // Kiểm tra khóa học có đang hoạt động không
-        if (!lesson.getCourse().isActive()) {
-            return false;
-        }
-
-        // Kiểm tra học viên có đăng ký khóa học không
-        return enrollmentService.isStudentEnrolled(student, lesson.getCourse());
-    }
-
-    /**
-     * Kiểm tra giảng viên có quyền chỉnh sửa bài giảng không
-     * @param lesson Bài giảng
-     * @param instructor Giảng viên
-     * @return true nếu có quyền, false nếu không có quyền
-     */
-    public boolean canInstructorEditLesson(Lesson lesson, User instructor) {
-        if (lesson == null || instructor == null) {
-            return false;
-        }
-
-        // Kiểm tra vai trò giảng viên
-        if (instructor.getRole() != User.Role.INSTRUCTOR) {
-            return false;
-        }
-
-        // Kiểm tra giảng viên có phải là chủ sở hữu khóa học không
-        return lesson.getCourse().getInstructor().getId().equals(instructor.getId());
-    }
-
-    /**
-     * Đếm số bài giảng trong khóa học
-     * @param course Khóa học
-     * @return Số lượng bài giảng
-     */
-    public long countByCourse(Course course) {
-        if (course == null) {
-            return 0;
-        }
+    public Long countLessonsByCourse(Course course) {
         return lessonRepository.countByCourse(course);
     }
 
     /**
-     * Đếm số bài giảng đang hoạt động trong khóa học
-     * @param course Khóa học
-     * @return Số lượng bài giảng đang hoạt động
+     * Đếm số lessons của một instructor
+     * @param instructor Instructor
+     * @return Số lượng lessons
      */
-    public long countActiveLessonsByCourse(Course course) {
-        if (course == null) {
-            return 0;
-        }
-        return lessonRepository.countByCourseAndIsActive(course, true);
+    public Long countLessonsByInstructor(User instructor) {
+        return lessonRepository.countByInstructor(instructor);
     }
 
     /**
-     * Lấy bài giảng đầu tiên của khóa học
-     * @param course Khóa học
-     * @return Optional<Lesson>
+     * Tạo lesson mới
+     * @param lesson Lesson cần tạo
+     * @return Lesson đã được tạo
      */
-    public Optional<Lesson> getFirstLesson(Course course) {
-        if (course == null) {
-            return Optional.empty();
+    public Lesson createLesson(Lesson lesson) {
+        validateLesson(lesson);
+
+        // Tạo slug từ title
+        lesson.setSlug(CourseUtils.StringUtils.createSlug(lesson.getTitle()));
+
+        // Set thời gian tạo
+        lesson.setCreatedAt(LocalDateTime.now());
+        lesson.setUpdatedAt(LocalDateTime.now());
+
+        // Mặc định active = true
+        lesson.setActive(true);
+
+        // Auto-set order index nếu chưa có
+        if (lesson.getOrderIndex() == null) {
+            lesson.setOrderIndex(getNextOrderIndex(lesson.getCourse()));
         }
 
-        List<Lesson> lessons = findActiveByCourse(course);
-        return lessons.isEmpty() ? Optional.empty() : Optional.of(lessons.get(0));
+        return lessonRepository.save(lesson);
     }
 
     /**
-     * Lấy bài giảng tiếp theo
-     * @param currentLesson Bài giảng hiện tại
-     * @return Optional<Lesson>
+     * Cập nhật lesson
+     * @param lesson Lesson cần cập nhật
+     * @return Lesson đã được cập nhật
      */
-    public Optional<Lesson> getNextLesson(Lesson currentLesson) {
-        if (currentLesson == null) {
-            return Optional.empty();
+    public Lesson updateLesson(Lesson lesson) {
+        if (lesson.getId() == null) {
+            throw new RuntimeException("ID lesson không được để trống khi cập nhật");
         }
 
-        return lessonRepository.findNextLesson(
-                currentLesson.getCourse(),
-                currentLesson.getOrderIndex());
+        Lesson existingLesson = lessonRepository.findById(lesson.getId())
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy lesson với ID: " + lesson.getId()));
+
+        validateLesson(lesson);
+
+        // Cập nhật slug nếu title thay đổi
+        if (!existingLesson.getTitle().equals(lesson.getTitle())) {
+            lesson.setSlug(CourseUtils.StringUtils.createSlug(lesson.getTitle()));
+        } else {
+            lesson.setSlug(existingLesson.getSlug());
+        }
+
+        // Giữ nguyên thời gian tạo
+        lesson.setCreatedAt(existingLesson.getCreatedAt());
+        lesson.setUpdatedAt(LocalDateTime.now());
+
+        return lessonRepository.save(lesson);
     }
 
     /**
-     * Lấy bài giảng trước đó
-     * @param currentLesson Bài giảng hiện tại
-     * @return Optional<Lesson>
+     * Upload lesson document
+     * @param documentFile File document
+     * @return URL của document đã upload
+     * @throws IOException Nếu có lỗi I/O
      */
-    public Optional<Lesson> getPreviousLesson(Lesson currentLesson) {
-        if (currentLesson == null) {
-            return Optional.empty();
+    public String uploadLessonDocument(MultipartFile documentFile) throws IOException {
+        if (!CourseUtils.FileUtils.isValidDocumentFile(documentFile)) {
+            throw new RuntimeException("File không hợp lệ. Chỉ chấp nhận PDF, DOC, DOCX, TXT dưới 10MB");
         }
 
-        return lessonRepository.findPreviousLesson(
-                currentLesson.getCourse(),
-                currentLesson.getOrderIndex());
+        String filename = CourseUtils.FileUtils.generateUniqueFilename(documentFile.getOriginalFilename());
+        String savedPath = CourseUtils.FileUtils.saveFile(documentFile, UPLOAD_DIR + "documents/", filename);
+
+        // Trả về relative URL
+        return "/uploads/lessons/documents/" + filename;
     }
 
     /**
-     * Sắp xếp lại thứ tự bài giảng
-     * @param course Khóa học
-     * @param lessonIds Danh sách ID bài giảng theo thứ tự mới
+     * Upload lesson video
+     * @param videoFile File video
+     * @return URL của video đã upload
+     * @throws IOException Nếu có lỗi I/O
      */
-    public void reorderLessons(Course course, List<Long> lessonIds) {
-        if (course == null || lessonIds == null || lessonIds.isEmpty()) {
-            throw new RuntimeException("Thông tin sắp xếp không hợp lệ");
+    public String uploadLessonVideo(MultipartFile videoFile) throws IOException {
+        if (!CourseUtils.FileUtils.isValidVideoFile(videoFile)) {
+            throw new RuntimeException("File không hợp lệ. Chỉ chấp nhận MP4, AVI, MOV dưới 100MB");
         }
 
-        for (int i = 0; i < lessonIds.size(); i++) {
-            Long lessonId = lessonIds.get(i);
-            Optional<Lesson> lessonOpt = findByIdAndCourse(lessonId, course);
+        String filename = CourseUtils.FileUtils.generateUniqueFilename(videoFile.getOriginalFilename());
+        String savedPath = CourseUtils.FileUtils.saveFile(videoFile, UPLOAD_DIR + "videos/", filename);
 
-            if (lessonOpt.isPresent()) {
-                Lesson lesson = lessonOpt.get();
-                lesson.setOrderIndex(i + 1);
-                lessonRepository.save(lesson);
+        // Trả về relative URL
+        return "/uploads/lessons/videos/" + filename;
+    }
+
+    /**
+     * Lấy order index tiếp theo cho course
+     * @param course Course
+     * @return Order index tiếp theo
+     */
+    public Integer getNextOrderIndex(Course course) {
+        List<Lesson> existingLessons = findByCourseOrderByOrderIndex(course);
+        if (existingLessons.isEmpty()) {
+            return 1;
+        }
+
+        return existingLessons.get(existingLessons.size() - 1).getOrderIndex() + 1;
+    }
+
+    /**
+     * Reorder lessons trong course
+     * @param lessonId ID lesson cần di chuyển
+     * @param newOrderIndex Vị trí mới
+     */
+    public void reorderLesson(Long lessonId, int newOrderIndex) {
+        Lesson lesson = lessonRepository.findById(lessonId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy lesson"));
+
+        if (newOrderIndex <= 0) {
+            throw new RuntimeException("Order index phải lớn hơn 0");
+        }
+
+        Course course = lesson.getCourse();
+        List<Lesson> allLessons = findByCourseOrderByOrderIndex(course);
+
+        // Remove lesson khỏi vị trí cũ
+        allLessons.remove(lesson);
+
+        // Insert vào vị trí mới
+        int insertIndex = Math.min(newOrderIndex - 1, allLessons.size());
+        allLessons.add(insertIndex, lesson);
+
+        // Cập nhật order index cho tất cả lessons
+        for (int i = 0; i < allLessons.size(); i++) {
+            allLessons.get(i).setOrderIndex(i + 1);
+            allLessons.get(i).setUpdatedAt(LocalDateTime.now());
+        }
+
+        lessonRepository.saveAll(allLessons);
+    }
+
+    /**
+     * Soft delete lesson
+     * @param lessonId ID lesson cần xóa
+     */
+    public void softDeleteLesson(Long lessonId) {
+        Lesson lesson = lessonRepository.findById(lessonId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy lesson"));
+
+        lesson.setActive(false);
+        lesson.setUpdatedAt(LocalDateTime.now());
+        lessonRepository.save(lesson);
+    }
+
+    /**
+     * Hard delete lesson
+     * @param lessonId ID lesson cần xóa
+     */
+    public void deleteLesson(Long lessonId) {
+        Lesson lesson = lessonRepository.findById(lessonId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy lesson"));
+
+        Course course = lesson.getCourse();
+
+        // Xóa lesson
+        lessonRepository.delete(lesson);
+
+        // Reorder các lessons còn lại
+        reorderRemainingLessons(course);
+    }
+
+    /**
+     * Tìm lesson trước/sau trong course
+     * @param lesson Lesson hiện tại
+     * @return Array [previous, next] lessons
+     */
+    public Lesson[] findAdjacentLessons(Lesson lesson) {
+        List<Lesson> courseLessons = findByCourseOrderByOrderIndex(lesson.getCourse());
+
+        Lesson previous = null;
+        Lesson next = null;
+
+        for (int i = 0; i < courseLessons.size(); i++) {
+            if (courseLessons.get(i).getId().equals(lesson.getId())) {
+                if (i > 0) {
+                    previous = courseLessons.get(i - 1);
+                }
+                if (i < courseLessons.size() - 1) {
+                    next = courseLessons.get(i + 1);
+                }
+                break;
             }
         }
+
+        return new Lesson[]{previous, next};
     }
 
     /**
-     * Sao chép bài giảng
-     * @param sourceLesson Bài giảng nguồn
-     * @param targetCourse Khóa học đích
-     * @return Lesson đã được sao chép
+     * Tìm lessons theo keyword
+     * @param course Course
+     * @param keyword Từ khóa tìm kiếm
+     * @return Danh sách lessons phù hợp
      */
-    public Lesson copyLesson(Lesson sourceLesson, Course targetCourse) {
-        if (sourceLesson == null || targetCourse == null) {
-            throw new RuntimeException("Thông tin sao chép không hợp lệ");
+    public List<Lesson> searchLessons(Course course, String keyword) {
+        if (!StringUtils.hasText(keyword)) {
+            return findByCourseOrderByOrderIndex(course);
         }
 
-        Lesson copiedLesson = new Lesson();
-        copiedLesson.setTitle(sourceLesson.getTitle() + " (Copy)");
-        copiedLesson.setContent(sourceLesson.getContent());
-        copiedLesson.setVideoLink(sourceLesson.getVideoLink());
-        copiedLesson.setCourse(targetCourse);
-        copiedLesson.setOrderIndex(getNextOrderIndex(targetCourse));
-        copiedLesson.setActive(true);
-
-        return createLesson(copiedLesson);
+        return lessonRepository.findByCourseAndTitleContainingIgnoreCaseOrderByOrderIndex(course, keyword);
     }
 
     /**
-     * Lấy index tiếp theo cho bài giảng mới
-     * @param course Khóa học
-     * @return Index tiếp theo
+     * Lấy lessons active của course
+     * @param course Course
+     * @return Danh sách active lessons
      */
-    private int getNextOrderIndex(Course course) {
-        Integer maxOrder = lessonRepository.findMaxOrderIndexByCourse(course);
-        return (maxOrder != null) ? maxOrder + 1 : 1;
+    public List<Lesson> findActiveLessonsByCourse(Course course) {
+        return lessonRepository.findByCourseAndActiveOrderByOrderIndex(course, true);
     }
 
     /**
-     * Validate thông tin bài giảng
-     * @param lesson Bài giảng cần validate
-     * @throws RuntimeException Nếu validation fail
+     * Kiểm tra lesson có thuộc về course không
+     * @param lessonId ID lesson
+     * @param courseId ID course
+     * @return true nếu lesson thuộc course
+     */
+    public boolean isLessonInCourse(Long lessonId, Long courseId) {
+        return lessonRepository.existsByIdAndCourseId(lessonId, courseId);
+    }
+
+    /**
+     * Duplicate lesson trong cùng course hoặc course khác
+     * @param originalLessonId ID lesson gốc
+     * @param targetCourse Course đích
+     * @return Lesson mới đã được tạo
+     */
+    public Lesson duplicateLesson(Long originalLessonId, Course targetCourse) {
+        Lesson originalLesson = lessonRepository.findById(originalLessonId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy lesson gốc"));
+
+        Lesson duplicatedLesson = new Lesson();
+        duplicatedLesson.setCourse(targetCourse);
+        duplicatedLesson.setTitle(originalLesson.getTitle() + " (Copy)");
+        duplicatedLesson.setContent(originalLesson.getContent());
+        duplicatedLesson.setVideoLink(originalLesson.getVideoLink());
+        duplicatedLesson.setDocumentUrl(originalLesson.getDocumentUrl());
+        duplicatedLesson.setEstimatedDuration(originalLesson.getEstimatedDuration());
+        duplicatedLesson.setPreview(originalLesson.isPreview());
+
+        return createLesson(duplicatedLesson);
+    }
+
+    /**
+     * Lấy lesson statistics
+     * @param lesson Lesson
+     * @return Lesson statistics
+     */
+    public LessonStats getLessonStatistics(Lesson lesson) {
+        // Placeholder - cần implement với view/completion tracking
+        return new LessonStats(lesson.getId(), 0L, 0L, 0.0);
+    }
+
+    // ===== PRIVATE HELPER METHODS =====
+
+    /**
+     * Reorder lại các lessons còn lại sau khi xóa
+     * @param course Course
+     */
+    private void reorderRemainingLessons(Course course) {
+        List<Lesson> remainingLessons = findByCourseOrderByOrderIndex(course);
+
+        for (int i = 0; i < remainingLessons.size(); i++) {
+            remainingLessons.get(i).setOrderIndex(i + 1);
+            remainingLessons.get(i).setUpdatedAt(LocalDateTime.now());
+        }
+
+        lessonRepository.saveAll(remainingLessons);
+    }
+
+    /**
+     * Validate thông tin lesson
+     * @param lesson Lesson cần validate
      */
     private void validateLesson(Lesson lesson) {
         if (lesson == null) {
-            throw new RuntimeException("Thông tin bài giảng không được để trống");
+            throw new RuntimeException("Thông tin lesson không được để trống");
         }
 
-        if (lesson.getTitle() == null || lesson.getTitle().trim().isEmpty()) {
-            throw new RuntimeException("Tiêu đề bài giảng không được để trống");
+        // Validate title
+        if (!StringUtils.hasText(lesson.getTitle())) {
+            throw new RuntimeException("Tiêu đề bài học không được để trống");
+        }
+        if (lesson.getTitle().length() < 3) {
+            throw new RuntimeException("Tiêu đề bài học phải có ít nhất 3 ký tự");
+        }
+        if (lesson.getTitle().length() > 200) {
+            throw new RuntimeException("Tiêu đề bài học không được vượt quá 200 ký tự");
         }
 
-        if (lesson.getTitle().trim().length() < 3) {
-            throw new RuntimeException("Tiêu đề bài giảng phải có ít nhất 3 ký tự");
+        // Validate content
+        if (!StringUtils.hasText(lesson.getContent())) {
+            throw new RuntimeException("Nội dung bài học không được để trống");
+        }
+        if (lesson.getContent().length() < 10) {
+            throw new RuntimeException("Nội dung bài học phải có ít nhất 10 ký tự");
         }
 
-        if (lesson.getTitle().trim().length() > 200) {
-            throw new RuntimeException("Tiêu đề bài giảng không được vượt quá 200 ký tự");
-        }
-
-        if (lesson.getContent() == null || lesson.getContent().trim().isEmpty()) {
-            throw new RuntimeException("Nội dung bài giảng không được để trống");
-        }
-
-        if (lesson.getContent().trim().length() < 10) {
-            throw new RuntimeException("Nội dung bài giảng phải có ít nhất 10 ký tự");
-        }
-
+        // Validate course
         if (lesson.getCourse() == null) {
-            throw new RuntimeException("Bài giảng phải thuộc về một khóa học");
+            throw new RuntimeException("Bài học phải thuộc về một khóa học");
         }
 
-        // Validate video link nếu có
-        if (lesson.getVideoLink() != null && !lesson.getVideoLink().trim().isEmpty()) {
-            String videoLink = lesson.getVideoLink().trim();
-            if (!isValidYouTubeUrl(videoLink)) {
-                throw new RuntimeException("Link video phải là URL YouTube hợp lệ");
+        // Validate estimated duration
+        if (lesson.getEstimatedDuration() != null && lesson.getEstimatedDuration() <= 0) {
+            throw new RuntimeException("Thời lượng ước tính phải là số dương");
+        }
+
+        // Validate video link format (nếu có)
+        if (StringUtils.hasText(lesson.getVideoLink())) {
+            if (!CourseUtils.ValidationUtils.isValidUrl(lesson.getVideoLink()) &&
+                    !CourseUtils.ValidationUtils.isValidYouTubeUrl(lesson.getVideoLink())) {
+                throw new RuntimeException("Link video không hợp lệ");
             }
         }
 
         // Validate order index
         if (lesson.getOrderIndex() != null && lesson.getOrderIndex() <= 0) {
-            throw new RuntimeException("Thứ tự bài giảng phải lớn hơn 0");
+            throw new RuntimeException("Thứ tự bài học phải là số dương");
         }
     }
 
+    // ===== INNER CLASSES =====
+
     /**
-     * Kiểm tra URL YouTube có hợp lệ không
-     * @param url URL cần kiểm tra
-     * @return true nếu hợp lệ, false nếu không hợp lệ
+     * Lesson statistics data class
      */
-    private boolean isValidYouTubeUrl(String url) {
-        return url.matches("^(https?://)?(www\\.)?(youtube\\.com|youtu\\.be)/.+");
+    public static class LessonStats {
+        private final Long lessonId;
+        private final Long viewCount;
+        private final Long completionCount;
+        private final Double averageRating;
+
+        public LessonStats(Long lessonId, Long viewCount, Long completionCount, Double averageRating) {
+            this.lessonId = lessonId;
+            this.viewCount = viewCount;
+            this.completionCount = completionCount;
+            this.averageRating = averageRating;
+        }
+
+        // Getters
+        public Long getLessonId() { return lessonId; }
+        public Long getViewCount() { return viewCount; }
+        public Long getCompletionCount() { return completionCount; }
+        public Double getAverageRating() { return averageRating; }
     }
 }

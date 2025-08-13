@@ -12,13 +12,18 @@
     <groupId>com.elearning</groupId>
     <artifactId>elearning-platform</artifactId>
     <version>1.0.0</version>
+    <!-- FIX: Đã sửa từ <n> thành <name> để tránh lỗi Maven -->
     <name>elearning-platform</name>
     <description>Hệ thống quản lý khóa học trực tuyến với Spring Boot</description>
 
     <properties>
+        <!-- Cấu hình version Java và các dependencies chính -->
         <java.version>17</java.version>
         <spring-security.version>6.3.1</spring-security.version>
         <mysql.version>8.0.33</mysql.version>
+        <!-- Thêm encoding để tránh lỗi character -->
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     </properties>
 
     <dependencies>
@@ -71,13 +76,13 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- Connection Pool tối ưu -->
+        <!-- Connection Pool tối ưu với HikariCP -->
         <dependency>
             <groupId>com.zaxxer</groupId>
             <artifactId>HikariCP</artifactId>
         </dependency>
 
-        <!-- Development Tools -->
+        <!-- Development Tools cho hot reload -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-devtools</artifactId>
@@ -85,7 +90,7 @@
             <optional>true</optional>
         </dependency>
 
-        <!-- Actuator cho monitoring -->
+        <!-- Actuator cho monitoring và health check -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
@@ -111,23 +116,29 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- Thư viện hỗ trợ -->
+        <!-- Thư viện hỗ trợ xử lý string và utilities -->
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
         </dependency>
 
-        <!-- File upload support -->
+        <!-- File upload support với Apache Commons -->
         <dependency>
             <groupId>commons-fileupload</groupId>
             <artifactId>commons-fileupload</artifactId>
             <version>1.5</version>
         </dependency>
+
+        <!-- Jackson cho JSON processing -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
     </dependencies>
 
     <build>
         <plugins>
-            <!-- Spring Boot Maven Plugin -->
+            <!-- Spring Boot Maven Plugin để chạy ứng dụng -->
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
@@ -141,7 +152,7 @@
                 </configuration>
             </plugin>
 
-            <!-- Compiler Plugin -->
+            <!-- Compiler Plugin với cấu hình UTF-8 -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -150,6 +161,10 @@
                     <source>${java.version}</source>
                     <target>${java.version}</target>
                     <encoding>UTF-8</encoding>
+                    <!-- Bật annotation processing cho Lombok nếu cần -->
+                    <annotationProcessorPaths>
+                        <!-- Có thể thêm Lombok processor ở đây -->
+                    </annotationProcessorPaths>
                 </configuration>
             </plugin>
 
@@ -158,6 +173,10 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.1.2</version>
+                <configuration>
+                    <!-- Cấu hình encoding cho test reports -->
+                    <argLine>-Dfile.encoding=UTF-8</argLine>
+                </configuration>
             </plugin>
 
             <!-- Failsafe Plugin cho integration tests -->
@@ -166,7 +185,43 @@
                 <artifactId>maven-failsafe-plugin</artifactId>
                 <version>3.1.2</version>
             </plugin>
+
+            <!-- Plugin để tạo JAR executable -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <addClasspath>true</addClasspath>
+                            <mainClass>com.coursemanagement.CourseManagementApplication</mainClass>
+                        </manifest>
+                    </archive>
+                </configuration>
+            </plugin>
         </plugins>
+
+        <!-- Cấu hình resources với UTF-8 encoding -->
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+                <includes>
+                    <include>**/*.properties</include>
+                    <include>**/*.yml</include>
+                    <include>**/*.yaml</include>
+                </includes>
+            </resource>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>false</filtering>
+                <excludes>
+                    <exclude>**/*.properties</exclude>
+                    <exclude>**/*.yml</exclude>
+                    <exclude>**/*.yaml</exclude>
+                </excludes>
+            </resource>
+        </resources>
     </build>
 
 </project>

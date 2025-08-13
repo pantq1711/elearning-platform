@@ -13,22 +13,27 @@ import org.springframework.security.config.annotation.authentication.configurati
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.session.SessionRegistry;
+import org.springframework.security.core.session.SessionRegistryImpl;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.RememberMeServices;
 import org.springframework.security.web.authentication.rememberme.TokenBasedRememberMeServices;
+import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 import java.io.IOException;
+import java.time.Duration;
 
 /**
  * Cấu hình bảo mật toàn diện cho hệ thống e-learning
  * Xử lý authentication (xác thực) và authorization (phân quyền)
- * Cải thiện bảo mật với nhiều tính năng nâng cao
+ * Cải thiện bảo mật với nhiều tính năng nâng cao - Spring Security 6.x compatible
  */
 @Configuration
 @EnableWebSecurity
@@ -48,6 +53,15 @@ public class SecurityConfig {
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder(12); // Tăng cost factor cho bảo mật cao hơn
+    }
+
+    /**
+     * Session Registry để quản lý sessions
+     * @return SessionRegistry implementation
+     */
+    @Bean
+    public SessionRegistry sessionRegistry() {
+        return new SessionRegistryImpl();
     }
 
     /**
@@ -91,7 +105,7 @@ public class SecurityConfig {
 
     /**
      * Custom Authentication Success Handler
-     * Điều hướng user đến trang phù hợp sau khi đăng nhập
+     * Điều hướng user đến trang phù hợp sau khi đăng nhập thành công
      */
     @Bean
     public AuthenticationSuccessHandler authenticationSuccessHandler() {
@@ -101,70 +115,95 @@ public class SecurityConfig {
                                                 HttpServletResponse response,
                                                 Authentication authentication) throws IOException, ServletException {
 
-                // Lấy role của user để điều hướng
-                if (authentication.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_ADMIN"))) {
-                    response.sendRedirect("/admin/dashboard");
-                } else if (authentication.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_INSTRUCTOR"))) {
-                    response.sendRedirect("/instructor/dashboard");
-                } else if (authentication.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_STUDENT"))) {
-                    response.sendRedirect("/student/dashboard");
+                // Lấy thông tin user để xác định role
+                Object principal = authentication.getPrincipal();
+                if (principal instanceof org.springframework.security.core.userdetails.UserDetails) {
+                    var userDetails = (org.springframework.security.core.userdetails.UserDetails) principal;
+
+                    // Điều hướng dựa trên role
+                    String redirectUrl = "/dashboard"; // Default fallback
+
+                    if (userDetails.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_ADMIN"))) {
+                        redirectUrl = "/admin/dashboard";
+                    } else if (userDetails.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_INSTRUCTOR"))) {
+                        redirectUrl = "/instructor/dashboard";
+                    } else if (userDetails.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_STUDENT"))) {
+                        redirectUrl = "/student/dashboard";
+                    }
+
+                    // Redirect về trang đích
+                    response.sendRedirect(redirectUrl);
                 } else {
-                    response.sendRedirect("/"); // Default home page
+                    // Fallback redirect
+                    response.sendRedirect("/dashboard");
                 }
             }
         };
     }
 
     /**
-     * Cấu hình Security Filter Chain với bảo mật toàn diện
-     * @param http HttpSecurity object
-     * @return SecurityFilterChain
+     * Cấu hình Security Filter Chain chính
+     * Đây là phần cốt lõi của Spring Security configuration
+     * @param http HttpSecurity configuration object
+     * @return SecurityFilterChain đã được cấu hình
      * @throws Exception Nếu có lỗi cấu hình
      */
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                // Cấu hình authorization requests với quyền chi tiết
+                // Cấu hình authorization rules
                 .authorizeHttpRequests(authz -> authz
-                        // Public endpoints - không cần đăng nhập
-                        .requestMatchers("/", "/home", "/login", "/register", "/logout",
-                                "/css/**", "/js/**", "/images/**", "/fonts/**", "/favicon.ico",
-                                "/webjars/**", "/uploads/**", "/error/**", "/about", "/contact").permitAll()
+                        // Public resources - không cần authentication
+                        .requestMatchers("/", "/home", "/login", "/register").permitAll()
+                        .requestMatchers("/css/**", "/js/**", "/images/**", "/favicon.ico").permitAll()
+                        .requestMatchers("/public/**", "/about", "/contact").permitAll()
+                        .requestMatchers("/api/v1/public/**").permitAll()
+                        .requestMatchers("/actuator/health").permitAll()
 
-                        // API public endpoints
-                        .requestMatchers("/api/public/**").permitAll()
-
-                        // Admin endpoints - chỉ ADMIN
+                        // Admin-only endpoints
                         .requestMatchers("/admin/**").hasRole("ADMIN")
 
-                        // Instructor endpoints - ADMIN hoặc INSTRUCTOR
-                        .requestMatchers("/instructor/**").hasAnyRole("ADMIN", "INSTRUCTOR")
+                        // Instructor endpoints
+                        .requestMatchers("/instructor/**").hasRole("INSTRUCTOR")
 
-                        // Student endpoints - tất cả authenticated users
-                        .requestMatchers("/student/**").hasAnyRole("ADMIN", "INSTRUCTOR", "STUDENT")
+                        // Student endpoints
+                        .requestMatchers("/student/**").hasRole("STUDENT")
 
-                        // API endpoints với authentication
-                        .requestMatchers("/api/**").authenticated()
+                        // API endpoints với role-based access
+                        .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/v1/instructor/**").hasRole("INSTRUCTOR")
+                        .requestMatchers("/api/v1/student/**").hasRole("STUDENT")
 
-                        // Actuator endpoints - chỉ ADMIN
-                        .requestMatchers("/actuator/**").hasRole("ADMIN")
+                        // Dashboard - authenticated users only
+                        .requestMatchers("/dashboard").authenticated()
 
-                        // Tất cả requests khác cần authentication
+                        // Tất cả request khác cần authentication
                         .anyRequest().authenticated()
                 )
 
-                // Cấu hình form login với custom settings
+                // Cấu hình form login
                 .formLogin(form -> form
-                        .loginPage("/login") // Trang login custom
+                        .loginPage("/login")
                         .loginProcessingUrl("/perform_login") // URL xử lý login
-                        .usernameParameter("username") // Tên parameter username
-                        .passwordParameter("password") // Tên parameter password
+                        .usernameParameter("username")
+                        .passwordParameter("password")
                         .successHandler(authenticationSuccessHandler()) // Custom success handler
-                        .failureUrl("/login?error=true") // URL khi login fail
+                        .failureUrl("/login?error=true")
                         .permitAll()
                 )
 
-                // Cấu hình remember me với security cao
+                // Cấu hình logout
+                .logout(logout -> logout
+                        .logoutRequestMatcher(new AntPathRequestMatcher("/logout", "POST"))
+                        .logoutUrl("/logout")
+                        .logoutSuccessUrl("/login?logout=true")
+                        .invalidateHttpSession(true)
+                        .clearAuthentication(true)
+                        .deleteCookies("JSESSIONID", "ELEARNING_REMEMBER_ME")
+                        .permitAll()
+                )
+
+                // Cấu hình remember-me
                 .rememberMe(remember -> remember
                         .rememberMeServices(rememberMeServices())
                         .key(REMEMBER_ME_KEY)
@@ -172,54 +211,62 @@ public class SecurityConfig {
                         .userDetailsService(userService)
                 )
 
-                // Cấu hình logout với bảo mật
-                .logout(logout -> logout
-                        .logoutRequestMatcher(new AntPathRequestMatcher("/logout", "GET")) // GET logout
-                        .logoutSuccessUrl("/login?logout=true") // URL sau logout
-                        .invalidateHttpSession(true) // Hủy session
-                        .deleteCookies("JSESSIONID", "ELEARNING_REMEMBER_ME") // Xóa cookies
-                        .clearAuthentication(true) // Clear authentication
-                        .permitAll()
-                )
-
                 // Cấu hình exception handling
-                .exceptionHandling(ex -> ex
-                        .accessDeniedPage("/access-denied") // Trang lỗi 403
+                .exceptionHandling(exceptions -> exceptions
+                        .accessDeniedPage("/error/403")
                         .authenticationEntryPoint((request, response, authException) -> {
-                            response.sendRedirect("/login?expired=true");
+                            // Custom entry point cho API requests
+                            if (request.getRequestURI().startsWith("/api/")) {
+                                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                                response.setContentType("application/json");
+                                response.getWriter().write("{\"error\":\"Unauthorized\",\"message\":\"Authentication required\"}");
+                            } else {
+                                response.sendRedirect("/login");
+                            }
                         })
                 )
 
                 // Cấu hình session management với bảo mật cao
                 .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
                         .maximumSessions(2) // Tối đa 2 session per user
                         .maxSessionsPreventsLogin(false) // Cho phép login mới kick session cũ
                         .expiredUrl("/login?expired=true") // URL khi session hết hạn
-                        .sessionRegistry(org.springframework.security.core.session.SessionRegistryImpl::new)
+                        .sessionRegistry(sessionRegistry())
                         .and()
                         .sessionFixation().migrateSession() // Migrate session ID after login
-                        .sessionCreationPolicy(org.springframework.security.config.http.SessionCreationPolicy.IF_REQUIRED)
+                        .invalidSessionUrl("/login?invalid=true")
                 )
 
                 // Cấu hình CSRF protection với exception cho API
                 .csrf(csrf -> csrf
-                        .ignoringRequestMatchers("/api/**") // Bỏ qua CSRF cho REST API
+                        .ignoringRequestMatchers("/api/**", "/h2-console/**") // Bỏ qua CSRF cho REST API
                         .csrfTokenRepository(org.springframework.security.web.csrf.CookieCsrfTokenRepository.withHttpOnlyFalse())
                 )
 
                 // Cấu hình headers security
                 .headers(headers -> headers
-                        .frameOptions().DENY // Ngăn clickjacking
-                        .contentTypeOptions().and() // Ngăn MIME type sniffing
+                        .frameOptions(frameOptions -> frameOptions.deny()) // Fix: Sử dụng lambda thay vì DENY constant
+                        .contentTypeOptions(contentType -> contentType.and()) // Ngăn MIME type sniffing
                         .httpStrictTransportSecurity(hstsConfig -> hstsConfig
                                 .maxAgeInSeconds(31536000) // HSTS 1 năm
                                 .includeSubdomains(true)
                                 .preload(true)
                         )
-                        .referrerPolicy(org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN)
+                        .referrerPolicy(ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN)
                 );
 
         return http.build();
+    }
+
+    /**
+     * Authentication Provider configuration
+     * @param http HttpSecurity object
+     * @throws Exception Nếu có lỗi cấu hình
+     */
+    @Autowired
+    public void configureGlobal(HttpSecurity http) throws Exception {
+        http.authenticationProvider(authenticationProvider());
     }
 
     /**

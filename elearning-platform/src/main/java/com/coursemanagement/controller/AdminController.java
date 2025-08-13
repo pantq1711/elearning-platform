@@ -1,10 +1,12 @@
 package com.coursemanagement.controller;
 
-import com.coursemanagement.entity.User;
-import com.coursemanagement.entity.Category;
-import com.coursemanagement.entity.Course;
+import com.coursemanagement.entity.*;
 import com.coursemanagement.service.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
@@ -14,12 +16,15 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import jakarta.validation.Valid;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
  * Controller xử lý các chức năng dành cho Admin
- * Chỉ người dùng có role ADMIN mới truy cập được
+ * Quản lý toàn bộ hệ thống: users, courses, categories, analytics
+ * Chỉ cho phép user có role ADMIN truy cập
  */
 @Controller
 @RequestMapping("/admin")
@@ -30,10 +35,10 @@ public class AdminController {
     private UserService userService;
 
     @Autowired
-    private CategoryService categoryService;
+    private CourseService courseService;
 
     @Autowired
-    private CourseService courseService;
+    private CategoryService categoryService;
 
     @Autowired
     private EnrollmentService enrollmentService;
@@ -41,8 +46,12 @@ public class AdminController {
     @Autowired
     private QuizService quizService;
 
+    @Autowired
+    private LessonService lessonService;
+
     /**
-     * Dashboard admin - trang tổng quan
+     * Dashboard chính của admin
+     * Hiển thị thống kê tổng quan và các chỉ số quan trọng
      */
     @GetMapping("/dashboard")
     public String dashboard(Model model, Authentication authentication) {
@@ -51,60 +60,85 @@ public class AdminController {
             model.addAttribute("currentUser", currentUser);
 
             // Thống kê tổng quan
-            model.addAttribute("totalUsers", userService.countAllUsers());
-            model.addAttribute("totalStudents", userService.countByRole(User.Role.STUDENT));
-            model.addAttribute("totalInstructors", userService.countByRole(User.Role.INSTRUCTOR));
-            model.addAttribute("totalCourses", courseService.countAllCourses());
-            model.addAttribute("activeCourses", courseService.countActiveCourses());
-            model.addAttribute("totalCategories", categoryService.countAllCategories());
+            Long totalUsers = userService.countAllUsers();
+            Long totalCourses = courseService.countAllCourses();
+            Long totalEnrollments = enrollmentService.countAllEnrollments();
+            Long totalActiveUsers = userService.countActiveUsersInLastMonth();
 
-            // User mới đăng ký gần đây
-            model.addAttribute("recentUsers", userService.getRecentUsers(5));
+            model.addAttribute("totalUsers", totalUsers);
+            model.addAttribute("totalCourses", totalCourses);
+            model.addAttribute("totalEnrollments", totalEnrollments);
+            model.addAttribute("totalActiveUsers", totalActiveUsers);
+
+            // Thống kê theo role
+            model.addAttribute("totalStudents", userService.countUsersByRole(User.Role.STUDENT));
+            model.addAttribute("totalInstructors", userService.countUsersByRole(User.Role.INSTRUCTOR));
+            model.addAttribute("totalAdmins", userService.countUsersByRole(User.Role.ADMIN));
+
+            // Thống kê khóa học
+            model.addAttribute("activeCourses", courseService.countActiveCourses());
+            model.addAttribute("featuredCourses", courseService.countFeaturedCourses());
+            model.addAttribute("completedCourses", enrollmentService.countCompletedEnrollments());
+
+            // Đăng ký gần đây
+            List<Enrollment> recentEnrollments = enrollmentService.findRecentEnrollments(10);
+            model.addAttribute("recentEnrollments", recentEnrollments);
 
             // Khóa học phổ biến
-            model.addAttribute("popularCourses", courseService.findTopPopularCourses(5));
+            List<Course> popularCourses = courseService.findMostPopularCourses(5);
+            model.addAttribute("popularCourses", popularCourses);
 
-            // Thống kê theo danh mục
-            model.addAttribute("categoryStats", courseService.getCourseStatisticsByCategory());
+            // Giảng viên hoạt động
+            List<User> activeInstructors = userService.findMostActiveInstructors(5);
+            model.addAttribute("activeInstructors", activeInstructors);
+
+            // Thống kê theo tháng (cho biểu đồ)
+            Map<String, Long> monthlyEnrollments = enrollmentService.getMonthlyEnrollmentStats();
+            model.addAttribute("monthlyEnrollments", monthlyEnrollments);
+
+            // Thống kê completion rate
+            Double averageCompletionRate = enrollmentService.getAverageCompletionRate();
+            model.addAttribute("averageCompletionRate", averageCompletionRate);
 
             return "admin/dashboard";
 
         } catch (Exception e) {
-            model.addAttribute("error", "Có lỗi xảy ra khi tải dashboard");
-            return "error/500";
+            model.addAttribute("error", "Có lỗi xảy ra khi tải dashboard: " + e.getMessage());
+            return "admin/dashboard";
         }
     }
 
-    // =============== QUẢN LÝ NGƯỜI DÙNG ===============
-
     /**
-     * Danh sách tất cả người dùng
+     * Quản lý người dùng
      */
     @GetMapping("/users")
-    public String listUsers(@RequestParam(value = "search", required = false) String search,
-                            @RequestParam(value = "role", required = false) String roleFilter,
+    public String listUsers(@RequestParam(value = "page", defaultValue = "0") int page,
+                            @RequestParam(value = "size", defaultValue = "20") int size,
+                            @RequestParam(value = "search", required = false) String search,
+                            @RequestParam(value = "role", required = false) String role,
+                            @RequestParam(value = "status", required = false) String status,
                             Model model,
                             Authentication authentication) {
         try {
             User currentUser = (User) authentication.getPrincipal();
             model.addAttribute("currentUser", currentUser);
 
-            List<User> users;
+            // Tạo Pageable với sort theo ngày tạo
+            Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
 
-            // Tìm kiếm và lọc
-            if (search != null && !search.trim().isEmpty()) {
-                users = userService.searchUsers(search);
-            } else if (roleFilter != null && !roleFilter.isEmpty()) {
-                User.Role role = User.Role.valueOf(roleFilter);
-                users = userService.findByRole(role);
-            } else {
-                users = userService.findAll();
-            }
+            // Tìm kiếm users với filter
+            Page<User> users = userService.findUsersWithFilter(search, role, status, pageable);
 
             model.addAttribute("users", users);
             model.addAttribute("search", search);
-            model.addAttribute("roleFilter", roleFilter);
+            model.addAttribute("selectedRole", role);
+            model.addAttribute("selectedStatus", status);
             model.addAttribute("roles", User.Role.values());
+
+            // Thống kê users
+            model.addAttribute("totalUsers", userService.countAllUsers());
+            model.addAttribute("activeUsers", userService.countActiveUsers());
+            model.addAttribute("newUsersThisMonth", userService.countNewUsersThisMonth());
 
             return "admin/users";
 
@@ -115,62 +149,12 @@ public class AdminController {
     }
 
     /**
-     * Form tạo người dùng mới
+     * Chi tiết người dùng
      */
-    @GetMapping("/users/new")
-    public String showCreateUserForm(Model model, Authentication authentication) {
-        User currentUser = (User) authentication.getPrincipal();
-        model.addAttribute("currentUser", currentUser);
-        model.addAttribute("user", new User());
-        model.addAttribute("roles", User.Role.values());
-        return "admin/user-form";
-    }
-
-    /**
-     * Xử lý tạo người dùng mới
-     */
-    @PostMapping("/users")
-    public String createUser(@Valid @ModelAttribute("user") User user,
-                             BindingResult bindingResult,
-                             Model model,
-                             Authentication authentication,
-                             RedirectAttributes redirectAttributes) {
-        try {
-            User currentUser = (User) authentication.getPrincipal();
-            model.addAttribute("currentUser", currentUser);
-
-            if (bindingResult.hasErrors()) {
-                model.addAttribute("roles", User.Role.values());
-                return "admin/user-form";
-            }
-
-            // Validate và tạo user
-            userService.validateUser(user, false);
-            User createdUser = userService.createUser(user);
-
-            redirectAttributes.addFlashAttribute("message",
-                    "Tạo người dùng thành công: " + createdUser.getUsername());
-
-            return "redirect:/admin/users";
-
-        } catch (RuntimeException e) {
-            model.addAttribute("error", e.getMessage());
-            model.addAttribute("roles", User.Role.values());
-            return "admin/user-form";
-        } catch (Exception e) {
-            model.addAttribute("error", "Có lỗi xảy ra khi tạo người dùng");
-            model.addAttribute("roles", User.Role.values());
-            return "admin/user-form";
-        }
-    }
-
-    /**
-     * Form chỉnh sửa người dùng
-     */
-    @GetMapping("/users/{id}/edit")
-    public String showEditUserForm(@PathVariable Long id,
-                                   Model model,
-                                   Authentication authentication) {
+    @GetMapping("/users/{id}")
+    public String viewUser(@PathVariable Long id,
+                           Model model,
+                           Authentication authentication) {
         try {
             User currentUser = (User) authentication.getPrincipal();
             model.addAttribute("currentUser", currentUser);
@@ -179,10 +163,29 @@ public class AdminController {
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
 
             model.addAttribute("user", user);
-            model.addAttribute("roles", User.Role.values());
-            model.addAttribute("isEdit", true);
 
-            return "admin/user-form";
+            // Thống kê chi tiết dựa vào role
+            if (user.getRole() == User.Role.STUDENT) {
+                // Thống kê học viên
+                List<Enrollment> enrollments = enrollmentService.findByStudent(user);
+                model.addAttribute("enrollments", enrollments);
+                model.addAttribute("totalEnrollments", enrollments.size());
+                model.addAttribute("completedCourses",
+                        enrollments.stream().mapToLong(e -> e.isCompleted() ? 1 : 0).sum());
+            } else if (user.getRole() == User.Role.INSTRUCTOR) {
+                // Thống kê giảng viên
+                List<Course> courses = courseService.findByInstructor(user);
+                model.addAttribute("courses", courses);
+                model.addAttribute("totalCourses", courses.size());
+                model.addAttribute("totalStudents",
+                        enrollmentService.countStudentsByInstructor(user));
+            }
+
+            // Login history (nếu có)
+            model.addAttribute("lastLogin", user.getLastLogin());
+            model.addAttribute("memberSince", user.getCreatedAt());
+
+            return "admin/user-detail";
 
         } catch (Exception e) {
             model.addAttribute("error", "Có lỗi xảy ra khi tải thông tin người dùng");
@@ -191,167 +194,96 @@ public class AdminController {
     }
 
     /**
-     * Xử lý cập nhật người dùng
-     */
-    @PostMapping("/users/{id}")
-    public String updateUser(@PathVariable Long id,
-                             @Valid @ModelAttribute("user") User user,
-                             BindingResult bindingResult,
-                             Model model,
-                             Authentication authentication,
-                             RedirectAttributes redirectAttributes) {
-        try {
-            User currentUser = (User) authentication.getPrincipal();
-            model.addAttribute("currentUser", currentUser);
-
-            if (bindingResult.hasErrors()) {
-                model.addAttribute("roles", User.Role.values());
-                model.addAttribute("isEdit", true);
-                return "admin/user-form";
-            }
-
-            // Cập nhật user
-            User updatedUser = userService.updateUser(id, user);
-
-            redirectAttributes.addFlashAttribute("message",
-                    "Cập nhật người dùng thành công: " + updatedUser.getUsername());
-
-            return "redirect:/admin/users";
-
-        } catch (RuntimeException e) {
-            model.addAttribute("error", e.getMessage());
-            model.addAttribute("roles", User.Role.values());
-            model.addAttribute("isEdit", true);
-            return "admin/user-form";
-        } catch (Exception e) {
-            model.addAttribute("error", "Có lỗi xảy ra khi cập nhật người dùng");
-            model.addAttribute("roles", User.Role.values());
-            model.addAttribute("isEdit", true);
-            return "admin/user-form";
-        }
-    }
-
-    /**
-     * Xóa người dùng
-     */
-    @PostMapping("/users/{id}/delete")
-    public String deleteUser(@PathVariable Long id,
-                             Authentication authentication,
-                             RedirectAttributes redirectAttributes) {
-        try {
-            User currentUser = (User) authentication.getPrincipal();
-
-            // Không cho phép xóa chính mình
-            if (currentUser.getId().equals(id)) {
-                redirectAttributes.addFlashAttribute("error", "Không thể xóa tài khoản của chính mình");
-                return "redirect:/admin/users";
-            }
-
-            Optional<User> userToDelete = userService.findById(id);
-            if (userToDelete.isPresent()) {
-                userService.deleteUser(id);
-                redirectAttributes.addFlashAttribute("message",
-                        "Xóa người dùng thành công: " + userToDelete.get().getUsername());
-            } else {
-                redirectAttributes.addFlashAttribute("error", "Không tìm thấy người dùng");
-            }
-
-            return "redirect:/admin/users";
-
-        } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", "Có lỗi xảy ra khi xóa người dùng");
-            return "redirect:/admin/users";
-        }
-    }
-
-    /**
-     * Kích hoạt/vô hiệu hóa tài khoản
+     * Kích hoạt/vô hiệu hóa người dùng
      */
     @PostMapping("/users/{id}/toggle-status")
     public String toggleUserStatus(@PathVariable Long id,
-                                   Authentication authentication,
-                                   RedirectAttributes redirectAttributes) {
+                                   RedirectAttributes redirectAttributes,
+                                   Authentication authentication) {
         try {
             User currentUser = (User) authentication.getPrincipal();
 
-            // Không cho phép vô hiệu hóa chính mình
+            // Không cho phép tự vô hiệu hóa chính mình
             if (currentUser.getId().equals(id)) {
-                redirectAttributes.addFlashAttribute("error", "Không thể thay đổi trạng thái tài khoản của chính mình");
-                return "redirect:/admin/users";
+                redirectAttributes.addFlashAttribute("error",
+                        "Bạn không thể thay đổi trạng thái của chính mình!");
+                return "redirect:/admin/users/" + id;
             }
 
             User user = userService.findById(id)
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
 
-            userService.toggleUserStatus(id, !user.isActive());
+            boolean newStatus = !user.isActive();
+            userService.updateUserStatus(id, newStatus);
 
-            String status = !user.isActive() ? "kích hoạt" : "vô hiệu hóa";
+            String statusText = newStatus ? "kích hoạt" : "vô hiệu hóa";
             redirectAttributes.addFlashAttribute("message",
-                    "Đã " + status + " tài khoản: " + user.getUsername());
+                    "Đã " + statusText + " người dùng: " + user.getFullName());
 
-            return "redirect:/admin/users";
+            return "redirect:/admin/users/" + id;
 
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", "Có lỗi xảy ra khi thay đổi trạng thái tài khoản");
+            redirectAttributes.addFlashAttribute("error",
+                    "Có lỗi xảy ra khi thay đổi trạng thái người dùng: " + e.getMessage());
             return "redirect:/admin/users";
         }
     }
 
     /**
-     * Reset mật khẩu người dùng
+     * Thay đổi role của người dùng
      */
-    @PostMapping("/users/{id}/reset-password")
-    public String resetPassword(@PathVariable Long id,
-                                @RequestParam("newPassword") String newPassword,
-                                RedirectAttributes redirectAttributes) {
+    @PostMapping("/users/{id}/change-role")
+    public String changeUserRole(@PathVariable Long id,
+                                 @RequestParam("newRole") String newRole,
+                                 RedirectAttributes redirectAttributes,
+                                 Authentication authentication) {
         try {
-            if (newPassword.length() < 6) {
-                redirectAttributes.addFlashAttribute("error", "Mật khẩu mới phải có ít nhất 6 ký tự");
-                return "redirect:/admin/users";
+            User currentUser = (User) authentication.getPrincipal();
+
+            // Không cho phép thay đổi role của chính mình
+            if (currentUser.getId().equals(id)) {
+                redirectAttributes.addFlashAttribute("error",
+                        "Bạn không thể thay đổi role của chính mình!");
+                return "redirect:/admin/users/" + id;
             }
 
             User user = userService.findById(id)
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
 
-            userService.resetPassword(id, newPassword);
+            User.Role role = User.Role.valueOf(newRole);
+            userService.updateUserRole(id, role);
 
             redirectAttributes.addFlashAttribute("message",
-                    "Reset mật khẩu thành công cho: " + user.getUsername());
+                    "Đã thay đổi role của " + user.getFullName() + " thành " + role.toString());
 
-            return "redirect:/admin/users";
+            return "redirect:/admin/users/" + id;
 
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", "Có lỗi xảy ra khi reset mật khẩu");
+            redirectAttributes.addFlashAttribute("error",
+                    "Có lỗi xảy ra khi thay đổi role: " + e.getMessage());
             return "redirect:/admin/users";
         }
     }
 
-    // =============== QUẢN LÝ DANH MỤC ===============
-
     /**
-     * Danh sách tất cả danh mục
+     * Quản lý danh mục khóa học
      */
     @GetMapping("/categories")
-    public String listCategories(@RequestParam(value = "search", required = false) String search,
-                                 Model model,
-                                 Authentication authentication) {
+    public String listCategories(Model model, Authentication authentication) {
         try {
             User currentUser = (User) authentication.getPrincipal();
             model.addAttribute("currentUser", currentUser);
 
-            List<Category> categories;
-
-            if (search != null && !search.trim().isEmpty()) {
-                categories = categoryService.searchCategories(search);
-            } else {
-                categories = categoryService.findAllOrderByName();
-            }
-
+            List<Category> categories = categoryService.findAllOrderByName();
             model.addAttribute("categories", categories);
-            model.addAttribute("search", search);
 
-            // Thống kê danh mục
-            model.addAttribute("categoryStats", categoryService.getCategoryStatistics());
+            // Thống kê categories
+            model.addAttribute("totalCategories", categories.size());
+            model.addAttribute("featuredCategories",
+                    categories.stream().mapToLong(c -> c.isFeatured() ? 1 : 0).sum());
+
+            // Category mới cho form
+            model.addAttribute("newCategory", new Category());
 
             return "admin/categories";
 
@@ -362,31 +294,20 @@ public class AdminController {
     }
 
     /**
-     * Form tạo danh mục mới
-     */
-    @GetMapping("/categories/new")
-    public String showCreateCategoryForm(Model model, Authentication authentication) {
-        User currentUser = (User) authentication.getPrincipal();
-        model.addAttribute("currentUser", currentUser);
-        model.addAttribute("category", new Category());
-        return "admin/category-form";
-    }
-
-    /**
-     * Xử lý tạo danh mục mới
+     * Tạo danh mục mới
      */
     @PostMapping("/categories")
-    public String createCategory(@Valid @ModelAttribute("category") Category category,
-                                 BindingResult bindingResult,
+    public String createCategory(@Valid @ModelAttribute("newCategory") Category category,
+                                 BindingResult result,
+                                 RedirectAttributes redirectAttributes,
                                  Model model,
-                                 Authentication authentication,
-                                 RedirectAttributes redirectAttributes) {
+                                 Authentication authentication) {
         try {
-            User currentUser = (User) authentication.getPrincipal();
-            model.addAttribute("currentUser", currentUser);
-
-            if (bindingResult.hasErrors()) {
-                return "admin/category-form";
+            if (result.hasErrors()) {
+                User currentUser = (User) authentication.getPrincipal();
+                model.addAttribute("currentUser", currentUser);
+                model.addAttribute("categories", categoryService.findAllOrderByName());
+                return "admin/categories";
             }
 
             Category createdCategory = categoryService.createCategory(category);
@@ -396,74 +317,40 @@ public class AdminController {
 
             return "redirect:/admin/categories";
 
-        } catch (RuntimeException e) {
-            model.addAttribute("error", e.getMessage());
-            return "admin/category-form";
         } catch (Exception e) {
-            model.addAttribute("error", "Có lỗi xảy ra khi tạo danh mục");
-            return "admin/category-form";
-        }
-    }
-
-    /**
-     * Form chỉnh sửa danh mục
-     */
-    @GetMapping("/categories/{id}/edit")
-    public String showEditCategoryForm(@PathVariable Long id,
-                                       Model model,
-                                       Authentication authentication) {
-        try {
-            User currentUser = (User) authentication.getPrincipal();
-            model.addAttribute("currentUser", currentUser);
-
-            Category category = categoryService.findById(id)
-                    .orElseThrow(() -> new RuntimeException("Không tìm thấy danh mục"));
-
-            model.addAttribute("category", category);
-            model.addAttribute("isEdit", true);
-
-            return "admin/category-form";
-
-        } catch (Exception e) {
-            model.addAttribute("error", "Có lỗi xảy ra khi tải thông tin danh mục");
+            redirectAttributes.addFlashAttribute("error",
+                    "Có lỗi xảy ra khi tạo danh mục: " + e.getMessage());
             return "redirect:/admin/categories";
         }
     }
 
     /**
-     * Xử lý cập nhật danh mục
+     * Cập nhật danh mục
      */
     @PostMapping("/categories/{id}")
     public String updateCategory(@PathVariable Long id,
-                                 @Valid @ModelAttribute("category") Category category,
-                                 BindingResult bindingResult,
-                                 Model model,
-                                 Authentication authentication,
+                                 @Valid @ModelAttribute Category category,
+                                 BindingResult result,
                                  RedirectAttributes redirectAttributes) {
         try {
-            User currentUser = (User) authentication.getPrincipal();
-            model.addAttribute("currentUser", currentUser);
-
-            if (bindingResult.hasErrors()) {
-                model.addAttribute("isEdit", true);
-                return "admin/category-form";
+            if (result.hasErrors()) {
+                redirectAttributes.addFlashAttribute("error",
+                        "Dữ liệu không hợp lệ. Vui lòng kiểm tra lại.");
+                return "redirect:/admin/categories";
             }
 
-            Category updatedCategory = categoryService.updateCategory(id, category);
+            category.setId(id);
+            Category updatedCategory = categoryService.updateCategory(category);
 
             redirectAttributes.addFlashAttribute("message",
                     "Cập nhật danh mục thành công: " + updatedCategory.getName());
 
             return "redirect:/admin/categories";
 
-        } catch (RuntimeException e) {
-            model.addAttribute("error", e.getMessage());
-            model.addAttribute("isEdit", true);
-            return "admin/category-form";
         } catch (Exception e) {
-            model.addAttribute("error", "Có lỗi xảy ra khi cập nhật danh mục");
-            model.addAttribute("isEdit", true);
-            return "admin/category-form";
+            redirectAttributes.addFlashAttribute("error",
+                    "Có lỗi xảy ra khi cập nhật danh mục: " + e.getMessage());
+            return "redirect:/admin/categories";
         }
     }
 
@@ -474,59 +361,64 @@ public class AdminController {
     public String deleteCategory(@PathVariable Long id,
                                  RedirectAttributes redirectAttributes) {
         try {
-            Optional<Category> categoryToDelete = categoryService.findById(id);
+            Category category = categoryService.findById(id)
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy danh mục"));
 
-            if (categoryToDelete.isPresent()) {
-                categoryService.deleteCategory(id);
-                redirectAttributes.addFlashAttribute("message",
-                        "Xóa danh mục thành công: " + categoryToDelete.get().getName());
-            } else {
-                redirectAttributes.addFlashAttribute("error", "Không tìm thấy danh mục");
+            // Kiểm tra xem có khóa học nào đang sử dụng category này không
+            Long courseCount = courseService.countCoursesByCategory(category);
+            if (courseCount > 0) {
+                redirectAttributes.addFlashAttribute("error",
+                        "Không thể xóa danh mục đang có " + courseCount + " khóa học. " +
+                                "Vui lòng di chuyển các khóa học trước khi xóa.");
+                return "redirect:/admin/categories";
             }
 
+            categoryService.deleteCategory(id);
+
+            redirectAttributes.addFlashAttribute("message",
+                    "Đã xóa danh mục: " + category.getName());
+
             return "redirect:/admin/categories";
 
-        } catch (RuntimeException e) {
-            redirectAttributes.addFlashAttribute("error", e.getMessage());
-            return "redirect:/admin/categories";
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", "Có lỗi xảy ra khi xóa danh mục");
+            redirectAttributes.addFlashAttribute("error",
+                    "Có lỗi xảy ra khi xóa danh mục: " + e.getMessage());
             return "redirect:/admin/categories";
         }
     }
 
-    // =============== QUẢN LÝ KHÓA HỌC ===============
-
     /**
-     * Danh sách tất cả khóa học trong hệ thống
+     * Quản lý khóa học
      */
     @GetMapping("/courses")
-    public String listAllCourses(@RequestParam(value = "search", required = false) String search,
-                                 @RequestParam(value = "category", required = false) Long categoryId,
-                                 @RequestParam(value = "instructor", required = false) Long instructorId,
-                                 Model model,
-                                 Authentication authentication) {
+    public String listCourses(@RequestParam(value = "page", defaultValue = "0") int page,
+                              @RequestParam(value = "size", defaultValue = "20") int size,
+                              @RequestParam(value = "search", required = false) String search,
+                              @RequestParam(value = "category", required = false) Long categoryId,
+                              @RequestParam(value = "status", required = false) String status,
+                              Model model,
+                              Authentication authentication) {
         try {
             User currentUser = (User) authentication.getPrincipal();
             model.addAttribute("currentUser", currentUser);
 
-            List<Course> courses;
+            // Tạo Pageable
+            Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
 
-            // Tìm kiếm và lọc khóa học
-            if (search != null && !search.trim().isEmpty()) {
-                courses = courseService.searchCourses(search);
-            } else {
-                courses = courseService.findAll();
-            }
+            // Tìm kiếm courses với filter
+            Page<Course> courses = courseService.findCoursesWithFilter(search, categoryId, status, pageable);
 
             model.addAttribute("courses", courses);
             model.addAttribute("search", search);
+            model.addAttribute("selectedCategory", categoryId);
+            model.addAttribute("selectedStatus", status);
             model.addAttribute("categories", categoryService.findAllOrderByName());
             model.addAttribute("instructors", userService.findActiveInstructors());
 
             // Thống kê khóa học
             model.addAttribute("totalCourses", courseService.countAllCourses());
             model.addAttribute("activeCourses", courseService.countActiveCourses());
+            model.addAttribute("featuredCourses", courseService.countFeaturedCourses());
 
             return "admin/courses";
 
@@ -552,14 +444,30 @@ public class AdminController {
 
             model.addAttribute("course", course);
 
-            // Thống kê khóa học
-            model.addAttribute("enrollmentCount", enrollmentService.countEnrollmentsByCourse(course));
-            model.addAttribute("lessonCount", courseService.countLessonsByCourse(id));
-            model.addAttribute("quizCount", courseService.countQuizzesByCourse(id));
+            // Thống kê khóa học chi tiết
+            Long enrollmentCount = enrollmentService.countEnrollmentsByCourse(course);
+            Long lessonCount = lessonService.countLessonsByCourse(course);
+            Long quizCount = quizService.countQuizzesByCourse(course);
+            Double averageRating = courseService.getAverageRating(course);
+            Double completionRate = enrollmentService.getCompletionRateByCourse(course);
+
+            model.addAttribute("enrollmentCount", enrollmentCount);
+            model.addAttribute("lessonCount", lessonCount);
+            model.addAttribute("quizCount", quizCount);
+            model.addAttribute("averageRating", averageRating);
+            model.addAttribute("completionRate", completionRate);
 
             // Học viên gần đây
-            model.addAttribute("recentEnrollments",
-                    enrollmentService.getRecentEnrollmentsByCourse(course, 10));
+            List<Enrollment> recentEnrollments = enrollmentService.getRecentEnrollmentsByCourse(course, 10);
+            model.addAttribute("recentEnrollments", recentEnrollments);
+
+            // Top students trong khóa học này
+            List<Enrollment> topStudents = enrollmentService.getTopStudentsByCourse(course, 5);
+            model.addAttribute("topStudents", topStudents);
+
+            // Bài giảng của khóa học
+            List<Lesson> lessons = lessonService.findByCourseOrderByOrderIndex(course);
+            model.addAttribute("lessons", lessons);
 
             return "admin/course-detail";
 
@@ -570,10 +478,93 @@ public class AdminController {
     }
 
     /**
+     * Toggle featured status cho khóa học
+     */
+    @PostMapping("/courses/{id}/toggle-featured")
+    public String toggleCourseFeatured(@PathVariable Long id,
+                                       RedirectAttributes redirectAttributes) {
+        try {
+            Course course = courseService.findById(id)
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học"));
+
+            boolean newFeaturedStatus = !course.isFeatured();
+            courseService.updateFeaturedStatus(id, newFeaturedStatus);
+
+            String statusText = newFeaturedStatus ? "đánh dấu nổi bật" : "bỏ đánh dấu nổi bật";
+            redirectAttributes.addFlashAttribute("message",
+                    "Đã " + statusText + " khóa học: " + course.getName());
+
+            return "redirect:/admin/courses/" + id;
+
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error",
+                    "Có lỗi xảy ra khi thay đổi trạng thái featured: " + e.getMessage());
+            return "redirect:/admin/courses";
+        }
+    }
+
+    /**
+     * Báo cáo và thống kê
+     */
+    @GetMapping("/reports")
+    public String reports(Model model, Authentication authentication) {
+        try {
+            User currentUser = (User) authentication.getPrincipal();
+            model.addAttribute("currentUser", currentUser);
+
+            // Thống kê tổng quan theo thời gian
+            Map<String, Object> monthlyStats = enrollmentService.getDetailedMonthlyStats();
+            model.addAttribute("monthlyStats", monthlyStats);
+
+            // Top performing courses
+            List<Course> topCourses = courseService.getTopPerformingCourses(10);
+            model.addAttribute("topCourses", topCourses);
+
+            // Top instructors
+            List<User> topInstructors = userService.getTopInstructorsByEnrollments(10);
+            model.addAttribute("topInstructors", topInstructors);
+
+            // Category performance
+            Map<String, Long> categoryStats = courseService.getCategoryPerformanceStats();
+            model.addAttribute("categoryStats", categoryStats);
+
+            // User growth
+            Map<String, Long> userGrowthStats = userService.getUserGrowthStats();
+            model.addAttribute("userGrowthStats", userGrowthStats);
+
+            return "admin/reports";
+
+        } catch (Exception e) {
+            model.addAttribute("error", "Có lỗi xảy ra khi tải báo cáo: " + e.getMessage());
+            return "admin/reports";
+        }
+    }
+
+    /**
+     * Cài đặt hệ thống
+     */
+    @GetMapping("/settings")
+    public String settings(Model model, Authentication authentication) {
+        User currentUser = (User) authentication.getPrincipal();
+        model.addAttribute("currentUser", currentUser);
+
+        // Load system settings
+        // Có thể implement SystemSettingsService để quản lý cài đặt
+
+        return "admin/settings";
+    }
+
+    /**
      * Exception handler cho controller này
      */
     @ExceptionHandler(Exception.class)
-    public String handleException(Exception e, Model model) {
+    public String handleException(Exception e, Model model, Authentication authentication) {
+        System.err.println("Lỗi trong AdminController: " + e.getMessage());
+        e.printStackTrace();
+
+        if (authentication != null) {
+            model.addAttribute("currentUser", (User) authentication.getPrincipal());
+        }
         model.addAttribute("error", "Có lỗi xảy ra: " + e.getMessage());
         return "error/500";
     }
