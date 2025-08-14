@@ -1,7 +1,6 @@
 package com.coursemanagement.repository;
 
 import com.coursemanagement.entity.Question;
-import com.coursemanagement.entity.QuestionType;
 import com.coursemanagement.entity.Quiz;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -22,7 +21,7 @@ public interface QuestionRepository extends JpaRepository<Question, Long> {
 
     // Difficulty and type filters
     List<Question> findByQuizAndDifficultyLevelOrderByDisplayOrder(Quiz quiz, Question.DifficultyLevel difficulty);
-    List<Question> findByQuizAndQuestionTypeOrderByDisplayOrder(Quiz quiz, QuestionType questionType);
+    List<Question> findByQuizAndQuestionTypeOrderByDisplayOrder(Quiz quiz, Question.QuestionType questionType);
 
     // Random selection
     @Query("SELECT q FROM Question q WHERE q.quiz = :quiz ORDER BY RANDOM()")
@@ -100,12 +99,12 @@ public interface QuestionRepository extends JpaRepository<Question, Long> {
     /**
      * Tìm questions theo quiz và question type
      */
-    List<Question> findByQuizAndQuestionType(Quiz quiz, QuestionType questionType);
+    List<Question> findByQuizAndQuestionType(Quiz quiz, Question.QuestionType questionType);
 
     /**
      * Đếm questions theo question type
      */
-    Long countByQuizAndQuestionType(Quiz quiz, QuestionType questionType);
+    Long countByQuizAndQuestionType(Quiz quiz, Question.QuestionType questionType);
 
     // ===== POINTS QUERIES =====
 
@@ -153,7 +152,7 @@ public interface QuestionRepository extends JpaRepository<Question, Long> {
     List<Question> findByQuizWithFilters(
             @Param("quiz") Quiz quiz,
             @Param("difficultyLevel") Question.DifficultyLevel difficultyLevel,
-            @Param("questionType") QuestionType questionType,
+            @Param("questionType") Question.QuestionType questionType,
             @Param("minPoints") Double minPoints,
             @Param("maxPoints") Double maxPoints);
 

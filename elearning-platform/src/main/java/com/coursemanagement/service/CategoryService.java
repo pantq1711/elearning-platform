@@ -15,8 +15,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -230,12 +230,43 @@ public class CategoryService {
         return categoryRepository.findByFeaturedOrderByName(true);
     }
 
-    /**
-     * Tìm featured categories với limit
-     */
+
     public List<Category> findFeaturedCategories(int limit) {
-        Pageable pageable = PageRequest.of(0, limit, Sort.by(Sort.Direction.ASC, "name"));
-        return categoryRepository.findByFeatured(true, pageable).getDescription();
+        try {
+            Pageable pageable = PageRequest.of(0, limit, Sort.by("name"));
+            List<Category> categories = categoryRepository.findByFeatured(true, pageable);
+
+            // ✅ ĐÚNG: Trả về List, không gọi getDescription() trên List
+            return categories;
+        } catch (Exception e) {
+            System.err.println("Lỗi tìm featured categories với limit: " + e.getMessage());
+            return new ArrayList<>();
+        }
+    }
+    /**
+     * Tìm tất cả categories active
+     */
+    public List<Category> findAllActive() {
+        return categoryRepository.findAllActive();
+    }
+    public Map<String, Object> getCategoryStatistics() {
+        try {
+            List<CategoryStats> stats = categoryRepository.getCategoryStatistics();
+            Map<String, Object> result = new HashMap<>();
+
+            result.put("totalCategories", stats.size());
+            result.put("categoriesWithCourses", stats.stream()
+                    .mapToLong(CategoryStats::getCourseCount)
+                    .sum());
+            result.put("topCategories", stats.stream()
+                    .limit(5)
+                    .collect(Collectors.toList()));
+
+            return result;
+        } catch (Exception e) {
+            System.err.println("Lỗi lấy category statistics: " + e.getMessage());
+            return new HashMap<>();
+        }
     }
 
     /**

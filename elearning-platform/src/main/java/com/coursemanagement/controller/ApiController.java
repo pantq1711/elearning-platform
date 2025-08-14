@@ -218,7 +218,7 @@ public class ApiController {
      * Đăng ký khóa học
      */
     @PostMapping("/courses/{courseId}/enroll")
-    public ResponseEntity<ApiResponse<String>> enrollCourse(
+    public ResponseEntity<ApiResponse<Object>> enrollCourse(
             @PathVariable Long courseId,
             Authentication authentication) {
         try {
@@ -294,7 +294,9 @@ public class ApiController {
     @GetMapping("/courses/{courseId}/quizzes")
     public ResponseEntity<ApiResponse<List<QuizDTO>>> getCourseQuizzes(@PathVariable Long courseId) {
         try {
-            List<Quiz> quizzes = quizService.findByCourse(courseId);
+            Course course = courseService.findById(courseId)
+                    .orElseThrow(() -> new RuntimeException("Course not found"));
+            List<Quiz> quizzes = quizService.findByCourse(course);
             List<QuizDTO> quizDtos = quizzes.stream()
                     .map(QuizDTO::fromEntity)
                     .collect(Collectors.toList());

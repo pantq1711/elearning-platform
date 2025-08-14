@@ -22,6 +22,7 @@ import java.util.Optional;
  */
 @Repository
 public interface QuizRepository extends JpaRepository<Quiz, Long> {
+
     /**
      * Đếm active quizzes theo course
      */
@@ -36,7 +37,7 @@ public interface QuizRepository extends JpaRepository<Quiz, Long> {
     @Query("SELECT q FROM Quiz q WHERE q.course.id IN " +
             "(SELECT e.course.id FROM Enrollment e WHERE e.student = :student) " +
             "AND q.active = true " +
-            "AND (q.id NOT IN (SELECT qr.quiz.id FROM QuizResult qr WHERE qr.user = :student) " +
+            "AND (q.id NOT IN (SELECT qr.quiz.id FROM QuizResult qr WHERE qr.student = :student) " +
             "     OR q.allowRetake = true)")
     List<Quiz> findAvailableQuizzesForStudent(@Param("student") User student);
 
@@ -44,22 +45,22 @@ public interface QuizRepository extends JpaRepository<Quiz, Long> {
      * Tìm completed quizzes cho student
      */
     @Query("SELECT DISTINCT q FROM Quiz q JOIN q.quizResults qr " +
-            "WHERE qr.user = :student AND q.active = true " +
-            "ORDER BY qr.submittedAt DESC")
+            "WHERE qr.student = :student AND q.active = true " +
+            "ORDER BY qr.completionTime DESC")
     List<Quiz> findCompletedQuizzesForStudent(@Param("student") User student);
 
     /**
      * Kiểm tra student đã làm quiz chưa
      */
     @Query("SELECT CASE WHEN COUNT(qr) > 0 THEN true ELSE false END " +
-            "FROM QuizResult qr WHERE qr.user = :student AND qr.quiz = :quiz")
+            "FROM QuizResult qr WHERE qr.student = :student AND qr.quiz = :quiz")
     boolean hasStudentTakenQuiz(@Param("student") User student, @Param("quiz") Quiz quiz);
 
     /**
      * Tìm quiz result của student cho quiz
      */
-    @Query("SELECT qr FROM QuizResult qr WHERE qr.user = :student AND qr.quiz = :quiz " +
-            "ORDER BY qr.submittedAt DESC LIMIT 1")
+    @Query("SELECT qr FROM QuizResult qr WHERE qr.student = :student AND qr.quiz = :quiz " +
+            "ORDER BY qr.completionTime DESC LIMIT 1")
     Optional<QuizResult> findQuizResult(@Param("student") User student, @Param("quiz") Quiz quiz);
 
     /**
@@ -67,7 +68,7 @@ public interface QuizRepository extends JpaRepository<Quiz, Long> {
      */
     @Modifying
     @Transactional
-    @Query("INSERT INTO QuizResult (user, quiz, startedAt, status) " +
+    @Query("INSERT INTO QuizResult (student, quiz, startTime, completed) " +
             "VALUES (:student, :quiz, :startedAt, 'IN_PROGRESS')")
     void startQuiz(@Param("student") User student, @Param("quiz") Quiz quiz,
                    @Param("startedAt") LocalDateTime startedAt);
@@ -203,7 +204,7 @@ public interface QuizRepository extends JpaRepository<Quiz, Long> {
     @Query("SELECT q FROM Quiz q WHERE q.active = true " +
             "AND (q.availableFrom IS NULL OR q.availableFrom <= CURRENT_TIMESTAMP) " +
             "AND (q.availableUntil IS NULL OR q.availableUntil >= CURRENT_TIMESTAMP) " +
-            "AND NOT EXISTS (SELECT qr FROM QuizResult qr WHERE qr.quiz = q AND qr.user.id = :studentId)")
+            "AND NOT EXISTS (SELECT qr FROM QuizResult qr WHERE qr.quiz = q AND qr.student.id = :studentId)")
     List<Quiz> findAvailableQuizzesForStudent(@Param("studentId") Long studentId);
 
     /**
@@ -259,46 +260,46 @@ public interface QuizRepository extends JpaRepository<Quiz, Long> {
      * Tìm quizzes mà student chưa attempt
      */
     @Query("SELECT q FROM Quiz q WHERE q.course = :course AND q.active = true AND " +
-            "q.id NOT IN (SELECT qr.quiz.id FROM QuizResult qr WHERE qr.user = :student)")
+            "q.id NOT IN (SELECT qr.quiz.id FROM QuizResult qr WHERE qr.student = :student)")
     List<Quiz> findUnattemptedQuizzesByStudent(@Param("student") User student, @Param("course") Course course);
 
     /**
      * Tìm quizzes mà student đã attempt
      */
     @Query("SELECT DISTINCT q FROM Quiz q JOIN q.quizResults qr " +
-            "WHERE q.course = :course AND qr.user = :student")
+            "WHERE q.course = :course AND qr.student = :student")
     List<Quiz> findAttemptedQuizzesByStudent(@Param("student") User student, @Param("course") Course course);
 
     /**
      * Tìm quizzes mà student đã pass
      */
     @Query("SELECT DISTINCT q FROM Quiz q JOIN q.quizResults qr " +
-            "WHERE q.course = :course AND qr.user = :student AND qr.passed = true")
+            "WHERE q.course = :course AND qr.student = :student AND qr.passed = true")
     List<Quiz> findPassedQuizzesByStudent(@Param("student") User student, @Param("course") Course course);
 
     /**
      * Tìm completed quizzes cho student
      */
-    @Query("SELECT DISTINCT qr.quiz FROM QuizResult qr WHERE qr.user.id = :studentId " +
-            "ORDER BY qr.submittedAt DESC")
+    @Query("SELECT DISTINCT qr.quiz FROM QuizResult qr WHERE qr.student.id = :studentId " +
+            "ORDER BY qr.completionTime DESC")
     List<Quiz> findCompletedQuizzesForStudent(@Param("studentId") Long studentId);
 
     /**
      * Kiểm tra student đã làm quiz chưa
      */
-    @Query("SELECT COUNT(qr) > 0 FROM QuizResult qr WHERE qr.user = :student AND qr.quiz = :quiz")
+    @Query("SELECT COUNT(qr) > 0 FROM QuizResult qr WHERE qr.student = :student AND qr.quiz = :quiz")
     boolean existsByStudentAndQuiz(@Param("student") User student, @Param("quiz") Quiz quiz);
 
     /**
      * Tìm quiz result theo student và quiz
      */
-    @Query("SELECT qr FROM QuizResult qr WHERE qr.user = :student AND qr.quiz = :quiz")
+    @Query("SELECT qr FROM QuizResult qr WHERE qr.student = :student AND qr.quiz = :quiz")
     Optional<QuizResult> findByStudentAndQuiz(@Param("student") User student, @Param("quiz") Quiz quiz);
 
     /**
      * Tìm quiz results theo student sắp xếp theo attempt date
      */
-    @Query("SELECT qr FROM QuizResult qr WHERE qr.user = :student ORDER BY qr.submittedAt DESC")
+    @Query("SELECT qr FROM QuizResult qr WHERE qr.student = :student ORDER BY qr.completionTime DESC")
     List<QuizResult> findByStudentOrderByAttemptDateDesc(@Param("student") User student);
 
     // ===== ANALYTICS QUERIES =====
@@ -375,7 +376,7 @@ public interface QuizRepository extends JpaRepository<Quiz, Long> {
      * Lấy quiz attempts trong khoảng thời gian
      */
     @Query("SELECT COUNT(qr) FROM QuizResult qr WHERE qr.quiz = :quiz AND " +
-            "qr.submittedAt BETWEEN :startDate AND :endDate")
+            "qr.completionTime BETWEEN :startDate AND :endDate")
     Long countAttemptsBetweenDates(@Param("quiz") Quiz quiz,
                                    @Param("startDate") LocalDateTime startDate,
                                    @Param("endDate") LocalDateTime endDate);
@@ -401,12 +402,12 @@ public interface QuizRepository extends JpaRepository<Quiz, Long> {
     /**
      * Đếm students đã attempt quiz
      */
-    @Query("SELECT COUNT(DISTINCT qr.user) FROM QuizResult qr WHERE qr.quiz = :quiz")
+    @Query("SELECT COUNT(DISTINCT qr.student) FROM QuizResult qr WHERE qr.quiz = :quiz")
     Long countAttemptsByQuiz(@Param("quiz") Quiz quiz);
 
     /**
      * Tìm recent quiz results với pagination
      */
-    @Query("SELECT qr FROM QuizResult qr WHERE qr.quiz = :quiz ORDER BY qr.submittedAt DESC")
+    @Query("SELECT qr FROM QuizResult qr WHERE qr.quiz = :quiz ORDER BY qr.completionTime DESC")
     Page<QuizResult> findRecentResultsByQuiz(@Param("quiz") Quiz quiz, Pageable pageable);
 }

@@ -61,6 +61,12 @@ public class QuizService {
     public Optional<Quiz> findByIdAndCourse(Long id, Course course) {
         return quizRepository.findByIdAndCourse(id, course);
     }
+    /**
+     * Tìm active quizzes theo course
+     */
+    public List<Quiz> findActiveQuizzesByCourse(Course course) {
+        return quizRepository.findByCourseAndActiveOrderByCreatedAtDesc(course, true);
+    }
 
     /**
      * Tìm tất cả quizzes
@@ -81,58 +87,60 @@ public class QuizService {
      */
     @Transactional
     public QuizResult startQuiz(User student, Quiz quiz) {
-        // Kiểm tra student đã đăng ký course chưa
-        if (!enrollmentService.isStudentEnrolledInCourse(student, quiz.getCourse())) {
+        // SỬA LỖI: Gọi đúng method từ EnrollmentService
+        if (!enrollmentService.isStudentEnrolled(student, quiz.getCourse())) {
             throw new RuntimeException("Bạn chưa đăng ký khóa học này");
         }
 
         // Kiểm tra quiz có available không
-        if (!quiz.isAvailable()) {
+        if (!quiz.isActive()) {
             throw new RuntimeException("Quiz này hiện không khả dụng");
         }
 
-        // SỬA LỖI: Quiz entity không có allowRetake field, bỏ qua check này
-        // Chỉ kiểm tra đã làm quiz chưa
+        // Kiểm tra đã làm quiz chưa
         if (hasStudentTakenQuiz(student, quiz)) {
             throw new RuntimeException("Bạn đã hoàn thành quiz này");
         }
 
-        // Tạo quiz result mới với fields đúng của entity
+        // Tạo quiz result mới
         QuizResult quizResult = new QuizResult();
-        quizResult.setStudent(student); // SỬA LỖI: setStudent thay vì setUser
+        quizResult.setStudent(student);
         quizResult.setQuiz(quiz);
-        quizResult.setStartTime(LocalDateTime.now()); // SỬA LỖI: setStartTime thay vì setStartedAt
+        quizResult.setStartTime(LocalDateTime.now());
         quizResult.setCompleted(false);
         quizResult.setPassed(false);
         quizResult.setAttemptDate(LocalDateTime.now());
 
         return quizResultRepository.save(quizResult);
     }
-
     /**
      * Nộp bài quiz (SỬA TẤT CẢ LỖI ENTITY FIELDS)
      */
     @Transactional
-    public QuizResult submitQuiz(Long quizResultId, Map<Long, String> answers) {
-        QuizResult quizResult = quizResultRepository.findById(quizResultId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy bài làm quiz"));
+    public QuizResult submitQuiz(User student, Quiz quiz, Map<Long, String> answers) {
+        // Tìm quiz result của student
+        Optional<QuizResult> optionalResult = quizResultRepository.findByStudentAndQuiz(student, quiz);
 
-        // SỬA LỖI: Sử dụng isCompleted() thay vì getStatus() == IN_PROGRESS
+        if (optionalResult.isEmpty()) {
+            throw new RuntimeException("Không tìm thấy bài làm quiz của bạn");
+        }
+
+        QuizResult quizResult = optionalResult.get();
+
         if (quizResult.isCompleted()) {
             throw new RuntimeException("Quiz này đã được nộp");
         }
 
         // Tính điểm
-        double score = calculateQuizScore(quizResult.getQuiz(), answers);
-        boolean passed = score >= quizResult.getQuiz().getPassScore();
+        double score = calculateQuizScore(quiz, answers);
+        boolean passed = score >= quiz.getPassScore();
 
-        // Cập nhật quiz result với fields đúng
+        // Cập nhật quiz result
         quizResult.setScore(score);
         quizResult.setPassed(passed);
-        quizResult.setCompletionTime(LocalDateTime.now()); // SỬA LỖI: setCompletionTime thay vì setSubmittedAt
+        quizResult.setCompletionTime(LocalDateTime.now());
         quizResult.setCompleted(true);
         quizResult.setAnswers(convertAnswersToJson(answers));
-        // SỬA LỖI: QuizResult entity không có setUpdatedAt method
 
         return quizResultRepository.save(quizResult);
     }

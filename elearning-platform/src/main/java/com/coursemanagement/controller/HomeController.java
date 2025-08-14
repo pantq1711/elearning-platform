@@ -1,5 +1,6 @@
 package com.coursemanagement.controller;
 
+import com.coursemanagement.dto.CategoryStats;
 import com.coursemanagement.entity.User;
 import com.coursemanagement.entity.Course;
 import com.coursemanagement.entity.Category;
@@ -103,7 +104,7 @@ public class HomeController {
             model.addAttribute("totalEnrollments", totalEnrollmentsLong != null ? totalEnrollmentsLong.intValue() : 0);
 
             // Top categories (SỬA LỖI: Sử dụng đúng type)
-            List<CategoryService.CategoryStats> topCategories = categoryService.findTopCategoriesByCourseCount(10);
+            List<Category> topCategories = categoryService.findTopCategoriesByCourseCount(10);
             model.addAttribute("topCategories", topCategories);
 
             // Popular courses

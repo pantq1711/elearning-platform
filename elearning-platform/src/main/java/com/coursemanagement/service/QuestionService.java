@@ -3,7 +3,6 @@ package com.coursemanagement.service;
 import com.coursemanagement.entity.Question;
 import com.coursemanagement.entity.Quiz;
 import com.coursemanagement.entity.Question.DifficultyLevel;
-import com.coursemanagement.entity.QuestionType;
 import com.coursemanagement.repository.QuestionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -144,7 +143,7 @@ public class QuestionService {
      * @param questionType Loại câu hỏi
      * @return Danh sách questions
      */
-    public List<Question> findByQuizAndQuestionType(Quiz quiz, QuestionType questionType) {
+    public List<Question> findByQuizAndQuestionType(Quiz quiz, Question.QuestionType questionType) {
         return questionRepository.findByQuizAndQuestionType(quiz, questionType);
     }
 
@@ -154,7 +153,7 @@ public class QuestionService {
      * @param questionType Loại câu hỏi
      * @return Số lượng questions
      */
-    public Long countByQuizAndQuestionType(Quiz quiz, QuestionType questionType) {
+    public Long countByQuizAndQuestionType(Quiz quiz, Question.QuestionType questionType) {
         return questionRepository.countByQuizAndQuestionType(quiz, questionType);
     }
 
@@ -192,7 +191,7 @@ public class QuestionService {
      * @return Danh sách questions phù hợp
      */
     public List<Question> findByQuizWithFilters(Quiz quiz, DifficultyLevel difficultyLevel,
-                                                QuestionType questionType, Double minPoints, Double maxPoints) {
+                                                Question.QuestionType questionType, Double minPoints, Double maxPoints) {
         return questionRepository.findByQuizWithFilters(quiz, difficultyLevel, questionType, minPoints, maxPoints);
     }
 
@@ -378,12 +377,12 @@ public class QuestionService {
      * @param quiz Quiz
      * @return Map chứa thống kê [QuestionType -> Count]
      */
-    public Map<QuestionType, Long> getQuestionStatsByType(Quiz quiz) {
+    public Map<Question.QuestionType, Long> getQuestionStatsByType(Quiz quiz) {
         List<Object[]> results = questionRepository.getQuestionStatsByType(quiz);
-        Map<QuestionType, Long> stats = new HashMap<>();
+        Map<Question.QuestionType, Long> stats = new HashMap<>();
 
         for (Object[] result : results) {
-            QuestionType type = (QuestionType) result[0];
+            Question.QuestionType type = (Question.QuestionType) result[0];
             Long count = (Long) result[1];
             stats.put(type, count);
         }
@@ -408,7 +407,7 @@ public class QuestionService {
         stats.put("difficultyStats", difficultyStats);
 
         // Thống kê theo question type
-        Map<QuestionType, Long> typeStats = getQuestionStatsByType(quiz);
+        Map<Question.QuestionType, Long> typeStats = getQuestionStatsByType(quiz);
         stats.put("typeStats", typeStats);
 
         // Tổng points
@@ -448,7 +447,7 @@ public class QuestionService {
         }
 
         if (question.getQuestionType() == null) {
-            question.setQuestionType(QuestionType.MULTIPLE_CHOICE);
+            question.setQuestionType(Question.QuestionType.MULTIPLE_CHOICE);
         }
 
         if (question.getPoints() == null) {
@@ -643,7 +642,7 @@ public class QuestionService {
             question.setExplanation("Giải thích cho câu hỏi mẫu số " + i);
             question.setPoints(1.0);
             question.setDifficultyLevel(DifficultyLevel.EASY);
-            question.setQuestionType(QuestionType.MULTIPLE_CHOICE);
+            question.setQuestionType(Question.QuestionType.MULTIPLE_CHOICE);
 
             createQuestion(question);
         }
@@ -725,8 +724,8 @@ public class QuestionService {
         }
 
         // Validate theo question type
-        QuestionType type = question.getQuestionType();
-        if (type != null && type == QuestionType.MULTIPLE_CHOICE) {
+        Question.QuestionType type = question.getQuestionType();
+        if (type != null && type == Question.QuestionType.MULTIPLE_CHOICE) {
             validateMultipleChoiceOptions(question);
         }
 

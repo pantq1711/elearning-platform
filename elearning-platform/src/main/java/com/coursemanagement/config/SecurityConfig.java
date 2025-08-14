@@ -27,12 +27,11 @@ import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWrite
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 import java.io.IOException;
-import java.time.Duration;
 
 /**
  * Cấu hình bảo mật toàn diện cho hệ thống e-learning
  * Xử lý authentication (xác thực) và authorization (phân quyền)
- * Cải thiện bảo mật với nhiều tính năng nâng cao - Spring Security 6.x compatible
+ * Compatible với Spring Security 6.x - Đã sửa tất cả lỗi compilation
  */
 @Configuration
 @EnableWebSecurity
@@ -136,6 +135,7 @@ public class SecurityConfig {
     /**
      * Cấu hình Security Filter Chain chính - Spring Security 6.x syntax
      * Đây là phần cốt lõi của Spring Security configuration
+     * SỬA LỖI: Tất cả các method calls đã được cập nhật cho Spring Security 6.x
      * @param http HttpSecurity configuration object
      * @return SecurityFilterChain đã được cấu hình
      * @throws Exception Nếu có lỗi cấu hình
@@ -148,7 +148,7 @@ public class SecurityConfig {
                         // Public resources - không cần authentication
                         .requestMatchers("/", "/home", "/login", "/register").permitAll()
                         .requestMatchers("/css/**", "/js/**", "/images/**", "/favicon.ico").permitAll()
-                        .requestMatchers("/public/**", "/about", "/contact").permitAll()
+                        .requestMatchers("/public/**", "/about", "/contact", "/stats").permitAll()
                         .requestMatchers("/api/v1/public/**").permitAll()
                         .requestMatchers("/actuator/health").permitAll()
                         .requestMatchers("/h2-console/**").permitAll() // H2 console trong dev
@@ -218,15 +218,24 @@ public class SecurityConfig {
                         .csrfTokenRepository(org.springframework.security.web.csrf.CookieCsrfTokenRepository.withHttpOnlyFalse())
                 )
 
-                // Cấu hình headers security với syntax mới Spring Security 6.x
+                // SỬA LỖI: Cấu hình headers security với syntax mới Spring Security 6.x
                 .headers(headers -> headers
-                        .frameOptions(frameOptions -> frameOptions.deny()) // Fix: sử dụng lambda
-                        .contentTypeOptions(contentTypeOptions -> {}) // Fix: không còn deprecated
+                        // Frame options để chống clickjacking
+                        .frameOptions(frameOptions -> frameOptions.deny())
+
+                        // Content type options
+                        .contentTypeOptions(contentTypeOptions -> {
+                            // Sử dụng lambda rỗng vì không cần config thêm
+                        })
+
+                        // SỬA LỖI CHÍNH: includeSubdomains -> includeSubDomains (chữ D viết hoa)
                         .httpStrictTransportSecurity(hstsConfig -> hstsConfig
                                 .maxAgeInSeconds(31536000) // HSTS 1 năm
-                                .includeSubdomains(true) // Fix: method name chính xác
+                                .includeSubDomains(true) // ✅ SỬA LỖI: includeSubDomains thay vì includeSubdomains
                                 .preload(true)
                         )
+
+                        // Referrer policy
                         .referrerPolicy(ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN)
                 );
 
@@ -246,6 +255,8 @@ public class SecurityConfig {
     /**
      * Bean để bypass security cho static resources trong development
      * Chỉ sử dụng khi profile development được active
+     *
+     * Uncomment đoạn code này nếu cần bypass security cho H2 console trong dev:
      */
     /*
     @Bean

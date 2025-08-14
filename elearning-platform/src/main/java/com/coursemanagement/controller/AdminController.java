@@ -458,11 +458,12 @@ public class    AdminController {
             model.addAttribute("completionRate", completionRate);
 
             // Học viên gần đây
-            List<Enrollment> recentEnrollments = enrollmentService.findRecentEnrollments( 10);
+            List<Enrollment> recentEnrollments = enrollmentService.findRecentEnrollments(10);
             model.addAttribute("recentEnrollments", recentEnrollments);
 
-            // Top students trong khóa học này
-            List<Enrollment> topStudents = enrollmentService.getTopStudentsByCourse(course, 5);
+            // SỬA LỖI: Sử dụng đúng method signature với Pageable
+            Pageable pageable = PageRequest.of(0, 5);
+            List<Enrollment> topStudents = enrollmentService.getTopStudentsByCourse(course, pageable);
             model.addAttribute("topStudents", topStudents);
 
             // Bài giảng của khóa học

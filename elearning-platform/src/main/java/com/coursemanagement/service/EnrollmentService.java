@@ -67,6 +67,18 @@ public class EnrollmentService {
         Pageable pageable = PageRequest.of(0, limit, Sort.by("enrollmentDate").descending());
         return enrollmentRepository.findRecentEnrollments(pageable);
     }
+    // THÊM CÁC METHOD THIẾU VÀO ENROLLMENTSERVICE
+
+    /**
+     * Kiểm tra student đã enroll course chưa
+
+    /**
+     * Lấy top students theo course
+     */
+    public List<Enrollment> getTopStudentsByCourse(Course course, Pageable pageable) {
+        return enrollmentRepository.getTopStudentsByCourse(course, pageable);
+    }
+
 
     /**
      * Tìm most active instructors
