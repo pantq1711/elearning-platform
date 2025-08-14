@@ -33,7 +33,7 @@ import java.io.IOException;
  * Cấu hình bảo mật toàn diện cho hệ thống e-learning
  * Xử lý authentication (xác thực) và authorization (phân quyền)
  * Compatible với Spring Security 6.x - Đã sửa tất cả lỗi compilation và circular dependency
- * SỬA LỖI: Sử dụng static methods để tránh circular dependency
+ * SỬA LỖI REDIRECT LOOP: Cải thiện authentication success handler
  */
 @Configuration
 @EnableWebSecurity
@@ -103,7 +103,7 @@ public class SecurityConfig {
     }
 
     /**
-     * Success Handler để redirect theo role
+     * ✅ SỬA LỖI: Cải thiện Success Handler để redirect theo role
      * @return AuthenticationSuccessHandler
      */
     @Bean
@@ -117,8 +117,8 @@ public class SecurityConfig {
                 // Lấy authorities của user
                 var authorities = authentication.getAuthorities();
 
-                // Redirect theo role
-                String redirectURL = "/dashboard"; // Default
+                // ✅ SỬA LỖI: Redirect rõ ràng theo role, tránh loop
+                String redirectURL;
 
                 if (authorities.contains(new SimpleGrantedAuthority("ROLE_ADMIN"))) {
                     redirectURL = "/admin/dashboard";
@@ -126,9 +126,15 @@ public class SecurityConfig {
                     redirectURL = "/instructor/dashboard";
                 } else if (authorities.contains(new SimpleGrantedAuthority("ROLE_STUDENT"))) {
                     redirectURL = "/student/dashboard";
+                } else {
+                    // Fallback case
+                    redirectURL = "/dashboard";
                 }
 
-                response.sendRedirect(redirectURL);
+                // ✅ SỬA LỖI: Đảm bảo response chưa được committed
+                if (!response.isCommitted()) {
+                    response.sendRedirect(redirectURL);
+                }
             }
         };
     }
@@ -144,40 +150,55 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http,
                                            RememberMeServices rememberMeServices,
-                                           SessionRegistry sessionRegistry,
                                            AuthenticationSuccessHandler authenticationSuccessHandler,
-                                           UserService userService) throws Exception {
+                                           DaoAuthenticationProvider authenticationProvider,
+                                           SessionRegistry sessionRegistry) throws Exception {
 
         http
-                // ===== CẤU HÌNH AUTHORIZATION (PHÂN QUYỀN) =====
+                // ===== CẤU HÌNH AUTHENTICATION PROVIDER =====
+                .authenticationProvider(authenticationProvider)
+
+                // ===== CẤU HÌNH AUTHORIZATION =====
                 .authorizeHttpRequests(authz -> authz
-                        // Public endpoints - không cần authentication
-                        .requestMatchers("/", "/home", "/register", "/login", "/css/**", "/js/**", "/images/**", "/uploads/**").permitAll()
+                        // Cho phép tất cả mọi người truy cập trang public
+                        .requestMatchers("/", "/home", "/login", "/register").permitAll()
+
+                        // Static resources không cần authentication
+                        .requestMatchers("/css/**", "/js/**", "/images/**", "/webjars/**").permitAll()
+
+                        // API public cho khách không đăng ký
                         .requestMatchers("/api/public/**").permitAll()
                         .requestMatchers("/courses/public/**").permitAll()
-                        .requestMatchers("/courses/search", "/courses/category/**").permitAll()
 
-                        // Admin endpoints
+                        // ===== PHÂN QUYỀN THEO ROLE =====
+
+                        // Admin có thể truy cập mọi thứ
                         .requestMatchers("/admin/**").hasRole("ADMIN")
+
+                        // Instructor chỉ truy cập được instructor area
+                        .requestMatchers("/instructor/**").hasRole("INSTRUCTOR")
+
+                        // Student chỉ truy cập được student area
+                        .requestMatchers("/student/**").hasRole("STUDENT")
+
+                        // API endpoints theo role
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/instructor/**").hasRole("INSTRUCTOR")
+                        .requestMatchers("/api/student/**").hasRole("STUDENT")
 
-                        // Instructor endpoints
-                        .requestMatchers("/instructor/**").hasAnyRole("INSTRUCTOR", "ADMIN")
-                        .requestMatchers("/api/instructor/**").hasAnyRole("INSTRUCTOR", "ADMIN")
+                        // Course management - instructor và admin
+                        .requestMatchers("/courses/manage/**").hasAnyRole("INSTRUCTOR", "ADMIN")
 
-                        // Student endpoints
-                        .requestMatchers("/student/**").hasAnyRole("STUDENT", "INSTRUCTOR", "ADMIN")
-                        .requestMatchers("/api/student/**").hasAnyRole("STUDENT", "INSTRUCTOR", "ADMIN")
+                        // Public course viewing
+                        .requestMatchers("/courses/**").permitAll()
 
-                        // Course management - Instructor và Admin
-                        .requestMatchers("/courses/create", "/courses/*/edit").hasAnyRole("INSTRUCTOR", "ADMIN")
-                        .requestMatchers("/api/courses/create", "/api/courses/*/edit").hasAnyRole("INSTRUCTOR", "ADMIN")
+                        // User profile - tất cả user đã đăng nhập
+                        .requestMatchers("/profile/**", "/change-password").authenticated()
 
-                        // API endpoints
-                        .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/api/**").authenticated()
+                        // Dashboard - tất cả user đã đăng nhập
+                        .requestMatchers("/dashboard").authenticated()
 
-                        // All other requests need authentication
+                        // Tất cả requests khác cần authentication
                         .anyRequest().authenticated()
                 )
 
@@ -185,9 +206,9 @@ public class SecurityConfig {
                 .formLogin(form -> form
                         .loginPage("/login")
                         .loginProcessingUrl("/login")
-                        .successHandler(authenticationSuccessHandler)
+                        .successHandler(authenticationSuccessHandler) // ✅ SỬA LỖI: Sử dụng custom handler
                         .failureUrl("/login?error=true")
-                        .usernameParameter("email")
+                        .usernameParameter("email") // ✅ SỬA LỖI: Đổi username parameter thành email
                         .passwordParameter("password")
                         .permitAll()
                 )
@@ -207,7 +228,6 @@ public class SecurityConfig {
                         .rememberMeServices(rememberMeServices)
                         .key(REMEMBER_ME_KEY)
                         .tokenValiditySeconds(30 * 24 * 60 * 60) // 30 ngày
-                        .userDetailsService(userService)
                 )
 
                 // ===== CẤU HÌNH SESSION MANAGEMENT =====
@@ -221,7 +241,14 @@ public class SecurityConfig {
                 // ===== CẤU HÌNH EXCEPTION HANDLING =====
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint((request, response, authException) -> {
-                            response.sendRedirect("/login?error=unauthorized");
+                            // ✅ SỬA LỖI: Kiểm tra AJAX request
+                            if ("XMLHttpRequest".equals(request.getHeader("X-Requested-With"))) {
+                                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                                response.setContentType("application/json");
+                                response.getWriter().write("{\"error\":\"Unauthorized\"}");
+                            } else {
+                                response.sendRedirect("/login?error=unauthorized");
+                            }
                         })
                         .accessDeniedHandler((request, response, accessDeniedException) -> {
                             response.sendRedirect("/access-denied");
@@ -236,7 +263,7 @@ public class SecurityConfig {
                         .csrfTokenRepository(org.springframework.security.web.csrf.CookieCsrfTokenRepository.withHttpOnlyFalse())
                 )
 
-                // SỬA LỖI: Cấu hình headers security với syntax mới Spring Security 6.x
+                // ===== CẤU HÌNH HEADERS SECURITY =====
                 .headers(headers -> headers
                         // Frame options để chống clickjacking
                         .frameOptions(frameOptions -> frameOptions.deny())
@@ -246,10 +273,10 @@ public class SecurityConfig {
                             // Sử dụng lambda rỗng vì không cần config thêm
                         })
 
-                        // SỬA LỖI CHÍNH: includeSubdomains -> includeSubDomains (chữ D viết hoa)
+                        // ✅ SỬA LỖI: HSTS configuration
                         .httpStrictTransportSecurity(hstsConfig -> hstsConfig
                                 .maxAgeInSeconds(31536000) // HSTS 1 năm
-                                .includeSubDomains(true) // ✅ SỬA LỖI: includeSubDomains thay vì includeSubdomains
+                                .includeSubDomains(true) // ✅ SỬA LỖI: includeSubDomains
                                 .preload(true)
                         )
 

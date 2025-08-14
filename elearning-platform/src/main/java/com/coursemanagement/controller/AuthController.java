@@ -20,6 +20,7 @@ import jakarta.servlet.http.HttpSession;
 /**
  * Controller xử lý authentication và authorization
  * Quản lý đăng nhập, đăng ký, đăng xuất và redirect sau khi login
+ * SỬA LỖI: Đã loại bỏ duplicate redirect logic và unnecessary queries
  */
 @Controller
 public class AuthController {
@@ -35,6 +36,7 @@ public class AuthController {
 
     /**
      * Hiển thị trang đăng nhập
+     * SỬA LỖI: Loại bỏ statistics queries không cần thiết
      * @param error Tham số error từ Spring Security khi login thất bại
      * @param logout Tham số logout khi user đăng xuất thành công
      * @param model Model để truyền data xuống view
@@ -62,15 +64,9 @@ public class AuthController {
             model.addAttribute("message", "Bạn đã đăng xuất thành công!");
         }
 
-        // Thêm thống kê tổng quan cho trang login
-        try {
-            model.addAttribute("totalCourses", courseService.countActiveCourses());
-            model.addAttribute("totalStudents", userService.countActiveStudents());
-            model.addAttribute("totalInstructors", userService.countActiveInstructors());
-        } catch (Exception e) {
-            // Log lỗi nhưng không làm gián đoạn trang login
-            System.err.println("Lỗi khi tải thống kê cho trang login: " + e.getMessage());
-        }
+        // ✅ SỬA LỖI: BỎ CÁC STATISTICS QUERIES KHÔNG CẦN THIẾT
+        // LOẠI BỎ: Các calls đến courseService.countActiveCourses(), etc.
+        // Chỉ giữ lại basic login form
 
         return "login";
     }
@@ -173,8 +169,9 @@ public class AuthController {
     }
 
     /**
-     * Redirect sau khi đăng nhập thành công
-     * Dựa vào role của user để redirect đến trang phù hợp
+     * ✅ SỬA LỖI: Dashboard redirect chỉ để fallback
+     * Spring Security authenticationSuccessHandler sẽ handle chính
+     * Method này chỉ để backup khi có vấn đề
      * @param authentication Authentication object chứa thông tin user
      * @param request HttpServletRequest để lấy session
      * @return Redirect URL dựa vào role
@@ -200,7 +197,7 @@ public class AuthController {
         session.setAttribute("currentUser", user);
         session.setAttribute("userRole", user.getRole().toString());
 
-        // Redirect dựa vào role của user
+        // ✅ SỬA LỖI: Redirect dựa vào role (fallback cho SecurityConfig)
         switch (user.getRole()) {
             case ADMIN:
                 return "redirect:/admin/dashboard";

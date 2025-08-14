@@ -14,7 +14,7 @@
     </parent>
 
     <!-- Thông tin Project -->
-    <groupId>com.elearning</groupId>
+    <groupId>com.coursemanagement</groupId>
     <artifactId>elearning-platform</artifactId>
     <version>1.0.0</version>
     <packaging>jar</packaging>
