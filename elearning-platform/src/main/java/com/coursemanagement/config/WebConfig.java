@@ -1,5 +1,6 @@
 package com.coursemanagement.config;
 
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.ContentNegotiationConfigurer;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
@@ -11,28 +12,23 @@ import org.springframework.web.servlet.view.InternalResourceViewResolver;
 import org.springframework.web.servlet.view.JstlView;
 
 /**
- * Cấu hình Web MVC cho ứng dụng Course Management
- * Fix các deprecated methods trong Spring Boot 3.x
+ * FIXED Web MVC Configuration cho ứng dụng Course Management
+ * Fix JSP và JSTL configuration
  */
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
 
     /**
      * Cấu hình path matching - sửa deprecated methods
-     * @param configurer Path match configurer
      */
     @Override
     public void configurePathMatch(PathMatchConfigurer configurer) {
-        // Spring Boot 3.x không còn hỗ trợ suffix pattern matching
-        // Các deprecated methods đã được remove
-
         // Cấu hình trailing slash matching nếu cần
         configurer.setUseTrailingSlashMatch(true);
     }
 
     /**
      * Cấu hình content negotiation - sửa deprecated methods
-     * @param configurer Content negotiation configurer
      */
     @Override
     public void configureContentNegotiation(ContentNegotiationConfigurer configurer) {
@@ -41,14 +37,10 @@ public class WebConfig implements WebMvcConfigurer {
                 .mediaType("json", org.springframework.http.MediaType.APPLICATION_JSON)
                 .mediaType("xml", org.springframework.http.MediaType.APPLICATION_XML)
                 .mediaType("html", org.springframework.http.MediaType.TEXT_HTML);
-
-        // favorPathExtension đã deprecated - không sử dụng nữa
-        // Spring Boot 3.x tự động handle content negotiation
     }
 
     /**
      * Cấu hình CORS cho REST API
-     * @param registry CORS registry
      */
     @Override
     public void addCorsMappings(CorsRegistry registry) {
@@ -61,7 +53,6 @@ public class WebConfig implements WebMvcConfigurer {
 
     /**
      * Cấu hình static resources
-     * @param registry Resource handler registry
      */
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
@@ -79,8 +70,23 @@ public class WebConfig implements WebMvcConfigurer {
     }
 
     /**
-     * Cấu hình JSP view resolver
-     * @param registry View resolver registry
+     * FIXED: Cấu hình JSP view resolver với JSTL support
+     */
+    @Bean
+    public InternalResourceViewResolver jspViewResolver() {
+        InternalResourceViewResolver resolver = new InternalResourceViewResolver();
+        resolver.setViewClass(JstlView.class);
+        resolver.setPrefix("/WEB-INF/views/");
+        resolver.setSuffix(".jsp");
+        resolver.setExposeContextBeansAsAttributes(true);
+        resolver.setExposedContextBeanNames("*");
+        resolver.setOrder(1); // Set priority
+
+        return resolver;
+    }
+
+    /**
+     * Alternative method: Configure view resolver via registry
      */
     @Override
     public void configureViewResolvers(ViewResolverRegistry registry) {

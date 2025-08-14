@@ -23,16 +23,6 @@
     <description>Hệ thống quản lý khóa học trực tuyến với Spring Boot</description>
     <url>https://github.com/your-username/elearning-platform</url>
 
-    <!-- Thông tin Developer -->
-    <developers>
-        <developer>
-            <id>developer</id>
-            <name>E-Learning Developer</name>
-            <email>developer@elearning.vn</email>
-            <organization>E-Learning Platform</organization>
-        </developer>
-    </developers>
-
     <!-- Cấu hình Properties -->
     <properties>
         <!-- Version Java và encoding -->
@@ -43,16 +33,13 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
         <!-- Version các dependencies chính -->
-
         <spring-boot.version>3.2.0</spring-boot.version>
         <spring-security.version>6.2.0</spring-security.version>
         <mysql.version>8.0.33</mysql.version>
         <h2.version>2.2.224</h2.version>
-        <tomcat.version>10.1.15</tomcat.version>
         <jakarta.servlet.jsp.jstl.version>3.0.1</jakarta.servlet.jsp.jstl.version>
 
         <!-- Version testing và tools -->
-        <junit.version>5.10.0</junit.version>
         <mockito.version>5.7.0</mockito.version>
         <testcontainers.version>1.19.3</testcontainers.version>
 
@@ -71,16 +58,6 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
-            <exclusions>
-                <!-- Loại bỏ Tomcat embedded để sử dụng external servlet container nếu cần -->
-                <!-- Uncomment nếu deploy lên external server -->
-                <!--
-                <exclusion>
-                    <groupId>org.springframework.boot</groupId>
-                    <artifactId>spring-boot-starter-tomcat</artifactId>
-                </exclusion>
-                -->
-            </exclusions>
         </dependency>
 
         <!-- Spring Boot Starter Data JPA - Cho database operations -->
@@ -119,39 +96,25 @@
             <artifactId>spring-boot-starter-cache</artifactId>
         </dependency>
 
-        <!-- ===== JSP SUPPORT - QUAN TRỌNG cho việc render JSP views ===== -->
+        <!-- ===== JSP SUPPORT - FIXED VERSION ===== -->
 
-        <!-- Tomcat Embed Jasper - JSP compiler -->
+        <!-- Tomcat Embed Jasper - JSP compiler (FIXED: Remove provided scope) -->
         <dependency>
             <groupId>org.apache.tomcat.embed</groupId>
             <artifactId>tomcat-embed-jasper</artifactId>
-            <scope>provided</scope>
         </dependency>
 
-        <!-- JSTL - JSP Standard Tag Library -->
-        <dependency>
-            <groupId>jakarta.servlet.jsp.jstl</groupId>
-            <artifactId>jakarta.servlet.jsp.jstl-api</artifactId>
-            <version>${jakarta.servlet.jsp.jstl.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>jakarta.servlet.jsp.jstl</groupId>
-            <artifactId>jakarta.servlet.jsp.jstl-api</artifactId>
-            <version>3.0.0</version>
-        </dependency>
-
+        <!-- JSTL Implementation - FIXED: Complete JSTL support -->
         <dependency>
             <groupId>org.glassfish.web</groupId>
             <artifactId>jakarta.servlet.jsp.jstl</artifactId>
-            <version>3.0.0</version>
+            <version>3.0.1</version>
         </dependency>
 
-
-
-        <!-- JSTL Implementation -->
+        <!-- JSTL API -->
         <dependency>
-            <groupId>org.glassfish.web</groupId>
-            <artifactId>jakarta.servlet.jsp.jstl</artifactId>
+            <groupId>jakarta.servlet.jsp.jstl</groupId>
+            <artifactId>jakarta.servlet.jsp.jstl-api</artifactId>
             <version>3.0.1</version>
         </dependency>
 
@@ -180,8 +143,7 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- HikariCP - Connection pooling (đã included trong spring-boot-starter-data-jpa) -->
-        <!-- Explicit dependency để control version -->
+        <!-- HikariCP - Connection pooling -->
         <dependency>
             <groupId>com.zaxxer</groupId>
             <artifactId>HikariCP</artifactId>
@@ -212,8 +174,7 @@
 
         <!-- ===== JSON PROCESSING ===== -->
 
-        <!-- Jackson - JSON processing (đã included trong spring-boot-starter-web) -->
-        <!-- Explicit dependencies để handle complex JSON operations -->
+        <!-- Jackson - JSON processing -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
@@ -258,7 +219,6 @@
         <!-- ===== LOGGING ===== -->
 
         <!-- SLF4J và Logback đã included trong Spring Boot -->
-        <!-- Explicit dependency để control version -->
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
@@ -368,7 +328,6 @@
         <resources>
             <resource>
                 <directory>src/main/resources</directory>
-                <filtering>true</filtering>
                 <includes>
                     <include>**/*.properties</include>
                     <include>**/*.yml</include>
@@ -410,17 +369,11 @@
                     </excludes>
                     <!-- Enable hot reload -->
                     <addResources>true</addResources>
-                    <!-- JVM arguments -->
-                    <jvmArguments>
-                        -Xmx2G -Xms1G
-                        -Dspring.profiles.active=dev
-                        -Dfile.encoding=UTF-8
-                    </jvmArguments>
                 </configuration>
                 <executions>
                     <execution>
                         <goals>
-                            <goal>repackage</goal>
+                            <goal>build-info</goal>
                         </goals>
                     </execution>
                 </executions>
@@ -434,12 +387,14 @@
                 <configuration>
                     <source>${java.version}</source>
                     <target>${java.version}</target>
-                    <encoding>${project.build.sourceEncoding}</encoding>
-                    <compilerArgs>
-                        <arg>-parameters</arg>
-                        <arg>-Xlint:unchecked</arg>
-                        <arg>-Xlint:deprecation</arg>
-                    </compilerArgs>
+                    <encoding>UTF-8</encoding>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>1.18.30</version>
+                        </path>
+                    </annotationProcessorPaths>
                 </configuration>
             </plugin>
 
@@ -453,16 +408,8 @@
                         <include>**/*Test.java</include>
                         <include>**/*Tests.java</include>
                     </includes>
-                    <excludes>
-                        <exclude>**/*IntegrationTest.java</exclude>
-                        <exclude>**/*IT.java</exclude>
-                    </excludes>
-                    <!-- JVM arguments cho tests -->
-                    <argLine>
-                        -Xmx1G
-                        -Dfile.encoding=UTF-8
-                        -Djava.awt.headless=true
-                    </argLine>
+                    <!-- JVM arguments cho testing -->
+                    <argLine>-Xmx1G -Dfile.encoding=UTF-8</argLine>
                 </configuration>
             </plugin>
 
@@ -473,8 +420,8 @@
                 <version>${maven-failsafe-plugin.version}</version>
                 <configuration>
                     <includes>
-                        <include>**/*IntegrationTest.java</include>
                         <include>**/*IT.java</include>
+                        <include>**/*IntegrationTest.java</include>
                     </includes>
                 </configuration>
                 <executions>
@@ -487,61 +434,6 @@
                 </executions>
             </plugin>
 
-            <!-- Maven Resources Plugin -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-resources-plugin</artifactId>
-                <configuration>
-                    <encoding>${project.build.sourceEncoding}</encoding>
-                    <nonFilteredFileExtensions>
-                        <nonFilteredFileExtension>pdf</nonFilteredFileExtension>
-                        <nonFilteredFileExtension>swf</nonFilteredFileExtension>
-                        <nonFilteredFileExtension>jpg</nonFilteredFileExtension>
-                        <nonFilteredFileExtension>jpeg</nonFilteredFileExtension>
-                        <nonFilteredFileExtension>png</nonFilteredFileExtension>
-                        <nonFilteredFileExtension>gif</nonFilteredFileExtension>
-                        <nonFilteredFileExtension>ico</nonFilteredFileExtension>
-                        <nonFilteredFileExtension>woff</nonFilteredFileExtension>
-                        <nonFilteredFileExtension>woff2</nonFilteredFileExtension>
-                        <nonFilteredFileExtension>ttf</nonFilteredFileExtension>
-                        <nonFilteredFileExtension>eot</nonFilteredFileExtension>
-                    </nonFilteredFileExtensions>
-                </configuration>
-            </plugin>
-
-            <!-- JaCoCo Plugin - Code coverage -->
-            <plugin>
-                <groupId>org.jacoco</groupId>
-                <artifactId>jacoco-maven-plugin</artifactId>
-                <version>0.8.11</version>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>prepare-agent</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>report</id>
-                        <phase>test</phase>
-                        <goals>
-                            <goal>report</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-
-            <!-- Maven WAR Plugin - Nếu cần deploy as WAR -->
-            <!-- Uncomment nếu cần package thành WAR file -->
-            <!--
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-war-plugin</artifactId>
-                <configuration>
-                    <failOnMissingWebXml>false</failOnMissingWebXml>
-                </configuration>
-            </plugin>
-            -->
-
         </plugins>
     </build>
 
@@ -553,131 +445,35 @@
             <id>dev</id>
             <activation>
                 <activeByDefault>true</activeByDefault>
-                <property>
-                    <name>env</name>
-                    <value>dev</value>
-                </property>
             </activation>
             <properties>
                 <spring.profiles.active>dev</spring.profiles.active>
-                <logging.level>DEBUG</logging.level>
             </properties>
-            <dependencies>
-                <!-- H2 Database cho development -->
-                <dependency>
-                    <groupId>com.h2database</groupId>
-                    <artifactId>h2</artifactId>
-                </dependency>
-            </dependencies>
         </profile>
 
         <!-- Production Profile -->
         <profile>
             <id>prod</id>
-            <activation>
-                <property>
-                    <name>env</name>
-                    <value>prod</value>
-                </property>
-            </activation>
             <properties>
                 <spring.profiles.active>prod</spring.profiles.active>
-                <logging.level>INFO</logging.level>
             </properties>
             <build>
                 <plugins>
-                    <!-- Minify resources trong production -->
                     <plugin>
-                        <groupId>com.samaxes.maven</groupId>
-                        <artifactId>minify-maven-plugin</artifactId>
-                        <version>1.7.6</version>
-                        <executions>
-                            <execution>
-                                <id>default-minify</id>
-                                <configuration>
-                                    <webappSourceDir>${project.basedir}/src/main/webapp</webappSourceDir>
-                                    <webappTargetDir>${project.build.directory}/classes/static</webappTargetDir>
-                                    <cssSourceDir>css</cssSourceDir>
-                                    <cssSourceFiles>
-                                        <cssSourceFile>style.css</cssSourceFile>
-                                    </cssSourceFiles>
-                                    <jsSourceDir>js</jsSourceDir>
-                                    <jsSourceFiles>
-                                        <jsSourceFile>app.js</jsSourceFile>
-                                    </jsSourceFiles>
-                                </configuration>
-                                <goals>
-                                    <goal>minify</goal>
-                                </goals>
-                            </execution>
-                        </executions>
+                        <groupId>org.springframework.boot</groupId>
+                        <artifactId>spring-boot-maven-plugin</artifactId>
+                        <configuration>
+                            <jvmArguments>
+                                -Xmx2G -Xms1G
+                                -Dspring.profiles.active=prod
+                                -Dfile.encoding=UTF-8
+                            </jvmArguments>
+                        </configuration>
                     </plugin>
                 </plugins>
             </build>
         </profile>
 
-        <!-- Testing Profile -->
-        <profile>
-            <id>test</id>
-            <activation>
-                <property>
-                    <name>env</name>
-                    <value>test</value>
-                </property>
-            </activation>
-            <properties>
-                <spring.profiles.active>test</spring.profiles.active>
-                <logging.level>WARN</logging.level>
-            </properties>
-        </profile>
-
     </profiles>
-
-    <!-- Distribution Management -->
-    <distributionManagement>
-        <repository>
-            <id>releases</id>
-            <name>Release Repository</name>
-            <url>http://localhost:8081/repository/maven-releases/</url>
-        </repository>
-        <snapshotRepository>
-            <id>snapshots</id>
-            <name>Snapshot Repository</name>
-            <url>http://localhost:8081/repository/maven-snapshots/</url>
-        </snapshotRepository>
-    </distributionManagement>
-
-    <!-- Repository configuration -->
-    <repositories>
-        <repository>
-            <id>central</id>
-            <name>Maven Central Repository</name>
-            <url>https://repo1.maven.org/maven2</url>
-            <layout>default</layout>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-        </repository>
-        <repository>
-            <id>spring-milestones</id>
-            <name>Spring Milestones</name>
-            <url>https://repo.spring.io/milestone</url>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-        </repository>
-    </repositories>
-
-    <pluginRepositories>
-        <pluginRepository>
-            <id>central</id>
-            <name>Maven Plugin Repository</name>
-            <url>https://repo1.maven.org/maven2</url>
-            <layout>default</layout>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-        </pluginRepository>
-    </pluginRepositories>
 
 </project>
