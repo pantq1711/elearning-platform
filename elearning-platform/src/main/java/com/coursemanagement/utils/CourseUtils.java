@@ -2,6 +2,7 @@ package com.coursemanagement.utils;
 
 import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -38,7 +39,7 @@ public class CourseUtils {
     private static final List<String> ALLOWED_VIDEO_EXTENSIONS = Arrays.asList("mp4", "avi", "mov", "wmv", "flv", "webm", "mkv");
     private static final List<String> ALLOWED_DOCUMENT_EXTENSIONS = Arrays.asList("pdf", "doc", "docx", "ppt", "pptx", "xls", "xlsx", "txt");
 
-    // ===== FILE OPERATIONS METHODS =====
+    // ===== STATIC UTILITY METHODS =====
 
     /**
      * Kiểm tra file size có hợp lệ không
@@ -75,51 +76,64 @@ public class CourseUtils {
                 originalFileName.lastIndexOf('.') != -1 ? originalFileName.lastIndexOf('.') : originalFileName.length());
 
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
-        String shortUuid = UUID.randomUUID().toString().substring(0, 8);
+        String uniqueId = UUID.randomUUID().toString().substring(0, 8);
 
-        return cleanFileName(nameWithoutExtension) + "_" + timestamp + "_" + shortUuid +
-                (extension.isEmpty() ? "" : "." + extension);
+        if (extension.isEmpty()) {
+            return String.format("%s_%s_%s", nameWithoutExtension, timestamp, uniqueId);
+        } else {
+            return String.format("%s_%s_%s.%s", nameWithoutExtension, timestamp, uniqueId, extension);
+        }
     }
 
     /**
-     * Làm sạch tên file (loại bỏ ký tự đặc biệt)
+     * Lấy extension của file
      */
-    public static String cleanFileName(String fileName) {
-        if (fileName == null) {
+    public static String getFileExtension(String fileName) {
+        if (fileName == null || fileName.isEmpty()) {
             return "";
         }
-
-        String normalized = Normalizer.normalize(fileName, Normalizer.Form.NFD);
-        Pattern pattern = Pattern.compile("\\p{InCombiningDiacriticalMarks}+");
-        String withoutAccents = pattern.matcher(normalized).replaceAll("");
-
-        return withoutAccents.replaceAll("[^a-zA-Z0-9\\-_]", "_");
+        int lastDotIndex = fileName.lastIndexOf('.');
+        if (lastDotIndex == -1 || lastDotIndex == fileName.length() - 1) {
+            return "";
+        }
+        return fileName.substring(lastDotIndex + 1);
     }
 
     /**
-     * Lưu file vào server
+     * Lưu file vào thư mục chỉ định
      */
-    public static String saveFile(MultipartFile file, String directory, String fileName) throws IOException {
+    public static String saveFile(MultipartFile file, String uploadDirectory, String filename) throws IOException {
         if (file == null || file.isEmpty()) {
-            throw new IOException("File rỗng hoặc không hợp lệ");
+            throw new IllegalArgumentException("File không được để trống");
         }
 
-        Path uploadPath = Paths.get(directory);
+        // Tạo directory nếu chưa tồn tại
+        Path uploadPath = Paths.get(uploadDirectory);
         if (!Files.exists(uploadPath)) {
             Files.createDirectories(uploadPath);
         }
 
-        Path filePath = uploadPath.resolve(fileName);
-        Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+        // Generate filename nếu không được cung cấp
+        if (filename == null || filename.isEmpty()) {
+            filename = generateUniqueFilename(file.getOriginalFilename());
+        }
 
-        return directory + fileName;
+        // Đường dẫn file đầy đủ
+        Path filePath = uploadPath.resolve(filename);
+
+        // Lưu file
+        try (InputStream inputStream = file.getInputStream()) {
+            Files.copy(inputStream, filePath, StandardCopyOption.REPLACE_EXISTING);
+        }
+
+        return filePath.toString();
     }
 
     /**
-     * Xóa file khỏi server
+     * Xóa file từ hệ thống
      */
     public static boolean deleteFile(String filePath) {
-        if (filePath == null || filePath.trim().isEmpty()) {
+        if (filePath == null || filePath.isEmpty()) {
             return false;
         }
 
@@ -127,303 +141,139 @@ public class CourseUtils {
             Path path = Paths.get(filePath);
             return Files.deleteIfExists(path);
         } catch (IOException e) {
-            e.printStackTrace();
             return false;
         }
     }
 
     /**
-     * Kiểm tra file có tồn tại không
+     * Lấy thư mục upload cho course images
      */
-    public static boolean fileExists(String filePath) {
-        if (filePath == null || filePath.trim().isEmpty()) {
-            return false;
-        }
-
-        Path path = Paths.get(filePath);
-        return Files.exists(path);
+    public static String getCourseImageDir() {
+        return COURSE_IMAGE_DIR;
     }
 
     /**
-     * Lấy size của file tính bằng bytes
+     * Lấy thư mục upload cho lesson videos
      */
-    public static long getFileSize(String filePath) {
-        if (filePath == null || filePath.trim().isEmpty()) {
-            return -1;
-        }
-
-        try {
-            Path path = Paths.get(filePath);
-            return Files.size(path);
-        } catch (IOException e) {
-            return -1;
-        }
+    public static String getLessonVideoDir() {
+        return LESSON_VIDEO_DIR;
     }
 
     /**
-     * Get file extension
+     * Lấy thư mục upload cho documents
      */
-    public static String getFileExtension(String filename) {
-        if (filename == null || !filename.contains(".")) {
-            return "";
-        }
-        return filename.substring(filename.lastIndexOf(".") + 1);
+    public static String getDocumentDir() {
+        return DOCUMENT_DIR;
     }
 
-    // ===== GETTER METHODS FOR CONSTANTS =====
-
-    public static String getUploadDir() { return UPLOAD_DIR; }
-    public static String getCourseImageDir() { return COURSE_IMAGE_DIR; }
-    public static String getLessonVideoDir() { return LESSON_VIDEO_DIR; }
-    public static String getDocumentDir() { return DOCUMENT_DIR; }
-    public static List<String> getAllowedImageExtensions() { return ALLOWED_IMAGE_EXTENSIONS; }
-    public static List<String> getAllowedVideoExtensions() { return ALLOWED_VIDEO_EXTENSIONS; }
-    public static List<String> getAllowedDocumentExtensions() { return ALLOWED_DOCUMENT_EXTENSIONS; }
-    public static long getMaxImageSize() { return MAX_IMAGE_SIZE; }
-    public static long getMaxVideoSize() { return MAX_VIDEO_SIZE; }
-    public static long getMaxDocumentSize() { return MAX_DOCUMENT_SIZE; }
+    /**
+     * Lấy danh sách extensions được phép cho images
+     */
+    public static List<String> getAllowedImageExtensions() {
+        return ALLOWED_IMAGE_EXTENSIONS;
+    }
 
     /**
-     * String utilities
+     * Lấy danh sách extensions được phép cho videos
+     */
+    public static List<String> getAllowedVideoExtensions() {
+        return ALLOWED_VIDEO_EXTENSIONS;
+    }
+
+    /**
+     * Lấy danh sách extensions được phép cho documents
+     */
+    public static List<String> getAllowedDocumentExtensions() {
+        return ALLOWED_DOCUMENT_EXTENSIONS;
+    }
+
+    // ===== STRING UTILITIES =====
+
+    /**
+     * String utilities inner class
      */
     public static class StringUtils {
 
+        private static final Pattern DIACRITICS_AND_FRIENDS = Pattern.compile("[\\p{InCombiningDiacriticalMarks}\\p{IsLm}\\p{IsSk}]+");
+
         /**
-         * Tạo slug từ string (cho URL friendly) - Enhanced version
+         * Tạo slug từ string (để dùng trong URL)
          */
         public static String createSlug(String input) {
             if (input == null || input.trim().isEmpty()) {
                 return "";
             }
 
-            // Chuyển về lowercase và trim
-            String slug = input.toLowerCase().trim();
+            String noWhitespace = input.trim().toLowerCase()
+                    .replaceAll("\\s+", "-")
+                    .replaceAll("[^\\w\\-]", "")
+                    .replaceAll("\\-+", "-")
+                    .replaceAll("^-|-$", "");
 
-            // Loại bỏ dấu tiếng Việt
-            slug = Normalizer.normalize(slug, Normalizer.Form.NFD);
-            Pattern pattern = Pattern.compile("\\p{InCombiningDiacriticalMarks}+");
-            slug = pattern.matcher(slug).replaceAll("");
-
-            // Thay thế khoảng trắng và ký tự đặc biệt bằng dấu gạch ngang
-            slug = slug.replaceAll("[^a-z0-9\\-]", "-");
-
-            // Loại bỏ dấu gạch ngang liên tiếp
-            slug = slug.replaceAll("-+", "-");
-
-            // Loại bỏ dấu gạch ngang ở đầu và cuối
-            slug = slug.replaceAll("^-|-$", "");
-
-            return slug;
+            return removeDiacritics(noWhitespace);
         }
 
         /**
-         * Cắt ngắn text với custom suffix
+         * Loại bỏ dấu tiếng Việt
          */
-        public static String truncate(String text, int maxLength, String suffix) {
-            if (text == null) {
-                return "";
+        public static String removeDiacritics(String str) {
+            if (str == null) {
+                return null;
             }
+            String normalized = Normalizer.normalize(str, Normalizer.Form.NFD);
+            return DIACRITICS_AND_FRIENDS.matcher(normalized).replaceAll("");
+        }
 
-            if (text.length() <= maxLength) {
-                return text;
+        /**
+         * Viết hoa chữ cái đầu
+         */
+        public static String capitalize(String str) {
+            if (str == null || str.isEmpty()) {
+                return str;
             }
-
-            return text.substring(0, maxLength - suffix.length()) + suffix;
+            return str.substring(0, 1).toUpperCase() + str.substring(1).toLowerCase();
         }
 
         /**
          * Truncate string với ellipsis
          */
-        public static String truncate(String text, int maxLength) {
-            return truncate(text, maxLength, "...");
-        }
-
-        /**
-         * Capitalize first letter
-         */
-        public static String capitalize(String text) {
-            if (text == null || text.isEmpty()) {
-                return text;
+        public static String truncate(String str, int maxLength) {
+            if (str == null || str.length() <= maxLength) {
+                return str;
             }
-            return text.substring(0, 1).toUpperCase() + text.substring(1).toLowerCase();
-        }
-
-        /**
-         * Kiểm tra string có rỗng hoặc null không
-         */
-        public static boolean isEmpty(String str) {
-            return str == null || str.trim().isEmpty();
-        }
-
-        /**
-         * Kiểm tra string có không rỗng và không null
-         */
-        public static boolean isNotEmpty(String str) {
-            return !isEmpty(str);
+            return str.substring(0, maxLength - 3) + "...";
         }
     }
 
-    /**
-     * Validation utilities
-     */
-    public static class ValidationUtils {
-
-        private static final Pattern EMAIL_PATTERN =
-                Pattern.compile("^[A-Za-z0-9+_.-]+@([A-Za-z0-9.-]+\\.[A-Za-z]{2,})$");
-
-        private static final Pattern USERNAME_PATTERN =
-                Pattern.compile("^[a-zA-Z0-9._-]{3,20}$");
-
-        private static final Pattern PHONE_PATTERN =
-                Pattern.compile("^(\\+84|0)[0-9]{9,10}$");
-
-        /**
-         * Validate email
-         */
-        public static boolean isValidEmail(String email) {
-            return email != null && EMAIL_PATTERN.matcher(email).matches();
-        }
-
-        /**
-         * Validate username
-         */
-        public static boolean isValidUsername(String username) {
-            return username != null && USERNAME_PATTERN.matcher(username).matches();
-        }
-
-        /**
-         * Validate password
-         */
-        public static boolean isValidPassword(String password) {
-            return password != null &&
-                    password.length() >= 6 &&
-                    password.length() <= 100;
-        }
-
-        /**
-         * Validate phone number
-         */
-        public static boolean isValidPhone(String phone) {
-            return phone != null && PHONE_PATTERN.matcher(phone).matches();
-        }
-    }
+    // ===== FORMATTING UTILITIES =====
 
     /**
-     * Number and currency utilities
+     * Formatting utilities inner class
      */
-    public static class NumberUtils {
+    public static class FormatUtils {
 
-        private static final DecimalFormat CURRENCY_FORMAT = new DecimalFormat("#,##0");
-        private static final DecimalFormat DECIMAL_FORMAT = new DecimalFormat("#,##0.##");
+        private static final DecimalFormat PRICE_FORMAT = new DecimalFormat("#,###");
+        private static final DecimalFormat PERCENTAGE_FORMAT = new DecimalFormat("0.0");
 
         /**
-         * Format currency (VND)
+         * Format giá tiền VND
          */
-        public static String formatCurrency(Double amount) {
-            if (amount == null || amount == 0) {
+        public static String formatPrice(Double price) {
+            if (price == null || price == 0.0) {
                 return "Miễn phí";
             }
-            return CURRENCY_FORMAT.format(amount) + " VNĐ";
+            return PRICE_FORMAT.format(price) + " VND";
         }
 
         /**
-         * Format number với dấu phẩy
+         * Format phần trăm
          */
-        public static String formatNumber(Number number) {
-            if (number == null) {
-                return "0";
-            }
-            return DECIMAL_FORMAT.format(number);
+        public static String formatPercentage(double percentage) {
+            return PERCENTAGE_FORMAT.format(percentage) + "%";
         }
 
         /**
-         * Format percentage
-         */
-        public static String formatPercentage(Number value, Number total) {
-            if (value == null || total == null || total.doubleValue() == 0) {
-                return "0%";
-            }
-            double percentage = value.doubleValue() / total.doubleValue() * 100;
-            return String.format("%.1f%%", percentage);
-        }
-    }
-
-    /**
-     * Date and time utilities
-     */
-    public static class DateTimeUtils {
-
-        private static final DateTimeFormatter DATE_TIME_FORMATTER =
-                DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
-
-        private static final DateTimeFormatter DATE_FORMATTER =
-                DateTimeFormatter.ofPattern("dd/MM/yyyy");
-
-        private static final DateTimeFormatter TIME_FORMATTER =
-                DateTimeFormatter.ofPattern("HH:mm");
-
-        /**
-         * Format datetime
-         */
-        public static String formatDateTime(LocalDateTime dateTime) {
-            if (dateTime == null) {
-                return "";
-            }
-            return dateTime.format(DATE_TIME_FORMATTER);
-        }
-
-        /**
-         * Format date only
-         */
-        public static String formatDate(LocalDateTime dateTime) {
-            if (dateTime == null) {
-                return "";
-            }
-            return dateTime.format(DATE_FORMATTER);
-        }
-
-        /**
-         * Format time only
-         */
-        public static String formatTime(LocalDateTime dateTime) {
-            if (dateTime == null) {
-                return "";
-            }
-            return dateTime.format(TIME_FORMATTER);
-        }
-
-        /**
-         * Format relative time (time ago)
-         */
-        public static String formatRelativeTime(LocalDateTime dateTime) {
-            if (dateTime == null) {
-                return "";
-            }
-
-            LocalDateTime now = LocalDateTime.now();
-            long minutes = java.time.Duration.between(dateTime, now).toMinutes();
-
-            if (minutes < 1) {
-                return "Vừa xong";
-            } else if (minutes < 60) {
-                return minutes + " phút trước";
-            } else if (minutes < 1440) { // < 24 hours
-                return (minutes / 60) + " giờ trước";
-            } else if (minutes < 43200) { // < 30 days
-                return (minutes / 1440) + " ngày trước";
-            } else {
-                return formatDate(dateTime);
-            }
-        }
-    }
-
-    /**
-     * Course specific helpers
-     */
-    public static class CourseHelper {
-
-        /**
-         * Format duration (minutes to readable format)
+         * Format thời lượng (phút)
          */
         public static String formatDuration(Integer minutes) {
             if (minutes == null || minutes == 0) {
@@ -432,55 +282,43 @@ public class CourseUtils {
 
             if (minutes < 60) {
                 return minutes + " phút";
-            } else if (minutes < 1440) { // < 24 hours
+            } else {
                 int hours = minutes / 60;
                 int remainingMinutes = minutes % 60;
-                if (remainingMinutes == 0) {
-                    return hours + " giờ";
-                } else {
-                    return hours + " giờ " + remainingMinutes + " phút";
-                }
-            } else {
-                int days = minutes / 1440;
-                int remainingHours = (minutes % 1440) / 60;
-                if (remainingHours == 0) {
-                    return days + " ngày";
-                } else {
-                    return days + " ngày " + remainingHours + " giờ";
-                }
+                return hours + " giờ " + remainingMinutes + " phút";
             }
         }
 
         /**
-         * Get difficulty level text
+         * Format difficulty level
          */
-        public static String getDifficultyText(String level) {
+        public static String formatDifficultyLevel(String level) {
             if (level == null) {
                 return "Không xác định";
             }
 
-            switch (level.toUpperCase()) {
-                case "BEGINNER": return "Cơ bản";
-                case "INTERMEDIATE": return "Trung cấp";
-                case "ADVANCED": return "Nâng cao";
-                default: return "Không xác định";
-            }
+            return switch (level.toUpperCase()) {
+                case "BEGINNER" -> "Cơ bản";
+                case "INTERMEDIATE" -> "Trung bình";
+                case "ADVANCED" -> "Nâng cao";
+                default -> level;
+            };
         }
 
         /**
-         * Get difficulty CSS class
+         * Get Bootstrap badge class cho difficulty level
          */
-        public static String getDifficultyCssClass(String level) {
+        public static String getDifficultyBadgeClass(String level) {
             if (level == null) {
                 return "badge-secondary";
             }
 
-            switch (level.toUpperCase()) {
-                case "BEGINNER": return "badge-success";
-                case "INTERMEDIATE": return "badge-warning";
-                case "ADVANCED": return "badge-danger";
-                default: return "badge-secondary";
-            }
+            return switch (level.toUpperCase()) {
+                case "BEGINNER" -> "badge-success";
+                case "INTERMEDIATE" -> "badge-warning";
+                case "ADVANCED" -> "badge-danger";
+                default -> "badge-secondary";
+            };
         }
 
         /**
@@ -495,9 +333,33 @@ public class CourseUtils {
     }
 
     /**
-     * File utilities
+     * File utilities inner class
      */
     public static class FileUtils {
+
+        /**
+         * Kiểm tra file size có hợp lệ không (overloaded method)
+         */
+        public static boolean isValidFileSize(MultipartFile file, int maxSizeBytes) {
+            if (file == null || file.isEmpty()) {
+                return false;
+            }
+            return file.getSize() <= maxSizeBytes;
+        }
+
+        /**
+         * Tạo tên file unique (static wrapper)
+         */
+        public static String generateUniqueFilename(String originalFileName) {
+            return CourseUtils.generateUniqueFilename(originalFileName);
+        }
+
+        /**
+         * Lưu file (static wrapper)
+         */
+        public static String saveFile(MultipartFile file, String uploadDirectory, String filename) throws IOException {
+            return CourseUtils.saveFile(file, uploadDirectory, filename);
+        }
 
         /**
          * Check if file is image
@@ -545,6 +407,41 @@ public class CourseUtils {
             } else {
                 return String.format("%.1f GB", bytes / (1024.0 * 1024.0 * 1024.0));
             }
+        }
+    }
+
+    /**
+     * Validation utilities inner class
+     */
+    public static class ValidationUtils {
+
+        private static final Pattern EMAIL_PATTERN =
+                Pattern.compile("^[A-Za-z0-9+_.-]+@([A-Za-z0-9.-]+\\.[A-Za-z]{2,})$");
+
+        private static final Pattern USERNAME_PATTERN =
+                Pattern.compile("^[a-zA-Z0-9._-]{3,20}$");
+
+        /**
+         * Validate email
+         */
+        public static boolean isValidEmail(String email) {
+            return email != null && EMAIL_PATTERN.matcher(email).matches();
+        }
+
+        /**
+         * Validate username
+         */
+        public static boolean isValidUsername(String username) {
+            return username != null && USERNAME_PATTERN.matcher(username).matches();
+        }
+
+        /**
+         * Validate password
+         */
+        public static boolean isValidPassword(String password) {
+            return password != null &&
+                    password.length() >= 6 &&
+                    password.length() <= 100;
         }
     }
 }

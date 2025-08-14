@@ -10,6 +10,266 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "enrollments")
 public class Enrollment {
+    // ===== ENROLLMENT ENTITY OPTIONAL FIELDS =====
+
+/**
+ * Thêm các fields sau vào Enrollment.java nếu muốn hỗ trợ thêm tính năng:
+ * (Các fields này là optional - chỉ thêm nếu cần)
+ */
+
+    /**
+     * 1. Thêm final score field:
+     */
+    @Column(name = "final_score", precision = 5, scale = 2)
+    private Double finalScore; // Điểm cuối khóa của học viên
+
+    /**
+     * 2. Thêm certificate issued date:
+     */
+    @Column(name = "certificate_issued_date")
+    private LocalDateTime certificateIssuedDate; // Ngày cấp chứng chỉ
+
+    /**
+     * 3. Thêm learning time tracking:
+     */
+    @Column(name = "total_learning_time")
+    private Integer totalLearningTime; // Tổng thời gian học (phút)
+
+    @Column(name = "last_accessed_at")
+    private LocalDateTime lastAccessedAt; // Lần truy cập cuối
+
+    /**
+     * 4. Thêm payment information:
+     */
+    @Column(name = "payment_status")
+    @Enumerated(EnumType.STRING)
+    private PaymentStatus paymentStatus = PaymentStatus.FREE;
+
+    @Column(name = "payment_amount", precision = 10, scale = 2)
+    private Double paymentAmount = 0.0;
+
+    @Column(name = "payment_date")
+    private LocalDateTime paymentDate;
+
+    /**
+     * 5. Thêm feedback fields:
+     */
+    @Column(name = "rating", precision = 2, scale = 1)
+    private Double rating; // Đánh giá từ 1-5 sao
+
+    @Column(name = "review", columnDefinition = "TEXT")
+    private String review; // Nhận xét của học viên
+
+    @Column(name = "review_date")
+    private LocalDateTime reviewDate;
+
+    /**
+     * Enum cho Payment Status:
+     */
+    public enum PaymentStatus {
+        FREE("Miễn phí"),
+        PENDING("Chờ thanh toán"),
+        PAID("Đã thanh toán"),
+        REFUNDED("Đã hoàn tiền"),
+        CANCELLED("Đã hủy");
+
+        private final String displayName;
+
+        PaymentStatus(String displayName) {
+            this.displayName = displayName;
+        }
+
+        public String getDisplayName() {
+            return displayName;
+        }
+
+        public String getCssClass() {
+            return switch (this) {
+                case FREE -> "badge-success";
+                case PENDING -> "badge-warning";
+                case PAID -> "badge-success";
+                case REFUNDED -> "badge-info";
+                case CANCELLED -> "badge-danger";
+            };
+        }
+    }
+
+    /**
+     * Getter/Setter methods cho các fields mới:
+     */
+
+    public Double getFinalScore() {
+        return finalScore;
+    }
+
+    public void setFinalScore(Double finalScore) {
+        this.finalScore = finalScore;
+    }
+
+    public LocalDateTime getCertificateIssuedDate() {
+        return certificateIssuedDate;
+    }
+
+    public void setCertificateIssuedDate(LocalDateTime certificateIssuedDate) {
+        this.certificateIssuedDate = certificateIssuedDate;
+    }
+
+    public Integer getTotalLearningTime() {
+        return totalLearningTime;
+    }
+
+    public void setTotalLearningTime(Integer totalLearningTime) {
+        this.totalLearningTime = totalLearningTime;
+    }
+
+    public LocalDateTime getLastAccessedAt() {
+        return lastAccessedAt;
+    }
+
+    public void setLastAccessedAt(LocalDateTime lastAccessedAt) {
+        this.lastAccessedAt = lastAccessedAt;
+    }
+
+    public PaymentStatus getPaymentStatus() {
+        return paymentStatus;
+    }
+
+    public void setPaymentStatus(PaymentStatus paymentStatus) {
+        this.paymentStatus = paymentStatus;
+    }
+
+    public Double getPaymentAmount() {
+        return paymentAmount;
+    }
+
+    public void setPaymentAmount(Double paymentAmount) {
+        this.paymentAmount = paymentAmount;
+    }
+
+    public LocalDateTime getPaymentDate() {
+        return paymentDate;
+    }
+
+    public void setPaymentDate(LocalDateTime paymentDate) {
+        this.paymentDate = paymentDate;
+    }
+
+    public Double getRating() {
+        return rating;
+    }
+
+    public void setRating(Double rating) {
+        this.rating = rating;
+    }
+
+    public String getReview() {
+        return review;
+    }
+
+    public void setReview(String review) {
+        this.review = review;
+    }
+
+    public LocalDateTime getReviewDate() {
+        return reviewDate;
+    }
+
+    public void setReviewDate(LocalDateTime reviewDate) {
+        this.reviewDate = reviewDate;
+    }
+
+/**
+ * Helper methods:
+ */
+
+    /**
+     * Kiểm tra có điểm cuối khóa chưa
+     */
+    public boolean hasFinalScore() {
+        return finalScore != null && finalScore > 0;
+    }
+
+    /**
+     * Lấy formatted final score
+     */
+    public String getFormattedFinalScore() {
+        if (finalScore == null || finalScore == 0) {
+            return "Chưa có điểm";
+        }
+        return String.format("%.1f", finalScore);
+    }
+
+    /**
+     * Kiểm tra có review chưa
+     */
+    public boolean hasReview() {
+        return review != null && !review.trim().isEmpty();
+    }
+
+    /**
+     * Lấy formatted rating
+     */
+    public String getFormattedRating() {
+        if (rating == null || rating == 0) {
+            return "Chưa đánh giá";
+        }
+        return String.format("%.1f/5 ⭐", rating);
+    }
+
+    /**
+     * Kiểm tra đã thanh toán chưa
+     */
+    public boolean isPaid() {
+        return paymentStatus == PaymentStatus.PAID || paymentStatus == PaymentStatus.FREE;
+    }
+
+    /**
+     * Lấy formatted payment amount
+     */
+    public String getFormattedPaymentAmount() {
+        if (paymentAmount == null || paymentAmount == 0) {
+            return "Miễn phí";
+        }
+        return String.format("%,.0f VNĐ", paymentAmount);
+    }
+
+    /**
+     * Cập nhật learning time
+     */
+    public void addLearningTime(int minutes) {
+        if (totalLearningTime == null) {
+            totalLearningTime = 0;
+        }
+        totalLearningTime += minutes;
+        lastAccessedAt = LocalDateTime.now();
+        setUpdatedAt(LocalDateTime.now());
+    }
+
+    /**
+     * Lấy formatted total learning time
+     */
+    public String getFormattedLearningTime() {
+        if (totalLearningTime == null || totalLearningTime == 0) {
+            return "Chưa học";
+        }
+
+        if (totalLearningTime < 60) {
+            return totalLearningTime + " phút";
+        } else {
+            int hours = totalLearningTime / 60;
+            int minutes = totalLearningTime % 60;
+            if (minutes == 0) {
+                return hours + " giờ";
+            } else {
+                return hours + " giờ " + minutes + " phút";
+            }
+        }
+    }
+
+    /**
+     * Update complete method để set final score và certificate date
+     */
+
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -107,6 +367,7 @@ public class Enrollment {
         }
         this.updatedAt = LocalDateTime.now();
     }
+
 
     /**
      * Lấy formatted progress

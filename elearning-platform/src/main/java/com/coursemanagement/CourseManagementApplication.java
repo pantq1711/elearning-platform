@@ -10,6 +10,8 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.time.LocalDateTime;
+
 /**
  * Main class để khởi động ứng dụng Course Management System
  * Tự động tạo dữ liệu mặc định khi khởi động

@@ -21,6 +21,9 @@ import java.util.Optional;
  */
 @Repository
 public interface QuizRepository extends JpaRepository<Quiz, Long> {
+    // Course-related methods
+    List<Quiz> findByCourseIdAndActiveOrderByCreatedAtDesc(Long courseId, boolean active);
+    // Instructor methods
 
     // ===== BASIC FINDER METHODS =====
 

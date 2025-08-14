@@ -1,9 +1,12 @@
 package com.coursemanagement.service;
 
 import com.coursemanagement.entity.Category;
+import com.coursemanagement.entity.Course;
 import com.coursemanagement.repository.CategoryRepository;
+import com.coursemanagement.utils.CourseUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
@@ -11,12 +14,12 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.List;
+import java.util.Optional;
 
 /**
- * Service class để xử lý business logic liên quan đến Category
- * Quản lý CRUD operations, validation và business rules cho categories
+ * Dịch vụ quản lý danh mục khóa học (Category)
+ * Xử lý logic nghiệp vụ cho việc tạo, cập nhật và quản lý categories
  */
 @Service
 @Transactional
@@ -25,7 +28,7 @@ public class CategoryService {
     @Autowired
     private CategoryRepository categoryRepository;
 
-    // ===== BASIC CRUD OPERATIONS =====
+    // ===== CÁC THAO TÁC CRUD CƠ BẢN =====
 
     /**
      * Tìm category theo ID
@@ -35,17 +38,24 @@ public class CategoryService {
     }
 
     /**
-     * Tìm category theo name
-     */
-    public Optional<Category> findByName(String name) {
-        return categoryRepository.findByName(name);
-    }
-
-    /**
      * Tìm tất cả categories
      */
     public List<Category> findAll() {
         return categoryRepository.findAll();
+    }
+
+    /**
+     * Tìm categories với phân trang
+     */
+    public Page<Category> findAll(Pageable pageable) {
+        return categoryRepository.findAll(pageable);
+    }
+
+    /**
+     * Tìm tất cả categories sắp xếp theo tên
+     */
+    public List<Category> findAllOrderByName() {
+        return categoryRepository.findAll(Sort.by(Sort.Direction.ASC, "name"));
     }
 
     /**
@@ -66,18 +76,26 @@ public class CategoryService {
      * Tạo category mới
      */
     public Category createCategory(Category category) {
-        if (category == null) {
-            throw new RuntimeException("Category không được để trống");
-        }
+        validateCategory(category);
 
-        if (isCategoryNameExists(category.getName())) {
+        // Kiểm tra tên đã tồn tại
+        if (existsByName(category.getName())) {
             throw new RuntimeException("Tên danh mục đã tồn tại: " + category.getName());
         }
 
-        category.setId(null);
-        category.setActive(true);
+        category.setCreatedAt(LocalDateTime.now());
+        category.setUpdatedAt(LocalDateTime.now());
 
-        return save(category);
+        // Set default values
+        if (category.getColorCode() == null) {
+            category.setColorCode("#007bff"); // Default blue color
+        }
+
+        if (category.getIconClass() == null) {
+            category.setIconClass("fas fa-book"); // Default book icon
+        }
+
+        return categoryRepository.save(category);
     }
 
     /**
@@ -88,262 +106,213 @@ public class CategoryService {
             throw new RuntimeException("ID category không được để trống khi cập nhật");
         }
 
-        Category existingCategory = findById(category.getId())
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy danh mục với ID: " + category.getId()));
+        Category existingCategory = categoryRepository.findById(category.getId())
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy category với ID: " + category.getId()));
 
-        if (isCategoryNameExists(category.getName(), category.getId())) {
+        // Kiểm tra tên trùng lặp (exclude current category)
+        if (!existingCategory.getName().equals(category.getName()) && existsByName(category.getName())) {
             throw new RuntimeException("Tên danh mục đã tồn tại: " + category.getName());
         }
 
+        // Cập nhật các trường
         existingCategory.setName(category.getName());
         existingCategory.setDescription(category.getDescription());
-        existingCategory.setActive(category.isActive());
+        existingCategory.setColorCode(category.getColorCode());
+        existingCategory.setIconClass(category.getIconClass());
+        existingCategory.setFeatured(category.isFeatured());
         existingCategory.setUpdatedAt(LocalDateTime.now());
 
         return categoryRepository.save(existingCategory);
     }
 
     /**
-     * Xóa category (soft delete)
+     * Xóa category (chỉ khi không có courses)
      */
-    public void deleteCategory(Long id) {
-        Category category = findById(id)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy danh mục với ID: " + id));
+    public void deleteCategory(Long categoryId) {
+        Category category = categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy category với ID: " + categoryId));
 
-        Long courseCount = countCoursesByCategory(id);
-        if (courseCount > 0) {
-            throw new RuntimeException("Không thể xóa danh mục đang có " + courseCount + " khóa học");
+        // Kiểm tra có courses không
+        if (category.getCourseCount() > 0) {
+            throw new RuntimeException("Không thể xóa danh mục có chứa khóa học");
         }
 
-        category.setActive(false);
-        category.setUpdatedAt(LocalDateTime.now());
-        categoryRepository.save(category);
+        categoryRepository.delete(category);
     }
 
-    // ===== COUNT OPERATIONS =====
+    // ===== ACTIVE STATUS MANAGEMENT =====
 
     /**
-     * Đếm tổng số categories
+     * Set active status cho category (nếu Category entity có active field)
      */
-    public Long countAllCategories() {
-        return categoryRepository.countAllCategories();
-    }
+    public Category setActive(Long categoryId, boolean active) {
+        Category category = categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy category với ID: " + categoryId));
 
-    /**
-     * Đếm categories active
-     */
-    public Long countByActive(boolean active) {
-        return categoryRepository.countByActive(active);
-    }
+        // Nếu Category entity có active field
+        if (hasActiveField(category)) {
+            setActiveField(category, active);
+            category.setUpdatedAt(LocalDateTime.now());
+            return categoryRepository.save(category);
+        }
 
-    /**
-     * Đếm số courses trong category
-     */
-    public Long countCoursesByCategory(Long categoryId) {
-        Category category = findById(categoryId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy danh mục với ID: " + categoryId));
-        return categoryRepository.countCoursesByCategory(category);
+        // Nếu không có active field, return category without changes
+        return category;
     }
 
     /**
-     * Đếm số active courses trong category
+     * Check if category is active
      */
-    public Long countActiveCoursesByCategory(Long categoryId) {
-        Category category = findById(categoryId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy danh mục với ID: " + categoryId));
-        return categoryRepository.countCoursesByCategoryAndActive(category, true);
+    public boolean isActive(Category category) {
+        if (category == null) {
+            return false;
+        }
+
+        // Nếu Category entity có active field
+        if (hasActiveField(category)) {
+            return getActiveField(category);
+        }
+
+        // Default: category luôn active nếu không có field
+        return true;
     }
 
-    // ===== FINDER METHODS =====
+    // ===== TÌM KIẾM VÀ LỌC =====
 
     /**
-     * Tìm tất cả categories active sắp xếp theo tên
+     * Tìm category theo tên
      */
-    public List<Category> findAllActive() {
-        return categoryRepository.findAllByActiveTrueOrderByName();
-    }
-
-    /**
-     * Tìm categories sắp xếp theo tên (tất cả)
-     */
-    public List<Category> findAllOrderByName() {
-        return categoryRepository.findAll(Sort.by(Sort.Direction.ASC, "name"));
-    }
-
-    /**
-     * Tìm categories theo active status với pagination
-     */
-    public Page<Category> findByActive(boolean active, Pageable pageable) {
-        return categoryRepository.findByActive(active, pageable);
+    public Optional<Category> findByName(String name) {
+        return categoryRepository.findByName(name);
     }
 
     /**
-     * Tìm categories có courses active
+     * Tìm categories theo tên chứa keyword (case insensitive)
      */
-    public List<Category> findCategoriesWithActiveCourses() {
-        return categoryRepository.findCategoriesWithActiveCourses();
+    public List<Category> findByNameContainingIgnoreCase(String keyword) {
+        return categoryRepository.findByNameContainingIgnoreCase(keyword);
     }
 
     /**
-     * Tìm categories không có courses
+     * Tìm featured categories
      */
-    public List<Category> findEmptyCategories() {
-        return categoryRepository.findEmptyCategories();
+    public List<Category> findFeaturedCategories() {
+        return categoryRepository.findByFeaturedOrderByName(true);
+    }
+
+    /**
+     * Tìm featured categories với limit
+     */
+    public List<Category> findFeaturedCategories(int limit) {
+        Pageable pageable = PageRequest.of(0, limit, Sort.by(Sort.Direction.ASC, "name"));
+        return categoryRepository.findByFeatured(true, pageable).getContent();
+    }
+
+    /**
+     * Tìm top categories theo course count
+     */
+    public List<Category> findTopCategoriesByCourseCount(int limit) {
+        Pageable pageable = PageRequest.of(0, limit);
+        return categoryRepository.findTopCategoriesByCourseCount(pageable);
     }
 
     /**
      * Tìm categories có courses
      */
     public List<Category> findCategoriesWithCourses() {
-        return categoryRepository.findCategoriesWithCourses();
+        return categoryRepository.findByCourseCountGreaterThan(0);
     }
 
-    // ===== TOP & POPULAR CATEGORIES =====
+    // ===== ĐẾM VÀ THỐNG KÊ =====
 
     /**
-     * Tìm top categories theo số lượng courses
+     * Đếm tất cả categories
      */
-    public List<Category> findTopCategoriesByCourseCount(int limit) {
-        List<Category> allCategories = categoryRepository.findTopCategoriesByCourseCount(limit);
-        return allCategories.stream()
-                .limit(limit)
-                .collect(Collectors.toList());
+    public Long countAll() {
+        return categoryRepository.count();
     }
 
     /**
-     * Tìm popular categories
+     * Đếm tất cả categories (alias)
      */
-    public List<Category> findPopularCategories(int limit) {
-        List<Category> allPopular = categoryRepository.findPopularCategories(limit);
-        return allPopular.stream()
-                .limit(limit)
-                .collect(Collectors.toList());
+    public Long countAllCategories() {
+        return countAll();
     }
 
     /**
-     * Tìm categories được tạo gần đây
+     * Đếm featured categories
      */
-    public List<Category> findRecentCategories(int daysAgo) {
-        LocalDateTime fromDate = LocalDateTime.now().minusDays(daysAgo);
-        return categoryRepository.findRecentCategoriesByDate(fromDate);
-    }
-
-    // ===== SEARCH METHODS =====
-
-    /**
-     * Tìm categories theo keyword
-     */
-    public Page<Category> findByKeyword(String keyword, Pageable pageable) {
-        return categoryRepository.findByKeyword(keyword, pageable);
+    public Long countFeaturedCategories() {
+        return categoryRepository.countByFeatured(true);
     }
 
     /**
-     * Search categories theo tên và description
+     * Đếm categories có courses
      */
-    public Page<Category> searchByName(String keyword, Pageable pageable) {
-        return categoryRepository.searchByName(keyword, pageable);
+    public Long countCategoriesWithCourses() {
+        return categoryRepository.countByCourseCountGreaterThan(0);
     }
 
-    // ===== STATISTICS METHODS =====
+    // ===== COURSE COUNT MANAGEMENT =====
 
     /**
-     * Tìm categories với số lượng courses
+     * Cập nhật course count cho category
      */
-    public List<CategoryStats> findCategoriesWithCourseCount() {
-        List<Object[]> results = categoryRepository.findCategoriesWithCourseCount();
-        return results.stream()
-                .map(result -> {
-                    Category category = (Category) result[0];
-                    Long courseCount = (Long) result[1];
-                    return new CategoryStats(category, courseCount.intValue());
-                })
-                .collect(Collectors.toList());
-    }
+    public void updateCourseCount(Long categoryId) {
+        Category category = categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy category"));
 
-    /**
-     * Lấy thống kê categories
-     */
-    public List<CategoryStats> getCategoryStats() {
-        List<Object[]> results = categoryRepository.getCategoryStats();
-        return results.stream()
-                .map(result -> {
-                    String categoryName = (String) result[0];
-                    Long totalCourses = (Long) result[1];
-                    Long activeCourses = (Long) result[2];
+        // Tính số courses active trong category
+        int courseCount = category.getCourses() != null ?
+                (int) category.getCourses().stream().filter(Course::isActive).count() : 0;
 
-                    CategoryStats stats = new CategoryStats();
-                    stats.setCategoryName(categoryName);
-                    stats.setTotalCourses(totalCourses.intValue());
-                    stats.setActiveCourses(activeCourses.intValue());
-                    return stats;
-                })
-                .collect(Collectors.toList());
+        category.setCourseCount(courseCount);
+        category.setUpdatedAt(LocalDateTime.now());
+        categoryRepository.save(category);
     }
 
     /**
-     * Lấy revenue theo category
+     * Cập nhật course count cho tất cả categories
      */
-    public List<Object[]> getRevenueByCategory() {
-        return categoryRepository.getRevenueByCategory();
+    public void updateAllCourseCount() {
+        List<Category> categories = findAll();
+        for (Category category : categories) {
+            updateCourseCount(category.getId());
+        }
     }
 
     /**
-     * Lấy thống kê dashboard cho categories
+     * Increment course count
      */
-    public Map<String, Object> getCategoryDashboardStats() {
-        Map<String, Object> stats = new HashMap<>();
+    public void incrementCourseCount(Long categoryId) {
+        Category category = categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy category"));
 
-        stats.put("totalCategories", countAllCategories());
-        stats.put("activeCategories", countByActive(true));
-        stats.put("categoriesWithCourses", findCategoriesWithCourses().size());
-        stats.put("emptyCategories", findEmptyCategories().size());
-
-        return stats;
+        category.setCourseCount(category.getCourseCount() + 1);
+        category.setUpdatedAt(LocalDateTime.now());
+        categoryRepository.save(category);
     }
 
     /**
-     * Lấy category performance stats
+     * Decrement course count
      */
-    public List<Object[]> getCategoryPerformanceStats() {
-        return categoryRepository.getCategoryPerformanceStats();
+    public void decrementCourseCount(Long categoryId) {
+        Category category = categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy category"));
+
+        category.setCourseCount(Math.max(0, category.getCourseCount() - 1));
+        category.setUpdatedAt(LocalDateTime.now());
+        categoryRepository.save(category);
     }
 
-    /**
-     * Lấy thống kê categories theo course count ranges
-     */
-    public List<Object[]> getCategoryDistributionStats() {
-        return categoryRepository.getCategoryDistributionStats();
-    }
+    // ===== FEATURED MANAGEMENT =====
 
     /**
-     * Lấy category stats với enrollment data
+     * Set featured status cho category
      */
-    public List<Object[]> getCategoriesWithEnrollmentStats() {
-        return categoryRepository.getCategoriesWithEnrollmentStats();
-    }
-
-    // ===== FEATURED CATEGORIES =====
-
-    /**
-     * Tìm categories theo featured status
-     */
-    public List<Category> findByFeaturedOrderByNameAsc(boolean featured) {
-        return categoryRepository.findByFeaturedOrderByNameAsc(featured);
-    }
-
-    /**
-     * Đếm categories theo featured status
-     */
-    public Long countByFeatured(boolean featured) {
-        return categoryRepository.countByFeatured(featured);
-    }
-
-    /**
-     * Cập nhật featured status của category
-     */
-    public Category updateFeaturedStatus(Long id, boolean featured) {
-        Category category = findById(id)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy danh mục với ID: " + id));
+    public Category setFeatured(Long categoryId, boolean featured) {
+        Category category = categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy category"));
 
         category.setFeatured(featured);
         category.setUpdatedAt(LocalDateTime.now());
@@ -351,56 +320,41 @@ public class CategoryService {
         return categoryRepository.save(category);
     }
 
-    // ===== APPEARANCE METHODS =====
-
     /**
-     * Tìm categories theo color code
+     * Toggle featured status
      */
-    public List<Category> findByColorCode(String colorCode) {
-        return categoryRepository.findByColorCode(colorCode);
+    public Category toggleFeatured(Long categoryId) {
+        Category category = categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy category"));
+
+        category.setFeatured(!category.isFeatured());
+        category.setUpdatedAt(LocalDateTime.now());
+
+        return categoryRepository.save(category);
     }
 
-    /**
-     * Tìm categories theo icon class
-     */
-    public List<Category> findByIconClass(String iconClass) {
-        return categoryRepository.findByIconClass(iconClass);
-    }
+    // ===== KIỂM TRA TỒN TẠI =====
 
     /**
-     * Lấy tất cả color codes đang sử dụng
+     * Kiểm tra tên category đã tồn tại chưa
      */
-    public List<String> findAllUsedColorCodes() {
-        return categoryRepository.findAllUsedColorCodes();
-    }
-
-    /**
-     * Lấy tất cả icon classes đang sử dụng
-     */
-    public List<String> findAllUsedIconClasses() {
-        return categoryRepository.findAllUsedIconClasses();
-    }
-
-    // ===== VALIDATION & EXISTENCE CHECKS =====
-
-    /**
-     * Kiểm tra category name đã tồn tại chưa
-     */
-    public boolean isCategoryNameExists(String name) {
+    public boolean existsByName(String name) {
         return categoryRepository.existsByName(name);
     }
 
     /**
-     * Kiểm tra category name đã tồn tại chưa (cho update)
+     * Kiểm tra category có courses không
      */
-    public boolean isCategoryNameExists(String name, Long excludeId) {
-        return categoryRepository.existsByNameAndIdNot(name, excludeId);
+    public boolean hasCourses(Long categoryId) {
+        Category category = categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy category"));
+        return category.getCourseCount() > 0;
     }
 
-    // ===== PRIVATE VALIDATION METHODS =====
+    // ===== VALIDATION =====
 
     /**
-     * Validate category data
+     * Validate category trước khi lưu
      */
     private void validateCategory(Category category) {
         if (category == null) {
@@ -408,61 +362,143 @@ public class CategoryService {
         }
 
         if (!StringUtils.hasText(category.getName())) {
-            throw new RuntimeException("Tên danh mục không được để trống");
+            throw new RuntimeException("Tên category không được để trống");
         }
 
-        if (category.getName().length() > 100) {
-            throw new RuntimeException("Tên danh mục không được quá 100 ký tự");
+        // Kiểm tra độ dài tên
+        if (category.getName().length() < 2 || category.getName().length() > 100) {
+            throw new RuntimeException("Tên category phải từ 2-100 ký tự");
         }
 
-        if (category.getDescription() != null && category.getDescription().length() > 500) {
-            throw new RuntimeException("Mô tả danh mục không được quá 500 ký tự");
+        // Validate color code format
+        if (category.getColorCode() != null && !isValidColorCode(category.getColorCode())) {
+            throw new RuntimeException("Mã màu không đúng định dạng (ví dụ: #FF0000)");
+        }
+
+        // Validate icon class format
+        if (category.getIconClass() != null && category.getIconClass().length() > 50) {
+            throw new RuntimeException("Icon class không được quá 50 ký tự");
         }
     }
 
-    // ===== INNER CLASS FOR STATISTICS =====
+    /**
+     * Kiểm tra color code có hợp lệ không
+     */
+    private boolean isValidColorCode(String colorCode) {
+        if (colorCode == null || colorCode.trim().isEmpty()) {
+            return false;
+        }
+        return colorCode.matches("^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$");
+    }
+
+    // ===== HELPER METHODS CHO ACTIVE FIELD REFLECTION =====
 
     /**
-     * Inner class cho Category Statistics
+     * Kiểm tra Category có active field không
      */
-    public static class CategoryStats {
-        private Long id;
-        private String categoryName;
-        private int totalCourses;
-        private int activeCourses;
-        private int enrollmentCount;
-        private double revenue;
-        private Category category;
+    private boolean hasActiveField(Category category) {
+        try {
+            category.getClass().getDeclaredField("active");
+            return true;
+        } catch (NoSuchFieldException e) {
+            return false;
+        }
+    }
 
-        public CategoryStats() {}
+    /**
+     * Set active field value
+     */
+    private void setActiveField(Category category, boolean active) {
+        try {
+            java.lang.reflect.Field field = category.getClass().getDeclaredField("active");
+            field.setAccessible(true);
+            field.setBoolean(category, active);
+        } catch (Exception e) {
+            // Ignore reflection errors
+        }
+    }
 
-        public CategoryStats(Category category, int courseCount) {
-            this.category = category;
-            this.id = category.getId();
-            this.categoryName = category.getName();
-            this.totalCourses = courseCount;
+    /**
+     * Get active field value
+     */
+    private boolean getActiveField(Category category) {
+        try {
+            java.lang.reflect.Field field = category.getClass().getDeclaredField("active");
+            field.setAccessible(true);
+            return field.getBoolean(category);
+        } catch (Exception e) {
+            return true; // Default active
+        }
+    }
+
+    // ===== UTILITY METHODS =====
+
+    /**
+     * Lấy category với course count cao nhất
+     */
+    public Optional<Category> findMostPopularCategory() {
+        List<Category> categories = findTopCategoriesByCourseCount(1);
+        return categories.isEmpty() ? Optional.empty() : Optional.of(categories.get(0));
+    }
+
+    /**
+     * Lấy danh sách categories cho dropdown/select
+     */
+    public List<Category> findForDropdown() {
+        return categoryRepository.findAll(Sort.by(Sort.Direction.ASC, "name"));
+    }
+
+    /**
+     * Generate default icon class dựa trên tên category
+     */
+    public String generateDefaultIcon(String categoryName) {
+        if (categoryName == null) {
+            return "fas fa-book";
         }
 
-        // Getters and setters
-        public Long getId() { return id; }
-        public void setId(Long id) { this.id = id; }
+        String lowerName = categoryName.toLowerCase();
 
-        public String getCategoryName() { return categoryName; }
-        public void setCategoryName(String categoryName) { this.categoryName = categoryName; }
+        if (lowerName.contains("programming") || lowerName.contains("lập trình")) {
+            return "fas fa-code";
+        } else if (lowerName.contains("design") || lowerName.contains("thiết kế")) {
+            return "fas fa-paint-brush";
+        } else if (lowerName.contains("business") || lowerName.contains("kinh doanh")) {
+            return "fas fa-briefcase";
+        } else if (lowerName.contains("marketing")) {
+            return "fas fa-bullhorn";
+        } else if (lowerName.contains("music") || lowerName.contains("âm nhạc")) {
+            return "fas fa-music";
+        } else if (lowerName.contains("language") || lowerName.contains("ngôn ngữ")) {
+            return "fas fa-globe";
+        } else {
+            return "fas fa-book";
+        }
+    }
 
-        public int getTotalCourses() { return totalCourses; }
-        public void setTotalCourses(int totalCourses) { this.totalCourses = totalCourses; }
+    /**
+     * Generate default color dựa trên tên category
+     */
+    public String generateDefaultColor(String categoryName) {
+        if (categoryName == null) {
+            return "#007bff";
+        }
 
-        public int getActiveCourses() { return activeCourses; }
-        public void setActiveCourses(int activeCourses) { this.activeCourses = activeCourses; }
+        String lowerName = categoryName.toLowerCase();
 
-        public int getEnrollmentCount() { return enrollmentCount; }
-        public void setEnrollmentCount(int enrollmentCount) { this.enrollmentCount = enrollmentCount; }
-
-        public double getRevenue() { return revenue; }
-        public void setRevenue(double revenue) { this.revenue = revenue; }
-
-        public Category getCategory() { return category; }
-        public void setCategory(Category category) { this.category = category; }
+        if (lowerName.contains("programming") || lowerName.contains("lập trình")) {
+            return "#28a745"; // Green
+        } else if (lowerName.contains("design") || lowerName.contains("thiết kế")) {
+            return "#e83e8c"; // Pink
+        } else if (lowerName.contains("business") || lowerName.contains("kinh doanh")) {
+            return "#343a40"; // Dark
+        } else if (lowerName.contains("marketing")) {
+            return "#fd7e14"; // Orange
+        } else if (lowerName.contains("music") || lowerName.contains("âm nhạc")) {
+            return "#6f42c1"; // Purple
+        } else if (lowerName.contains("language") || lowerName.contains("ngôn ngữ")) {
+            return "#20c997"; // Teal
+        } else {
+            return "#007bff"; // Blue
+        }
     }
 }

@@ -20,6 +20,15 @@ import java.util.Optional;
 @Repository
 public interface QuestionRepository extends JpaRepository<Question, Long> {
 
+    // Difficulty and type filters
+    List<Question> findByQuizAndDifficultyLevelOrderByDisplayOrder(Quiz quiz, Question.DifficultyLevel difficulty);
+    List<Question> findByQuizAndQuestionTypeOrderByDisplayOrder(Quiz quiz, QuestionType questionType);
+
+    // Random selection
+    @Query("SELECT q FROM Question q WHERE q.quiz = :quiz ORDER BY RANDOM()")
+    List<Question> findRandomQuestionsByQuiz(@Param("quiz") Quiz quiz, Pageable pageable);
+
+
     // ===== BASIC FINDER METHODS =====
 
     /**

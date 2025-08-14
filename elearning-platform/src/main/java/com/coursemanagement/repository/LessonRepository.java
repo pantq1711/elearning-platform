@@ -21,6 +21,20 @@ import java.util.Optional;
  */
 @Repository
 public interface LessonRepository extends JpaRepository<Lesson, Long> {
+    /**
+     * Thêm các methods sau vào LessonRepository.java
+     */
+
+// Course-related finders
+    List<Lesson> findByCourseIdAndActiveOrderByOrderIndex(Long courseId, boolean active);
+    List<Lesson> findByCourseIdAndPreviewAndActiveOrderByOrderIndex(Long courseId, boolean preview, boolean active);
+    List<Lesson> findByCourseAndPreviewAndActiveOrderByOrderIndex(Course course, boolean preview, boolean active);
+
+    // Order management
+    Optional<Lesson> findByCourseAndOrderIndex(Course course, Integer orderIndex);
+
+
+    List<Lesson> findByTitleContainingIgnoreCaseAndActiveOrderByCreatedAtDesc(String keyword, boolean active);
 
     // ===== BASIC FINDER METHODS =====
 

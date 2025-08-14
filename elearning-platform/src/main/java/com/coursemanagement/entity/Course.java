@@ -37,8 +37,9 @@ public class Course {
     @Column(name = "duration_minutes")
     private Integer duration; // Thời lượng tính bằng phút
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "difficulty_level", length = 20)
-    private String difficultyLevel = "BEGINNER"; // BEGINNER, INTERMEDIATE, ADVANCED
+    private DifficultyLevel difficultyLevel = DifficultyLevel.EASY; // Sử dụng enum có sẵn trong file
 
     @Column(precision = 10, scale = 2)
     private Double price = 0.0;
@@ -175,15 +176,25 @@ public class Course {
      * @return Text hiển thị difficulty
      */
     public String getDifficultyLevelText() {
-        if (difficultyLevel == null) return "Không xác định";
-
-        switch (difficultyLevel.toUpperCase()) {
-            case "BEGINNER": return "Cơ bản";
-            case "INTERMEDIATE": return "Trung cấp";
-            case "ADVANCED": return "Nâng cao";
-            default: return "Không xác định";
-        }
+        return difficultyLevel != null ? difficultyLevel.getDisplayName() : "Không xác định";
     }
+    /**
+     * Thêm method để lấy CSS class:
+     */
+    public String getDifficultyLevelCssClass() {
+        return difficultyLevel != null ? difficultyLevel.getCssClass() : "badge-secondary";
+    }
+
+    /**
+     * Thêm method để lấy icon:
+     */
+    public String getDifficultyLevelIcon() {
+        return difficultyLevel != null ? difficultyLevel.getIconClass() : "fas fa-question";
+    }
+    public String getDifficultyLevelAsString() {
+        return difficultyLevel != null ? difficultyLevel.name() : "EASY";
+    }
+
 
     /**
      * Lấy formatted price
@@ -283,12 +294,42 @@ public class Course {
         this.duration = duration;
     }
 
-    public String getDifficultyLevel() {
+    public DifficultyLevel getDifficultyLevel() {
         return difficultyLevel;
     }
 
-    public void setDifficultyLevel(String difficultyLevel) {
+    public void setDifficultyLevel(DifficultyLevel difficultyLevel) {
         this.difficultyLevel = difficultyLevel;
+    }
+    public void setDifficultyLevelFromString(String level) {
+        if (level == null || level.trim().isEmpty()) {
+            this.difficultyLevel = DifficultyLevel.EASY;
+            return;
+        }
+
+        switch (level.toUpperCase()) {
+            case "BEGINNER":
+            case "EASY":
+            case "CƠ BẢN":
+                this.difficultyLevel = DifficultyLevel.EASY;
+                break;
+            case "INTERMEDIATE":
+            case "MEDIUM":
+            case "TRUNG BÌNH":
+                this.difficultyLevel = DifficultyLevel.MEDIUM;
+                break;
+            case "ADVANCED":
+            case "HARD":
+            case "NÂNG CAO":
+                this.difficultyLevel = DifficultyLevel.HARD;
+                break;
+            case "EXPERT":
+            case "CHUYÊN GIA":
+                this.difficultyLevel = DifficultyLevel.EXPERT;
+                break;
+            default:
+                this.difficultyLevel = DifficultyLevel.EASY;
+        }
     }
 
     public Double getPrice() {

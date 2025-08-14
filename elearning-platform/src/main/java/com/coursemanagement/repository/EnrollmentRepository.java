@@ -21,6 +21,29 @@ import java.util.Optional;
 @Repository
 public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
 
+    // Basic finders
+    Optional<Enrollment> findByStudentIdAndCourseId(Long studentId, Long courseId);
+
+    // Student-related methods
+    List<Enrollment> findByStudentAndCompletedOrderByUpdatedAtDesc(User student, boolean completed);
+
+    // Course-related methods
+    List<Enrollment> findByCourseOrderByEnrollmentDateDesc(Course course);
+
+    // Count methods
+    Long countByCourse(Course course);
+    Long countByCourseId(Long courseId);
+    Long countByCourseIdAndCompleted(Long courseId, boolean completed);
+
+    // Advanced statistics
+    @Query("SELECT YEAR(e.enrollmentDate), MONTH(e.enrollmentDate), COUNT(e) FROM Enrollment e " +
+            "WHERE e.enrollmentDate >= :fromDate GROUP BY YEAR(e.enrollmentDate), MONTH(e.enrollmentDate)")
+    Page<Object[]> getEnrollmentStatsByMonth(@Param("fromDate") LocalDateTime fromDate, Pageable pageable);
+
+    @Query("SELECT c.name, COUNT(e) FROM Enrollment e JOIN e.course c " +
+            "GROUP BY c.id, c.name ORDER BY COUNT(e) DESC")
+    List<Object[]> findTopCoursesByEnrollmentCount(Pageable pageable);
+
     // ===== BASIC FINDER METHODS =====
 
     /**

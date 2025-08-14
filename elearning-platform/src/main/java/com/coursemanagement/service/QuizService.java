@@ -7,7 +7,6 @@ import com.coursemanagement.entity.QuizResult;
 import com.coursemanagement.entity.User;
 import com.coursemanagement.repository.QuizRepository;
 import com.coursemanagement.repository.QuizResultRepository;
-import com.coursemanagement.utils.CourseUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -24,8 +23,8 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * Service class để xử lý business logic liên quan đến Quiz
- * Quản lý CRUD operations, quiz attempts, grading system và analytics
+ * Dịch vụ quản lý Quiz và QuizResult
+ * Xử lý logic nghiệp vụ cho việc tạo quiz, làm bài và chấm điểm
  */
 @Service
 @Transactional
@@ -40,7 +39,7 @@ public class QuizService {
     @Autowired
     private QuestionService questionService;
 
-    // ===== BASIC CRUD OPERATIONS =====
+    // ===== CÁC THAO TÁC CRUD CƠ BẢN CHO QUIZ =====
 
     /**
      * Tìm quiz theo ID
@@ -50,10 +49,38 @@ public class QuizService {
     }
 
     /**
-     * Tìm quiz theo ID và course (cho security)
+     * Tìm quiz theo ID và course (để bảo mật)
      */
     public Optional<Quiz> findByIdAndCourse(Long id, Course course) {
         return quizRepository.findByIdAndCourse(id, course);
+    }
+
+    /**
+     * Tìm tất cả quizzes
+     */
+    public List<Quiz> findAll() {
+        return quizRepository.findAll();
+    }
+
+    /**
+     * Tìm quizzes với phân trang
+     */
+    public Page<Quiz> findAll(Pageable pageable) {
+        return quizRepository.findAll(pageable);
+    }
+
+    /**
+     * Lưu quiz
+     */
+    public Quiz save(Quiz quiz) {
+        validateQuiz(quiz);
+
+        if (quiz.getId() == null) {
+            quiz.setCreatedAt(LocalDateTime.now());
+        }
+        quiz.setUpdatedAt(LocalDateTime.now());
+
+        return quizRepository.save(quiz);
     }
 
     /**
@@ -62,25 +89,9 @@ public class QuizService {
     public Quiz createQuiz(Quiz quiz) {
         validateQuiz(quiz);
 
-        // Set thời gian tạo
         quiz.setCreatedAt(LocalDateTime.now());
         quiz.setUpdatedAt(LocalDateTime.now());
-
-        // Mặc định là active
         quiz.setActive(true);
-
-        // Set default values
-        if (quiz.getDuration() == null) {
-            quiz.setDuration(60); // Default 60 phút
-        }
-
-        if (quiz.getMaxScore() == null) {
-            quiz.setMaxScore(100.0); // Default 100 điểm
-        }
-
-        if (quiz.getPassScore() == null) {
-            quiz.setPassScore(60.0); // Default 60 điểm để pass
-        }
 
         return quizRepository.save(quiz);
     }
@@ -96,9 +107,7 @@ public class QuizService {
         Quiz existingQuiz = quizRepository.findById(quiz.getId())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy quiz với ID: " + quiz.getId()));
 
-        validateQuiz(quiz);
-
-        // Cập nhật thông tin
+        // Cập nhật các trường
         existingQuiz.setTitle(quiz.getTitle());
         existingQuiz.setDescription(quiz.getDescription());
         existingQuiz.setDuration(quiz.getDuration());
@@ -128,382 +137,296 @@ public class QuizService {
         quizRepository.save(quiz);
     }
 
-    // ===== COURSE-RELATED QUERIES =====
+    // ===== TÌM KIẾM QUIZZES =====
 
     /**
-     * Tìm tất cả quizzes của course
+     * Tìm quizzes theo course
      */
     public List<Quiz> findByCourse(Course course) {
         return quizRepository.findByCourseOrderByCreatedAtDesc(course);
     }
 
     /**
-     * Tìm quizzes theo course sắp xếp theo ngày tạo
+     * Tìm quizzes theo course ID
      */
-    public List<Quiz> findByCourseOrderByCreatedAtDesc(Course course) {
-        return quizRepository.findByCourseOrderByCreatedAtDesc(course);
+    public List<Quiz> findByCourse(Long courseId) {
+        return quizRepository.findByCourseIdAndActiveOrderByCreatedAtDesc(courseId, true);
     }
 
     /**
-     * Tìm quizzes theo course với pagination
+     * Tìm active quizzes theo course
      */
-    public Page<Quiz> findByCourse(Course course, Pageable pageable) {
-        return quizRepository.findByCourse(course, pageable);
-    }
-
-    /**
-     * Tìm active quizzes của course (với order by)
-     */
-    public List<Quiz> findActiveByCourse(Course course) {
+    public List<Quiz> findActiveQuizzesByCourse(Course course) {
         return quizRepository.findByCourseAndActiveOrderByCreatedAtDesc(course, true);
     }
 
     /**
-     * Tìm active quizzes theo course (không order by)
+     * Tìm available quizzes (trong thời gian available)
      */
-    public List<Quiz> findByCourseAndActive(Course course, boolean active) {
-        return quizRepository.findByCourseAndActive(course, active);
+    public List<Quiz> findAvailableQuizzes(Course course) {
+        LocalDateTime now = LocalDateTime.now();
+        return quizRepository.findAvailableQuizzes(course, now);
     }
 
     /**
-     * Đếm quizzes trong course
-     */
-    public Long countByCourse(Course course) {
-        return quizRepository.countByCourse(course);
-    }
-
-    /**
-     * Đếm active quizzes của course
-     */
-    public Long countActiveQuizzesByCourse(Course course) {
-        return quizRepository.countByCourseAndActive(course, true);
-    }
-
-    /**
-     * Đếm quiz attempts cho course
-     */
-    public Long countByCourseQuizzes(Course course) {
-        return quizRepository.countByCourseQuizzes(course);
-    }
-
-    /**
-     * Đếm passed quiz attempts cho course
-     */
-    public Long countPassedByCourse(Course course) {
-        return quizRepository.countPassedByCourse(course);
-    }
-
-    // ===== STUDENT-RELATED QUERIES =====
-
-    /**
-     * Tìm available quizzes cho student (User object)
-     */
-    public List<Quiz> findAvailableQuizzesForStudent(User student) {
-        return quizRepository.findAvailableQuizzesForStudent(student.getId());
-    }
-
-    /**
-     * Tìm available quizzes cho student (ID)
-     */
-    public List<Quiz> findAvailableQuizzesForStudent(Long studentId) {
-        return quizRepository.findAvailableQuizzesForStudent(studentId);
-    }
-
-    /**
-     * Tìm completed quizzes cho student (User object)
-     */
-    public List<Quiz> findCompletedQuizzesForStudent(User student) {
-        return quizRepository.findCompletedQuizzesForStudent(student.getId());
-    }
-
-    /**
-     * Tìm completed quizzes cho student (ID)
-     */
-    public List<Quiz> findCompletedQuizzesForStudent(Long studentId) {
-        return quizRepository.findCompletedQuizzesForStudent(studentId);
-    }
-
-    /**
-     * Tìm quiz results của student
-     */
-    public List<QuizResult> findQuizResultsByStudent(User student) {
-        return quizResultRepository.findByStudentOrderByAttemptDateDesc(student);
-    }
-
-    /**
-     * Tìm quiz results theo student sắp xếp theo attempt date
-     */
-    public List<QuizResult> findByStudentOrderByAttemptDateDesc(User student) {
-        return quizRepository.findByStudentOrderByAttemptDateDesc(student);
-    }
-
-    /**
-     * Kiểm tra student đã làm quiz chưa (original method name)
-     */
-    public boolean hasStudentTakenQuiz(User student, Quiz quiz) {
-        return quizResultRepository.existsByStudentAndQuiz(student, quiz);
-    }
-
-    /**
-     * Kiểm tra student đã làm quiz chưa (repository method name)
-     */
-    public boolean existsByStudentAndQuiz(User student, Quiz quiz) {
-        return quizRepository.existsByStudentAndQuiz(student, quiz);
-    }
-
-    /**
-     * Tìm quiz result (original method)
-     */
-    public Optional<QuizResult> findQuizResult(User student, Quiz quiz) {
-        return quizResultRepository.findByStudentAndQuiz(student, quiz);
-    }
-
-    /**
-     * Tìm quiz result theo student và quiz
-     */
-    public Optional<QuizResult> findByStudentAndQuiz(User student, Quiz quiz) {
-        return quizRepository.findByStudentAndQuiz(student, quiz);
-    }
-
-    // ===== INSTRUCTOR-RELATED QUERIES =====
-
-    /**
-     * Tìm quizzes theo instructor (List version)
+     * Tìm quizzes theo instructor
      */
     public List<Quiz> findByInstructor(User instructor) {
         return quizRepository.findByInstructor(instructor);
     }
 
     /**
-     * Tìm quizzes theo instructor với pagination
+     * Tìm quizzes theo instructor với phân trang
      */
     public Page<Quiz> findByInstructor(User instructor, Pageable pageable) {
         return quizRepository.findByInstructor(instructor, pageable);
     }
 
-    // ===== SEARCH METHODS =====
+    // ===== ĐẾM VÀ THỐNG KÊ QUIZ =====
 
     /**
-     * Tìm quizzes theo title chứa keyword
+     * Đếm quizzes theo course
      */
-    public Page<Quiz> findByTitleContainingIgnoreCase(String keyword, Pageable pageable) {
-        return quizRepository.findByTitleContainingIgnoreCase(keyword, pageable);
+    public Long countByCourse(Course course) {
+        return quizRepository.countByCourse(course);
     }
 
     /**
-     * Tìm quizzes sắp hết hạn
+     * Đếm active quizzes theo course
      */
-    public List<Quiz> findQuizzesExpiringWithin(int days) {
-        LocalDateTime expireDate = LocalDateTime.now().plusDays(days);
-        return quizRepository.findQuizzesExpiringWithin(expireDate);
+    public Long countActiveByCourse(Course course) {
+        return quizRepository.countByCourseAndActive(course, true);
     }
 
-    // ===== QUIZ ATTEMPT MANAGEMENT =====
+    /**
+     * Đếm tổng quizzes
+     */
+    public Long countAll() {
+        return quizRepository.count();
+    }
+
+    // ===== QUIZ RESULT MANAGEMENT =====
 
     /**
-     * Bắt đầu làm quiz
+     * Tìm quiz results theo student, sắp xếp theo ngày attempt
      */
-    public QuizResult startQuiz(User student, Quiz quiz) {
-        // Kiểm tra student đã làm quiz này chưa
-        Optional<QuizResult> existingResult = quizResultRepository.findByStudentAndQuiz(student, quiz);
-        if (existingResult.isPresent()) {
-            throw new RuntimeException("Bạn đã làm bài kiểm tra này rồi");
+    public List<QuizResult> findByStudentOrderByAttemptDateDesc(User student) {
+        return quizResultRepository.findByUserOrderBySubmittedAtDesc(student);
+    }
+
+    /**
+     * Tìm quiz results theo student
+     */
+    public List<QuizResult> findQuizResultsByStudent(User student) {
+        return findByStudentOrderByAttemptDateDesc(student);
+    }
+
+    /**
+     * Kiểm tra student đã attempt quiz chưa
+     */
+    public boolean existsByStudentAndQuiz(User student, Quiz quiz) {
+        return quizResultRepository.existsByUserAndQuiz(student, quiz);
+    }
+
+    /**
+     * Tìm quiz result theo student và quiz
+     */
+    public Optional<QuizResult> findByStudentAndQuiz(User student, Quiz quiz) {
+        return quizResultRepository.findByUserAndQuiz(student, quiz);
+    }
+
+    /**
+     * Tìm latest quiz result theo student và quiz
+     */
+    public Optional<QuizResult> findLatestByStudentAndQuiz(User student, Quiz quiz) {
+        List<QuizResult> results = quizResultRepository.findByUserAndQuizOrderBySubmittedAtDesc(student, quiz);
+        return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0));
+    }
+
+    /**
+     * Tạo quiz result mới
+     */
+    public QuizResult createQuizResult(Quiz quiz, User student, double score, int correctAnswers, int totalQuestions) {
+        QuizResult result = new QuizResult();
+        result.setQuiz(quiz);
+        result.setUser(student);
+        result.setScore(score);
+        result.setCorrectAnswers(correctAnswers);
+        result.setTotalQuestions(totalQuestions);
+        result.setStartedAt(LocalDateTime.now());
+        result.setSubmittedAt(LocalDateTime.now());
+        result.setPassed(score >= quiz.getPassScore());
+        result.setTimeTaken(0); // Set actual time taken
+
+        return quizResultRepository.save(result);
+    }
+
+    /**
+     * Submit quiz và tính điểm
+     */
+    public QuizResult submitQuiz(Long quizId, User student, Map<Long, String> answers) {
+        Quiz quiz = findById(quizId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy quiz"));
+
+        // Kiểm tra đã attempt chưa (nếu chỉ cho phép 1 lần)
+        if (existsByStudentAndQuiz(student, quiz)) {
+            throw new RuntimeException("Bạn đã làm bài quiz này rồi");
         }
 
-        // Tạo quiz result mới
-        QuizResult quizResult = new QuizResult();
-        quizResult.setStudent(student);
-        quizResult.setQuiz(quiz);
-        quizResult.setStartTime(LocalDateTime.now());
-        quizResult.setScore(0.0);
-        quizResult.setPassed(false);
-        quizResult.setCompleted(false);
+        // Lấy questions và tính điểm
+        List<Question> questions = questionService.findByQuizOrderByDisplayOrder(quiz);
+        int correctAnswers = 0;
+        double totalPoints = 0.0;
 
-        return quizResultRepository.save(quizResult);
-    }
-
-    /**
-     * Submit quiz (Enhanced version)
-     */
-    public QuizResult submitQuiz(User student, Quiz quiz, Map<Long, String> answers) {
-        // Kiểm tra quiz có available không
-        if (!quiz.isAvailable()) {
-            throw new RuntimeException("Quiz không còn mở để làm bài");
+        for (Question question : questions) {
+            String studentAnswer = answers.get(question.getId());
+            if (studentAnswer != null && studentAnswer.equals(question.getCorrectOption())) {
+                correctAnswers++;
+                totalPoints += question.getPoints() != null ? question.getPoints() : 1.0;
+            }
         }
 
-        // Tìm hoặc tạo quiz result
-        QuizResult quizResult = quizResultRepository.findByStudentAndQuiz(student, quiz)
-                .orElse(null);
+        // Tính điểm theo tỷ lệ
+        double score = quiz.getMaxScore() * (totalPoints / questions.stream()
+                .mapToDouble(q -> q.getPoints() != null ? q.getPoints() : 1.0)
+                .sum());
 
-        if (quizResult == null) {
-            // Tạo mới nếu chưa có
-            quizResult = new QuizResult();
-            quizResult.setStudent(student);
-            quizResult.setUser(student);
-            quizResult.setQuiz(quiz);
-            quizResult.setStartTime(LocalDateTime.now());
-        } else if (quizResult.isCompleted()) {
-            throw new RuntimeException("Bài kiểm tra này đã được hoàn thành rồi");
-        }
-
-        // Chấm điểm
-        double score = calculateScore(quiz, answers);
-        boolean passed = score >= quiz.getPassScore();
-
-        // Cập nhật quiz result
-        quizResult.setScore(score);
-        quizResult.setPassed(passed);
-        quizResult.setCompleted(true);
-        quizResult.setCompletionTime(LocalDateTime.now());
-        quizResult.setSubmittedAt(LocalDateTime.now());
-        quizResult.setAnswers(convertAnswersToJson(answers));
-
-        return quizResultRepository.save(quizResult);
+        return createQuizResult(quiz, student, score, correctAnswers, questions.size());
     }
 
-    // ===== STATISTICS & ANALYTICS =====
+    // ===== STATISTICS VÀ ANALYTICS =====
 
     /**
-     * Lấy thống kê quiz của course
+     * Đếm quiz results theo course quizzes
      */
-    public Map<String, Object> getQuizStatistics(Course course) {
-        Map<String, Object> stats = new HashMap<>();
-
-        Long totalQuizzes = quizRepository.countByCourse(course);
-        Long activeQuizzes = quizRepository.countByCourseAndActive(course, true);
-        Long totalAttempts = quizResultRepository.countByCourseQuizzes(course);
-        Long passedAttempts = quizResultRepository.countPassedByCourse(course);
-
-        stats.put("totalQuizzes", totalQuizzes);
-        stats.put("activeQuizzes", activeQuizzes);
-        stats.put("totalAttempts", totalAttempts);
-        stats.put("passedAttempts", passedAttempts);
-        stats.put("passRate", totalAttempts > 0 ? (double) passedAttempts / totalAttempts * 100 : 0);
-
-        return stats;
+    public Long countByCourseQuizzes(Course course) {
+        return quizResultRepository.countByCourseId(course.getId());
     }
 
     /**
-     * Lấy thống kê chi tiết của quiz
+     * Đếm passed results theo course
      */
-    public Map<String, Object> getQuizStatistics(Quiz quiz) {
-        Map<String, Object> stats = new HashMap<>();
+    public Long countPassedByCourse(Course course) {
+        return quizResultRepository.countByCourseIdAndPassed(course.getId(), true);
+    }
 
-        stats.put("totalAttempts", countAttemptsByQuiz(quiz));
-        stats.put("averageScore", getAverageScore(quiz));
-        stats.put("highestScore", getHighestScore(quiz));
-        stats.put("lowestScore", getLowestScore(quiz));
-        stats.put("passRate", calculatePassRate(quiz));
-
-        return stats;
+    /**
+     * Đếm quiz results theo quiz và điểm số tối thiểu
+     */
+    public Long countByQuizAndScoreGreaterThanEqual(Quiz quiz, Double minScore) {
+        return quizResultRepository.countByQuizAndScoreGreaterThanEqual(quiz, minScore);
     }
 
     /**
      * Lấy average score của quiz
      */
-    public Double getAverageScore(Quiz quiz) {
-        return quizRepository.getAverageScore(quiz);
+    public Double getAverageScoreByQuiz(Quiz quiz) {
+        return quizResultRepository.getAverageScoreByQuiz(quiz);
     }
 
     /**
-     * Lấy highest score của quiz
+     * Lấy thống kê quiz cho course
      */
-    public Double getHighestScore(Quiz quiz) {
-        return quizRepository.getHighestScore(quiz);
+    public Map<String, Object> getQuizStatsByCourse(Course course) {
+        Map<String, Object> stats = new HashMap<>();
+
+        Long totalQuizzes = countByCourse(course);
+        Long activeQuizzes = countActiveByCourse(course);
+        Long totalAttempts = countByCourseQuizzes(course);
+        Long passedAttempts = countPassedByCourse(course);
+
+        stats.put("totalQuizzes", totalQuizzes);
+        stats.put("activeQuizzes", activeQuizzes);
+        stats.put("totalAttempts", totalAttempts);
+        stats.put("passedAttempts", passedAttempts);
+        stats.put("passRate", totalAttempts > 0 ? (double) passedAttempts / totalAttempts * 100 : 0.0);
+
+        return stats;
     }
 
     /**
-     * Lấy lowest score của quiz
+     * Lấy thống kê quiz cho student
      */
-    public Double getLowestScore(Quiz quiz) {
-        return quizRepository.getLowestScore(quiz);
+    public Map<String, Object> getStudentQuizStats(User student) {
+        Map<String, Object> stats = new HashMap<>();
+
+        List<QuizResult> results = findQuizResultsByStudent(student);
+        Long totalAttempts = (long) results.size();
+        Long passedAttempts = results.stream()
+                .mapToLong(result -> result.isPassed() ? 1 : 0)
+                .sum();
+
+        Double averageScore = results.stream()
+                .mapToDouble(QuizResult::getScore)
+                .average()
+                .orElse(0.0);
+
+        stats.put("totalAttempts", totalAttempts);
+        stats.put("passedAttempts", passedAttempts);
+        stats.put("passRate", totalAttempts > 0 ? (double) passedAttempts / totalAttempts * 100 : 0.0);
+        stats.put("averageScore", averageScore);
+
+        return stats;
     }
 
-    /**
-     * Đếm students đã attempt quiz
-     */
-    public Long countAttemptsByQuiz(Quiz quiz) {
-        return quizRepository.countAttemptsByQuiz(quiz);
-    }
+    // ===== UTILITY METHODS =====
 
     /**
-     * Tìm recent quiz results với pagination
+     * Kiểm tra quiz có available không
      */
-    public Page<QuizResult> findRecentResultsByQuiz(Quiz quiz, Pageable pageable) {
-        return quizRepository.findRecentResultsByQuiz(quiz, pageable);
-    }
-
-    /**
-     * Tính tỷ lệ pass của quiz
-     */
-    private double calculatePassRate(Quiz quiz) {
-        Long totalAttempts = countAttemptsByQuiz(quiz);
-        if (totalAttempts == 0) {
-            return 0.0;
+    public boolean isQuizAvailable(Quiz quiz) {
+        if (!quiz.isActive()) {
+            return false;
         }
 
-        // Count passed attempts
-        Long passedAttempts = quizResultRepository.countByQuizAndScoreGreaterThanEqual(quiz, quiz.getPassScore());
+        LocalDateTime now = LocalDateTime.now();
 
-        return (passedAttempts.doubleValue() / totalAttempts.doubleValue()) * 100.0;
+        if (quiz.getAvailableFrom() != null && now.isBefore(quiz.getAvailableFrom())) {
+            return false;
+        }
+
+        if (quiz.getAvailableUntil() != null && now.isAfter(quiz.getAvailableUntil())) {
+            return false;
+        }
+
+        return true;
     }
 
-    // ===== PRIVATE HELPER METHODS =====
-
     /**
-     * Tính điểm cho quiz (Enhanced version)
+     * Kiểm tra student có thể làm quiz không
      */
-    private double calculateScore(Quiz quiz, Map<Long, String> answers) {
-        if (answers == null || answers.isEmpty()) {
-            return 0.0;
+    public boolean canStudentTakeQuiz(User student, Quiz quiz) {
+        // Kiểm tra quiz available
+        if (!isQuizAvailable(quiz)) {
+            return false;
         }
 
-        List<Question> questions = questionService.findByQuizOrderByDisplayOrder(quiz);
-        if (questions.isEmpty()) {
-            return 0.0;
+        // Kiểm tra đã attempt chưa (nếu chỉ cho phép 1 lần)
+        if (existsByStudentAndQuiz(student, quiz)) {
+            return false;
         }
 
-        double totalPoints = 0.0;
-        double earnedPoints = 0.0;
-
-        for (Question question : questions) {
-            double questionPoints = question.getPoints() != null ? question.getPoints() : 1.0;
-            totalPoints += questionPoints;
-
-            String studentAnswer = answers.get(question.getId());
-            if (studentAnswer != null && question.isCorrectAnswer(studentAnswer)) {
-                earnedPoints += questionPoints;
-            }
-        }
-
-        if (totalPoints == 0) {
-            return 0.0;
-        }
-
-        // Tính điểm theo thang điểm maxScore của quiz
-        return (earnedPoints / totalPoints) * quiz.getMaxScore();
+        return true;
     }
 
     /**
-     * Convert answers map thành JSON string
+     * Get user từ QuizResult (wrapper method for compatibility)
      */
-    private String convertAnswersToJson(Map<Long, String> answers) {
-        // Simplified JSON conversion - trong thực tế nên dùng ObjectMapper
-        StringBuilder json = new StringBuilder("{");
-        boolean first = true;
-        for (Map.Entry<Long, String> entry : answers.entrySet()) {
-            if (!first) {
-                json.append(",");
-            }
-            json.append("\"").append(entry.getKey()).append("\":\"").append(entry.getValue()).append("\"");
-            first = false;
-        }
-        json.append("}");
-        return json.toString();
+    public User getUser(QuizResult quizResult) {
+        return quizResult != null ? quizResult.getUser() : null;
     }
 
     /**
-     * Validate quiz data (Enhanced version)
+     * Get submitted date từ QuizResult (wrapper method for compatibility)
+     */
+    public LocalDateTime getSubmittedAt(QuizResult quizResult) {
+        return quizResult != null ? quizResult.getSubmittedAt() : null;
+    }
+
+    // ===== VALIDATION =====
+
+    /**
+     * Validate quiz trước khi lưu
      */
     private void validateQuiz(Quiz quiz) {
         if (quiz == null) {
@@ -514,35 +437,24 @@ public class QuizService {
             throw new RuntimeException("Tiêu đề quiz không được để trống");
         }
 
-        if (quiz.getTitle().length() < 5) {
-            throw new RuntimeException("Tiêu đề quiz phải có ít nhất 5 ký tự");
-        }
-
-        if (quiz.getTitle().length() > 200) {
-            throw new RuntimeException("Tiêu đề quiz không được vượt quá 200 ký tự");
-        }
-
         if (quiz.getCourse() == null) {
             throw new RuntimeException("Course không được để trống");
         }
 
-        if (quiz.getDuration() != null && quiz.getDuration() <= 0) {
-            throw new RuntimeException("Thời lượng quiz phải lớn hơn 0");
+        if (quiz.getDuration() != null && quiz.getDuration() < 1) {
+            throw new RuntimeException("Thời gian làm bài phải ít nhất 1 phút");
         }
 
         if (quiz.getMaxScore() != null && quiz.getMaxScore() <= 0) {
             throw new RuntimeException("Điểm tối đa phải lớn hơn 0");
         }
 
-        if (quiz.getPassScore() != null && quiz.getPassScore() < 0) {
-            throw new RuntimeException("Điểm đạt không được âm");
-        }
-
         if (quiz.getPassScore() != null && quiz.getMaxScore() != null &&
                 quiz.getPassScore() > quiz.getMaxScore()) {
-            throw new RuntimeException("Điểm để pass không được lớn hơn điểm tối đa");
+            throw new RuntimeException("Điểm đạt không được lớn hơn điểm tối đa");
         }
 
+        // Kiểm tra thời gian available
         if (quiz.getAvailableFrom() != null && quiz.getAvailableUntil() != null &&
                 quiz.getAvailableFrom().isAfter(quiz.getAvailableUntil())) {
             throw new RuntimeException("Thời gian bắt đầu không được sau thời gian kết thúc");

@@ -10,6 +10,149 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "lessons")
 public class Lesson {
+    // ===== LESSON ENTITY OPTIONAL FIELDS =====
+
+/**
+ * Thêm các fields sau vào Lesson.java nếu muốn hỗ trợ thêm tính năng:
+ * (Các fields này là optional - chỉ thêm nếu cần)
+ */
+
+    /**
+     * 1. Thêm videoUrl field riêng biệt với videoLink:
+     */
+    @Column(name = "video_url", length = 500)
+    private String videoUrl; // URL video đã upload lên server
+
+    /**
+     * 2. Thêm duration field riêng biệt với estimatedDuration:
+     */
+    @Column(name = "duration_minutes")
+    private Integer duration; // Thời lượng thực tế của video (phút)
+
+    /**
+     * 3. Thêm video metadata fields:
+     */
+    @Column(name = "video_size")
+    private Long videoSize; // Kích thước file video (bytes)
+
+    @Column(name = "video_format", length = 50)
+    private String videoFormat; // Định dạng video (mp4, avi, etc.)
+
+    /**
+     * 4. Thêm content type field:
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "content_type")
+    private ContentType contentType = ContentType.TEXT;
+
+    /**
+     * Enum cho Content Type:
+     */
+    public enum ContentType {
+        TEXT("Văn bản"),
+        VIDEO("Video"),
+        DOCUMENT("Tài liệu"),
+        INTERACTIVE("Tương tác"),
+        QUIZ("Bài tập");
+
+        private final String displayName;
+
+        ContentType(String displayName) {
+            this.displayName = displayName;
+        }
+
+        public String getDisplayName() {
+            return displayName;
+        }
+    }
+
+    /**
+     * Getter/Setter methods cho các fields mới:
+     */
+
+    public String getVideoUrl() {
+        return videoUrl;
+    }
+
+    public void setVideoUrl(String videoUrl) {
+        this.videoUrl = videoUrl;
+    }
+
+    public Integer getDuration() {
+        return duration;
+    }
+
+    public void setDuration(Integer duration) {
+        this.duration = duration;
+    }
+
+    public Long getVideoSize() {
+        return videoSize;
+    }
+
+    public void setVideoSize(Long videoSize) {
+        this.videoSize = videoSize;
+    }
+
+    public String getVideoFormat() {
+        return videoFormat;
+    }
+
+    public void setVideoFormat(String videoFormat) {
+        this.videoFormat = videoFormat;
+    }
+
+    public ContentType getContentType() {
+        return contentType;
+    }
+
+    public void setContentType(ContentType contentType) {
+        this.contentType = contentType;
+    }
+
+/**
+ * Helper methods:
+ */
+
+
+    /**
+     * Lấy URL video ưu tiên (videoUrl trước, fallback về videoLink)
+     */
+    public String getPreferredVideoUrl() {
+        if (videoUrl != null && !videoUrl.trim().isEmpty()) {
+            return videoUrl;
+        }
+        return videoLink;
+    }
+
+    /**
+     * Lấy duration ưu tiên (duration trước, fallback về estimatedDuration)
+     */
+    public Integer getPreferredDuration() {
+        if (duration != null && duration > 0) {
+            return duration;
+        }
+        return estimatedDuration;
+    }
+
+    /**
+     * Get formatted video size
+     */
+    public String getFormattedVideoSize() {
+        if (videoSize == null || videoSize == 0) {
+            return "Không xác định";
+        }
+
+        if (videoSize < 1024 * 1024) {
+            return String.format("%.1f KB", videoSize / 1024.0);
+        } else if (videoSize < 1024 * 1024 * 1024) {
+            return String.format("%.1f MB", videoSize / (1024.0 * 1024.0));
+        } else {
+            return String.format("%.1f GB", videoSize / (1024.0 * 1024.0 * 1024.0));
+        }
+    }
+
+
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

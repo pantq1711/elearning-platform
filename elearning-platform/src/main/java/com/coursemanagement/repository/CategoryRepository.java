@@ -20,6 +20,20 @@ import java.util.Optional;
  */
 @Repository
 public interface CategoryRepository extends JpaRepository<Category, Long> {
+    // Basic finders
+
+    // Search methods
+    List<Category> findByNameContainingIgnoreCase(String keyword);
+
+    // Featured categories
+    List<Category> findByFeaturedOrderByName(boolean featured);
+
+    // Course count related
+    List<Category> findByCourseCountGreaterThan(int count);
+    Long countByCourseCountGreaterThan(int count);
+
+    @Query("SELECT c FROM Category c ORDER BY c.courseCount DESC")
+    List<Category> findTopCategoriesByCourseCount(Pageable pageable);
 
     // ===== BASIC FINDER METHODS =====
 

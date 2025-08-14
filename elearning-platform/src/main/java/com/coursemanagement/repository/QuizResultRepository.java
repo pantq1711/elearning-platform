@@ -19,7 +19,25 @@ import java.util.Optional;
  * Chứa các custom queries cho quiz result management và analytics
  */
 @Repository
-public interface QuizResultRepository extends JpaRepository<QuizResult, Long> {
+public interface QuizResultRepository extends JpaRepository<QuizResult, Long>
+    {
+
+        List<QuizResult> findByUserAndQuizOrderBySubmittedAtDesc(User user, Quiz quiz);
+
+        // Course statistics
+        @Query("SELECT COUNT(qr) FROM QuizResult qr WHERE qr.quiz.course.id = :courseId")
+        Long countByCourseId(@Param("courseId") Long courseId);
+
+        @Query("SELECT COUNT(qr) FROM QuizResult qr WHERE qr.quiz.course.id = :courseId AND qr.passed = :passed")
+        Long countByCourseIdAndPassed(@Param("courseId") Long courseId, @Param("passed") boolean passed);
+
+        // Quiz statistics
+        Long countByQuizAndScoreGreaterThanEqual(Quiz quiz, Double minScore);
+
+        // Advanced queries
+        @Query("SELECT qr.quiz.course.name, AVG(qr.score) FROM QuizResult qr " +
+                "GROUP BY qr.quiz.course.id, qr.quiz.course.name ORDER BY AVG(qr.score) DESC")
+        List<Object[]> findCourseAverageScores(Pageable pageable);
 
     // ===== BASIC FINDER METHODS =====
 
