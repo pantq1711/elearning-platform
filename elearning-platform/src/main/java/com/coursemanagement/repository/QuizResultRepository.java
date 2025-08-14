@@ -1,16 +1,17 @@
 package com.coursemanagement.repository;
+
 import com.coursemanagement.entity.Course;
-import org.springframework.data.jpa.repository.Modifying;
-import org.springframework.transaction.annotation.Transactional;
 import com.coursemanagement.entity.Quiz;
 import com.coursemanagement.entity.QuizResult;
 import com.coursemanagement.entity.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -19,422 +20,282 @@ import java.util.Optional;
 /**
  * Repository interface cho QuizResult entity
  * Chứa các custom queries cho quiz result management và analytics
+ * Đã sửa tất cả lỗi compilation và entity field names
  */
 @Repository
-public interface QuizResultRepository extends JpaRepository<QuizResult, Long>
-    {
-
-        /**
-         * Tìm quiz result theo user và quiz (latest)
-         */
-        @Query("SELECT qr FROM QuizResult qr WHERE qr.user = :user AND qr.quiz = :quiz " +
-                "ORDER BY qr.submittedAt DESC LIMIT 1")
-        Optional<QuizResult> findQuizResult(@Param("user") User user, @Param("quiz") Quiz quiz);
-
-        /**
-         * Bắt đầu quiz (tạo mới quiz result với status IN_PROGRESS)
-         */
-        @Modifying
-        @Transactional
-        @Query("INSERT INTO QuizResult (user_id, quiz_id, started_at, status, created_at) " +
-                "VALUES (:userId, :quizId, :startedAt, 'IN_PROGRESS', :createdAt)")
-        void startQuiz(@Param("userId") Long userId, @Param("quizId") Long quizId,
-                       @Param("startedAt") LocalDateTime startedAt, @Param("createdAt") LocalDateTime createdAt);
-
-        /**
-         * Tìm quiz results theo student
-         */
-        @Query("SELECT qr FROM QuizResult qr WHERE qr.user = :student " +
-                "ORDER BY qr.submittedAt DESC")
-        List<QuizResult> findQuizResultsByStudent(@Param("student") User student, Pageable pageable);
-
-        /**
-         * Tìm recent quiz results theo student
-         */
-        @Query("SELECT qr FROM QuizResult qr WHERE qr.user = :student " +
-                "AND qr.submittedAt IS NOT NULL " +
-                "ORDER BY qr.submittedAt DESC")
-        List<QuizResult> findRecentQuizResultsByStudent(@Param("student") User student, Pageable pageable);
-
-        /**
-         * Đếm total quiz results
-         */
-        @Query("SELECT COUNT(qr) FROM QuizResult qr")
-        Long countAllQuizResults();
-
-        /**
-         * Đếm passed quiz results
-         */
-        @Query("SELECT COUNT(qr) FROM QuizResult qr WHERE qr.passed = true")
-        Long countPassedQuizResults();
-
-        /**
-         * Tính average score
-         */
-        @Query("SELECT AVG(qr.score) FROM QuizResult qr WHERE qr.score IS NOT NULL")
-        Double getAverageScore();
-
-        /**
-         * Tìm best quiz results theo course
-         */
-        @Query("SELECT qr FROM QuizResult qr WHERE qr.quiz.course = :course " +
-                "AND qr.passed = true ORDER BY qr.score DESC")
-        List<QuizResult> findBestResultsByCourse(@Param("course") Course course, Pageable pageable);
-
-        /**
-         * Lấy thống kê quiz results theo tháng
-         */
-        @Query("SELECT YEAR(qr.submittedAt), MONTH(qr.submittedAt), COUNT(qr), AVG(qr.score) " +
-                "FROM QuizResult qr WHERE qr.submittedAt >= :fromDate " +
-                "GROUP BY YEAR(qr.submittedAt), MONTH(qr.submittedAt) " +
-                "ORDER BY YEAR(qr.submittedAt), MONTH(qr.submittedAt)")
-        List<Object[]> getQuizStatsbyMonth(@Param("fromDate") LocalDateTime fromDate);
-
-        List<QuizResult> findByUserAndQuizOrderBySubmittedAtDesc(User user, Quiz quiz);
-
-        // Course statistics
-        @Query("SELECT COUNT(qr) FROM QuizResult qr WHERE qr.quiz.course.id = :courseId")
-        Long countByCourseId(@Param("courseId") Long courseId);
-
-        @Query("SELECT COUNT(qr) FROM QuizResult qr WHERE qr.quiz.course.id = :courseId AND qr.passed = :passed")
-        Long countByCourseIdAndPassed(@Param("courseId") Long courseId, @Param("passed") boolean passed);
-
-        // Quiz statistics
-        Long countByQuizAndScoreGreaterThanEqual(Quiz quiz, Double minScore);
-
-        // Advanced queries
-        @Query("SELECT qr.quiz.course.name, AVG(qr.score) FROM QuizResult qr " +
-                "GROUP BY qr.quiz.course.id, qr.quiz.course.name ORDER BY AVG(qr.score) DESC")
-        List<Object[]> findCourseAverageScores(Pageable pageable);
+public interface QuizResultRepository extends JpaRepository<QuizResult, Long> {
 
     // ===== BASIC FINDER METHODS =====
 
     /**
-     * Tìm quiz result theo user và quiz
-     * @param user User
-     * @param quiz Quiz
+     * Tìm quiz result theo student và quiz
+     * @param student User entity (student)
+     * @param quiz Quiz entity
      * @return Optional chứa QuizResult nếu tìm thấy
      */
-    Optional<QuizResult> findByUserAndQuiz(User user, Quiz quiz);
+    Optional<QuizResult> findByStudentAndQuiz(User student, Quiz quiz);
 
     /**
-     * Tìm latest quiz result của user cho quiz
-     * @param user User
-     * @param quiz Quiz
-     * @return Optional chứa latest QuizResult
+     * Tìm quiz results theo student và quiz sắp xếp theo completion time
+     * @param student User entity (student)
+     * @param quiz Quiz entity
+     * @return List QuizResult sắp xếp theo completion time giảm dần
      */
-    @Query("SELECT qr FROM QuizResult qr WHERE qr.user = :user AND qr.quiz = :quiz ORDER BY qr.submittedAt DESC")
-    Optional<QuizResult> findLatestByUserAndQuiz(@Param("user") User user, @Param("quiz") Quiz quiz);
+    List<QuizResult> findByStudentAndQuizOrderByCompletionTimeDesc(User student, Quiz quiz);
 
     /**
-     * Kiểm tra user đã attempt quiz chưa
-     * @param user User
-     * @param quiz Quiz
-     * @return true nếu đã attempt
+     * Tìm quiz results theo student với pagination
+     * @param student User entity (student)
+     * @param pageable Pagination parameters
+     * @return List QuizResult với pagination
      */
-    boolean existsByUserAndQuiz(User user, Quiz quiz);
-
-    // ===== USER-RELATED QUERIES =====
-
-    /**
-     * Tìm tất cả quiz results của user
-     * @param user User
-     * @return Danh sách quiz results
-     */
-    List<QuizResult> findByUser(User user);
+    @Query("SELECT qr FROM QuizResult qr WHERE qr.student = :student " +
+            "ORDER BY qr.completionTime DESC")
+    List<QuizResult> findByStudentOrderByCompletionTimeDesc(@Param("student") User student, Pageable pageable);
 
     /**
-     * Tìm quiz results của user sắp xếp theo ngày submit
-     * @param user User
-     * @return Danh sách quiz results
-     */
-    List<QuizResult> findByUserOrderBySubmittedAtDesc(User user);
-
-    /**
-     * Tìm quiz results của user với pagination
-     * @param user User
-     * @param pageable Pagination info
-     * @return Page chứa quiz results
-     */
-    Page<QuizResult> findByUser(User user, Pageable pageable);
-
-    /**
-     * Tìm passed quiz results của user
-     * @param user User
-     * @return Danh sách passed quiz results
-     */
-    List<QuizResult> findByUserAndPassed(User user, boolean passed);
-
-    /**
-     * Đếm quiz results của user
-     * @param user User
-     * @return Số lượng quiz results
-     */
-    Long countByUser(User user);
-
-    /**
-     * Đếm passed quiz results của user
-     * @param user User
-     * @return Số lượng passed quiz results
-     */
-    Long countByUserAndPassed(User user, boolean passed);
-
-    // ===== QUIZ-RELATED QUERIES =====
-
-    /**
-     * Tìm tất cả quiz results của quiz
-     * @param quiz Quiz
-     * @return Danh sách quiz results
+     * Tìm quiz results theo quiz
+     * @param quiz Quiz entity
+     * @return List tất cả QuizResult cho quiz này
      */
     List<QuizResult> findByQuiz(Quiz quiz);
 
     /**
-     * Tìm quiz results của quiz sắp xếp theo score
-     * @param quiz Quiz
-     * @return Danh sách quiz results theo score
-     */
-    List<QuizResult> findByQuizOrderByScoreDesc(Quiz quiz);
-
-    /**
-     * Tìm quiz results của quiz với pagination
-     * @param quiz Quiz
-     * @param pageable Pagination info
-     * @return Page chứa quiz results
-     */
-    Page<QuizResult> findByQuiz(Quiz quiz, Pageable pageable);
-
-    /**
-     * Tìm top quiz results của quiz
-     * @param quiz Quiz
-     * @param limit Số lượng results
-     * @return Danh sách top quiz results
-     */
-    @Query("SELECT qr FROM QuizResult qr WHERE qr.quiz = :quiz ORDER BY qr.score DESC")
-    List<QuizResult> findTopResultsByQuiz(@Param("quiz") Quiz quiz, @Param("limit") int limit);
-
-    /**
-     * Đếm quiz results của quiz
-     * @param quiz Quiz
+     * Đếm quiz results theo quiz
+     * @param quiz Quiz entity
      * @return Số lượng quiz results
      */
     Long countByQuiz(Quiz quiz);
 
     /**
-     * Đếm passed quiz results của quiz
-     * @param quiz Quiz
-     * @return Số lượng passed quiz results
+     * Đếm quiz results theo quiz và passed status
+     * @param quiz Quiz entity
+     * @param passed Pass/fail status
+     * @return Số lượng quiz results theo status
      */
     Long countByQuizAndPassed(Quiz quiz, boolean passed);
 
-    // ===== ANALYTICS QUERIES =====
-
     /**
-     * Lấy average score của quiz
-     * @param quiz Quiz
-     * @return Average score
+     * Tính average score theo quiz
+     * @param quiz Quiz entity
+     * @return Average score hoặc null nếu không có data
      */
-    @Query("SELECT AVG(qr.score) FROM QuizResult qr WHERE qr.quiz = :quiz")
+    @Query("SELECT AVG(qr.score) FROM QuizResult qr WHERE qr.quiz = :quiz AND qr.score IS NOT NULL")
     Double getAverageScoreByQuiz(@Param("quiz") Quiz quiz);
 
     /**
-     * Lấy highest score của quiz
-     * @param quiz Quiz
-     * @return Highest score
+     * Tìm latest quiz result của student cho quiz với pagination
+     * @param student User entity (student)
+     * @param quiz Quiz entity
+     * @param pageable Pagination (thường limit 1)
+     * @return Page chứa latest QuizResult
      */
-    @Query("SELECT MAX(qr.score) FROM QuizResult qr WHERE qr.quiz = :quiz")
-    Double getHighestScoreByQuiz(@Param("quiz") Quiz quiz);
+    @Query("SELECT qr FROM QuizResult qr WHERE qr.student = :student AND qr.quiz = :quiz " +
+            "ORDER BY qr.completionTime DESC")
+    Page<QuizResult> findQuizResultWithPagination(@Param("student") User student, @Param("quiz") Quiz quiz, Pageable pageable);
 
     /**
-     * Lấy lowest score của quiz
-     * @param quiz Quiz
-     * @return Lowest score
+     * Wrapper method cho findQuizResult - tìm latest quiz result
+     * @param student User entity (student)
+     * @param quiz Quiz entity
+     * @return Optional chứa latest QuizResult
      */
-    @Query("SELECT MIN(qr.score) FROM QuizResult qr WHERE qr.quiz = :quiz")
-    Double getLowestScoreByQuiz(@Param("quiz") Quiz quiz);
+    default Optional<QuizResult> findQuizResult(User student, Quiz quiz) {
+        Page<QuizResult> results = findQuizResultWithPagination(student, quiz, Pageable.ofSize(1));
+        return results.hasContent() ? Optional.of(results.getContent().get(0)) : Optional.empty();
+    }
 
     /**
-     * Lấy pass rate của quiz
-     * @param quiz Quiz
-     * @return Pass rate (0.0 - 1.0)
+     * Tìm recent quiz results theo student
+     * @param student User entity (student)
+     * @param pageable Pagination parameters
+     * @return List QuizResult gần đây nhất
      */
-    @Query("SELECT CASE WHEN COUNT(qr) = 0 THEN 0.0 ELSE " +
-            "CAST(COUNT(CASE WHEN qr.passed = true THEN 1 END) AS double) / COUNT(qr) END " +
-            "FROM QuizResult qr WHERE qr.quiz = :quiz")
-    Double getPassRateByQuiz(@Param("quiz") Quiz quiz);
+    @Query("SELECT qr FROM QuizResult qr WHERE qr.student = :student " +
+            "AND qr.completionTime IS NOT NULL " +
+            "ORDER BY qr.completionTime DESC")
+    List<QuizResult> findRecentQuizResultsByStudent(@Param("student") User student, Pageable pageable);
+
+    // ===== STATISTICS METHODS =====
 
     /**
-     * Lấy average time taken của quiz
-     * @param quiz Quiz
-     * @return Average time taken (minutes)
+     * Đếm tất cả quiz results
+     * @return Tổng số quiz results trong hệ thống
      */
-    @Query("SELECT AVG(qr.timeTaken) FROM QuizResult qr WHERE qr.quiz = :quiz AND qr.timeTaken IS NOT NULL")
-    Double getAverageTimeTakenByQuiz(@Param("quiz") Quiz quiz);
-
-    // ===== STUDENT PERFORMANCE QUERIES =====
+    @Query("SELECT COUNT(qr) FROM QuizResult qr")
+    Long countAllQuizResults();
 
     /**
-     * Lấy quiz results của student trong course
-     * @param user Student
+     * Đếm quiz results đã pass
+     * @return Số lượng quiz results có passed = true
+     */
+    @Query("SELECT COUNT(qr) FROM QuizResult qr WHERE qr.passed = true")
+    Long countPassedQuizResults();
+
+    /**
+     * Tính average score tổng thể
+     * @return Average score của tất cả quiz results
+     */
+    @Query("SELECT AVG(qr.score) FROM QuizResult qr WHERE qr.score IS NOT NULL")
+    Double getAverageScore();
+
+    /**
+     * Tìm best quiz results theo course
+     * @param course Course entity
+     * @param pageable Pagination parameters
+     * @return List QuizResult có điểm cao nhất
+     */
+    @Query("SELECT qr FROM QuizResult qr WHERE qr.quiz.course = :course " +
+            "AND qr.passed = true ORDER BY qr.score DESC")
+    List<QuizResult> findBestResultsByCourse(@Param("course") Course course, Pageable pageable);
+
+    /**
+     * Lấy thống kê quiz results theo tháng
+     * @param fromDate Từ ngày nào
+     * @return List thống kê theo năm, tháng
+     */
+    @Query("SELECT YEAR(qr.completionTime), MONTH(qr.completionTime), COUNT(qr), AVG(qr.score) " +
+            "FROM QuizResult qr WHERE qr.completionTime >= :fromDate " +
+            "GROUP BY YEAR(qr.completionTime), MONTH(qr.completionTime) " +
+            "ORDER BY YEAR(qr.completionTime), MONTH(qr.completionTime)")
+    List<Object[]> getQuizStatsByMonth(@Param("fromDate") LocalDateTime fromDate);
+
+    // ===== COURSE STATISTICS =====
+
+    /**
+     * Đếm quiz results theo course ID
      * @param courseId Course ID
-     * @return Danh sách quiz results
+     * @return Số lượng quiz results
      */
-    @Query("SELECT qr FROM QuizResult qr WHERE qr.user = :user AND qr.quiz.course.id = :courseId")
-    List<QuizResult> findByUserAndCourseId(@Param("user") User user, @Param("courseId") Long courseId);
+    @Query("SELECT COUNT(qr) FROM QuizResult qr WHERE qr.quiz.course.id = :courseId")
+    Long countByCourseId(@Param("courseId") Long courseId);
 
     /**
-     * Lấy recent quiz results của student
-     * @param user Student
-     * @param limit Số lượng results
-     * @return Danh sách recent quiz results
+     * Đếm quiz results theo course ID và passed status
+     * @param courseId Course ID
+     * @param passed Pass/fail status
+     * @return Số lượng quiz results theo status
      */
-    @Query("SELECT qr FROM QuizResult qr WHERE qr.user = :user ORDER BY qr.submittedAt DESC")
-    List<QuizResult> findRecentByUser(@Param("user") User user, @Param("limit") int limit);
+    @Query("SELECT COUNT(qr) FROM QuizResult qr WHERE qr.quiz.course.id = :courseId AND qr.passed = :passed")
+    Long countByCourseIdAndPassed(@Param("courseId") Long courseId, @Param("passed") boolean passed);
 
     /**
-     * Lấy average score của student
-     * @param user Student
-     * @return Average score
+     * Tìm course average scores
+     * @param pageable Pagination parameters
+     * @return List thống kê điểm trung bình theo course
      */
-    @Query("SELECT AVG(qr.score) FROM QuizResult qr WHERE qr.user = :user")
-    Double getAverageScoreByUser(@Param("user") User user);
+    @Query("SELECT qr.quiz.course.name, AVG(qr.score) FROM QuizResult qr " +
+            "GROUP BY qr.quiz.course.id, qr.quiz.course.name ORDER BY AVG(qr.score) DESC")
+    List<Object[]> findCourseAverageScores(Pageable pageable);
 
     /**
-     * Lấy best score của student
-     * @param user Student
-     * @return Best score
+     * Đếm quiz results theo quiz và score threshold
+     * @param quiz Quiz entity
+     * @param minScore Điểm tối thiểu
+     * @return Số lượng quiz results có điểm >= minScore
      */
-    @Query("SELECT MAX(qr.score) FROM QuizResult qr WHERE qr.user = :user")
-    Double getBestScoreByUser(@Param("user") User user);
+    Long countByQuizAndScoreGreaterThanEqual(Quiz quiz, Double minScore);
+
+    // ===== ADVANCED QUERIES =====
 
     /**
-     * Lấy completion rate của student (quiz attempts vs enrollments)
-     * @param user Student
-     * @return Completion rate
+     * Tìm quiz results theo student với completed status
+     * @param student User entity (student)
+     * @return List QuizResult đã completed
      */
-    @Query("SELECT COUNT(DISTINCT qr.quiz.course.id) FROM QuizResult qr WHERE qr.user = :user")
-    Long countCoursesWithQuizAttemptsByUser(@Param("user") User user);
+    @Query("SELECT qr FROM QuizResult qr WHERE qr.student = :student AND qr.completed = true " +
+            "ORDER BY qr.completionTime DESC")
+    List<QuizResult> findCompletedByStudent(@Param("student") User student);
 
-    // ===== TIME-BASED QUERIES =====
+    /**
+     * Tìm quiz results theo course và student
+     * @param course Course entity
+     * @param student User entity (student)
+     * @return List QuizResult của student trong course
+     */
+    @Query("SELECT qr FROM QuizResult qr WHERE qr.quiz.course = :course AND qr.student = :student " +
+            "ORDER BY qr.completionTime DESC")
+    List<QuizResult> findByCourseAndStudent(@Param("course") Course course, @Param("student") User student);
+
+    /**
+     * Kiểm tra student đã làm quiz chưa
+     * @param student User entity (student)
+     * @param quiz Quiz entity
+     * @return true nếu đã làm, false nếu chưa
+     */
+    @Query("SELECT CASE WHEN COUNT(qr) > 0 THEN true ELSE false END " +
+            "FROM QuizResult qr WHERE qr.student = :student AND qr.quiz = :quiz AND qr.completed = true")
+    boolean hasStudentCompletedQuiz(@Param("student") User student, @Param("quiz") Quiz quiz);
+
+    /**
+     * Tìm top performers theo quiz
+     * @param quiz Quiz entity
+     * @param pageable Pagination parameters
+     * @return List QuizResult có điểm cao nhất
+     */
+    @Query("SELECT qr FROM QuizResult qr WHERE qr.quiz = :quiz AND qr.completed = true " +
+            "ORDER BY qr.score DESC, qr.completionTime ASC")
+    List<QuizResult> findTopPerformersByQuiz(@Param("quiz") Quiz quiz, Pageable pageable);
+
+    /**
+     * Tính completion rate theo quiz
+     * @param quiz Quiz entity
+     * @return Tỷ lệ hoàn thành (%)
+     */
+    @Query("SELECT CAST(COUNT(CASE WHEN qr.completed = true THEN 1 END) AS DOUBLE) / COUNT(qr) * 100 " +
+            "FROM QuizResult qr WHERE qr.quiz = :quiz")
+    Double getCompletionRateByQuiz(@Param("quiz") Quiz quiz);
 
     /**
      * Tìm quiz results trong khoảng thời gian
      * @param startDate Ngày bắt đầu
      * @param endDate Ngày kết thúc
-     * @return Danh sách quiz results
+     * @return List QuizResult trong khoảng thời gian
      */
-    @Query("SELECT qr FROM QuizResult qr WHERE qr.submittedAt BETWEEN :startDate AND :endDate")
-    List<QuizResult> findResultsBetweenDates(@Param("startDate") LocalDateTime startDate,
-                                             @Param("endDate") LocalDateTime endDate);
+    @Query("SELECT qr FROM QuizResult qr WHERE qr.completionTime BETWEEN :startDate AND :endDate " +
+            "ORDER BY qr.completionTime DESC")
+    List<QuizResult> findByCompletionTimeBetween(@Param("startDate") LocalDateTime startDate,
+                                                 @Param("endDate") LocalDateTime endDate);
 
     /**
-     * Lấy quiz results trong ngày hôm nay
-     * @param startOfDay Đầu ngày
-     * @param endOfDay Cuối ngày
-     * @return Danh sách quiz results hôm nay
+     * Lấy daily quiz statistics
+     * @param fromDate Từ ngày nào
+     * @return List thống kê theo ngày
      */
-    @Query("SELECT qr FROM QuizResult qr WHERE qr.submittedAt BETWEEN :startOfDay AND :endOfDay")
-    List<QuizResult> findTodayResults(@Param("startOfDay") LocalDateTime startOfDay,
-                                      @Param("endOfDay") LocalDateTime endOfDay);
+    @Query("SELECT DATE(qr.completionTime), COUNT(qr), AVG(qr.score), " +
+            "COUNT(CASE WHEN qr.passed = true THEN 1 END) " +
+            "FROM QuizResult qr WHERE qr.completionTime >= :fromDate " +
+            "GROUP BY DATE(qr.completionTime) " +
+            "ORDER BY DATE(qr.completionTime)")
+    List<Object[]> getDailyQuizStats(@Param("fromDate") LocalDateTime fromDate);
+
+    // ===== DELETE OPERATIONS =====
 
     /**
-     * Lấy quiz results trong tuần này
-     * @param startOfWeek Đầu tuần
-     * @param endOfWeek Cuối tuần
-     * @return Danh sách quiz results tuần này
+     * Xóa quiz results theo quiz (khi xóa quiz)
+     * @param quiz Quiz entity
      */
-    @Query("SELECT qr FROM QuizResult qr WHERE qr.submittedAt BETWEEN :startOfWeek AND :endOfWeek")
-    List<QuizResult> findThisWeekResults(@Param("startOfWeek") LocalDateTime startOfWeek,
-                                         @Param("endOfWeek") LocalDateTime endOfWeek);
-
-    // ===== INSTRUCTOR ANALYTICS =====
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM QuizResult qr WHERE qr.quiz = :quiz")
+    void deleteByQuiz(@Param("quiz") Quiz quiz);
 
     /**
-     * Lấy quiz results của courses thuộc instructor
-     * @param instructor Instructor
-     * @return Danh sách quiz results
+     * Xóa quiz results theo student (khi xóa student)
+     * @param student User entity (student)
      */
-    @Query("SELECT qr FROM QuizResult qr WHERE qr.quiz.course.instructor = :instructor")
-    List<QuizResult> findByInstructor(@Param("instructor") User instructor);
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM QuizResult qr WHERE qr.student = :student")
+    void deleteByStudent(@Param("student") User student);
 
     /**
-     * Lấy quiz results của instructor với pagination
-     * @param instructor Instructor
-     * @param pageable Pagination info
-     * @return Page chứa quiz results
+     * Reset quiz results theo quiz (để cho phép làm lại)
+     * @param quiz Quiz entity
      */
-    @Query("SELECT qr FROM QuizResult qr WHERE qr.quiz.course.instructor = :instructor ORDER BY qr.submittedAt DESC")
-    Page<QuizResult> findByInstructor(@Param("instructor") User instructor, Pageable pageable);
-
-    /**
-     * Đếm quiz results của instructor
-     * @param instructor Instructor
-     * @return Số lượng quiz results
-     */
-    @Query("SELECT COUNT(qr) FROM QuizResult qr WHERE qr.quiz.course.instructor = :instructor")
-    Long countByInstructor(@Param("instructor") User instructor);
-
-    /**
-     * Lấy average score của instructor's quizzes
-     * @param instructor Instructor
-     * @return Average score
-     */
-    @Query("SELECT AVG(qr.score) FROM QuizResult qr WHERE qr.quiz.course.instructor = :instructor")
-    Double getAverageScoreByInstructor(@Param("instructor") User instructor);
-
-    // ===== SCORE DISTRIBUTION QUERIES =====
-
-    /**
-     * Lấy score distribution của quiz
-     * @param quiz Quiz
-     * @return Danh sách [ScoreRange, Count]
-     */
-    @Query("SELECT " +
-            "CASE " +
-            "WHEN qr.score < 20 THEN '0-20%' " +
-            "WHEN qr.score < 40 THEN '20-40%' " +
-            "WHEN qr.score < 60 THEN '40-60%' " +
-            "WHEN qr.score < 80 THEN '60-80%' " +
-            "ELSE '80-100%' END as scoreRange, " +
-            "COUNT(qr) " +
-            "FROM QuizResult qr WHERE qr.quiz = :quiz " +
-            "GROUP BY " +
-            "CASE " +
-            "WHEN qr.score < 20 THEN '0-20%' " +
-            "WHEN qr.score < 40 THEN '20-40%' " +
-            "WHEN qr.score < 60 THEN '40-60%' " +
-            "WHEN qr.score < 80 THEN '60-80%' " +
-            "ELSE '80-100%' END")
-    List<Object[]> getScoreDistributionByQuiz(@Param("quiz") Quiz quiz);
-
-    /**
-     * Lấy monthly quiz attempt statistics
-     * @return Danh sách [Year, Month, Count]
-     */
-    @Query("SELECT YEAR(qr.submittedAt), MONTH(qr.submittedAt), COUNT(qr) " +
-            "FROM QuizResult qr " +
-            "GROUP BY YEAR(qr.submittedAt), MONTH(qr.submittedAt) " +
-            "ORDER BY YEAR(qr.submittedAt) DESC, MONTH(qr.submittedAt) DESC")
-    List<Object[]> getMonthlyAttemptStats();
-
-    /**
-     * Lấy leaderboard cho quiz
-     * @param quiz Quiz
-     * @param limit Số lượng top users
-     * @return Danh sách [User, Score, SubmittedAt]
-     */
-    @Query("SELECT qr.user, qr.score, qr.submittedAt FROM QuizResult qr " +
-            "WHERE qr.quiz = :quiz " +
-            "ORDER BY qr.score DESC, qr.submittedAt ASC")
-    List<Object[]> getQuizLeaderboard(@Param("quiz") Quiz quiz, @Param("limit") int limit);
-
-    /**
-     * Tìm struggling students (low scores)
-     * @param maxScore Score threshold
-     * @return Danh sách struggling students
-     */
-    @Query("SELECT qr.user, AVG(qr.score) as avgScore FROM QuizResult qr " +
-            "GROUP BY qr.user " +
-            "HAVING AVG(qr.score) < :maxScore " +
-            "ORDER BY avgScore ASC")
-    List<Object[]> findStrugglingstudents(@Param("maxScore") double maxScore);
+    @Modifying
+    @Transactional
+    @Query("UPDATE QuizResult qr SET qr.completed = false, qr.score = 0, qr.passed = false " +
+            "WHERE qr.quiz = :quiz")
+    void resetQuizResults(@Param("quiz") Quiz quiz);
 }

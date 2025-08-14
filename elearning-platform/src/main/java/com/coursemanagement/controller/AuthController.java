@@ -64,7 +64,7 @@ public class AuthController {
 
         // Thêm thống kê tổng quan cho trang login
         try {
-            model.addAttribute("totalCourses", courseService.countAllActiveCourses());
+            model.addAttribute("totalCourses", courseService.countActiveCourses());
             model.addAttribute("totalStudents", userService.countActiveStudents());
             model.addAttribute("totalInstructors", userService.countActiveInstructors());
         } catch (Exception e) {

@@ -203,7 +203,7 @@ public class UserService implements UserDetailsService {
     }
 
     @Autowired
-    private UserRepository userRepository;
+    private static UserRepository userRepository;
 
     @Autowired
     private PasswordEncoder passwordEncoder;

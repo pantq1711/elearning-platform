@@ -6,6 +6,7 @@ import com.coursemanagement.entity.User;
 import com.coursemanagement.repository.CourseRepository;
 import com.coursemanagement.utils.CourseUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -29,6 +30,7 @@ import java.util.Optional;
 @Service
 @Transactional
 public class CourseService {
+
     /**
      * Tìm courses theo category và active status
      */
@@ -110,6 +112,10 @@ public class CourseService {
         // Implement search logic with filters
         return courseRepository.findAll(pageable); // Placeholder
     }
+    // SỬA LỖI: Thêm injection cho EnrollmentService với @Lazy để tránh circular dependency
+    @Lazy
+    @Autowired
+    private EnrollmentService enrollmentService;
 
     /**
      * Cập nhật enrollment count cho course
@@ -117,7 +123,7 @@ public class CourseService {
     @Transactional
     public void updateEnrollmentCount(Long courseId) {
         Course course = findByIdOrThrow(courseId);
-        Long enrollmentCount = enrollmentService.countEnrollmentsByCourse(course);
+        Long enrollmentCount = enrollmentService.countByCourse(course); // Giờ có thể sử dụng
         // Update logic here if needed
     }
 

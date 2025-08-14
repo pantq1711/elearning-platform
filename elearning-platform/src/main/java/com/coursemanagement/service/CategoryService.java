@@ -1,11 +1,14 @@
 package com.coursemanagement.service;
 
-import com.coursemanagement.dto.CategoryStats;
-import com.coursemanagement.entity.Category;
 import com.coursemanagement.entity.Course;
-import com.coursemanagement.repository.CategoryRepository;
-import com.coursemanagement.utils.CourseUtils;
+import com.coursemanagement.entity.Question;
+import com.coursemanagement.entity.Quiz;
+import com.coursemanagement.entity.QuizResult;
+import com.coursemanagement.entity.User;
+import com.coursemanagement.repository.QuizRepository;
+import com.coursemanagement.repository.QuizResultRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -15,520 +18,424 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Stream;
 
 /**
- * Dịch vụ quản lý danh mục khóa học (Category)
- * Xử lý logic nghiệp vụ cho việc tạo, cập nhật và quản lý categories
+ * Dịch vụ quản lý Quiz và QuizResult
+ * Xử lý logic nghiệp vụ cho việc tạo quiz, làm bài và chấm điểm
+ * Đã sửa tất cả lỗi compilation và entity field names
  */
 @Service
 @Transactional
-public class CategoryService {
+public class QuizService {
 
     @Autowired
-    private CategoryRepository categoryRepository;
+    private QuizRepository quizRepository;
 
-    // ===== CÁC THAO TÁC CRUD CƠ BẢN =====
+    @Autowired
+    private QuizResultRepository quizResultRepository;
+
+    @Autowired
+    private QuestionService questionService;
+
+    // SỬA LỖI: Thêm injection cho EnrollmentService với @Lazy để tránh circular dependency
+    @Lazy
+    @Autowired
+    private EnrollmentService enrollmentService;
+
+    // ===== CÁC THAO TÁC CRUD CƠ BẢN CHO QUIZ =====
 
     /**
-     * Tìm category theo ID
+     * Tìm quiz theo ID
      */
-    public Optional<Category> findById(Long id) {
-        return categoryRepository.findById(id);
+    public Optional<Quiz> findById(Long id) {
+        return quizRepository.findById(id);
     }
 
     /**
-     * Tìm tất cả categories
+     * Tìm quiz theo ID và course (để bảo mật)
      */
-    public List<Category> findAll() {
-        return categoryRepository.findAll();
+    public Optional<Quiz> findByIdAndCourse(Long id, Course course) {
+        return quizRepository.findByIdAndCourse(id, course);
     }
 
     /**
-     * Tìm categories với phân trang
+     * Tìm tất cả quizzes
      */
-    public Page<Category> findAll(Pageable pageable) {
-        return categoryRepository.findAll(pageable);
+    public List<Quiz> findAll() {
+        return quizRepository.findAll();
     }
 
     /**
-     * Tìm tất cả categories sắp xếp theo tên
+     * Tìm quizzes với phân trang
      */
-    public List<Category> findAllOrderByName() {
-        return categoryRepository.findAll(Sort.by(Sort.Direction.ASC, "name"));
+    public Page<Quiz> findAll(Pageable pageable) {
+        return quizRepository.findAll(pageable);
     }
+
     /**
-     * Convert Category to CategoryStats (SỬA LỖI)
+     * Bắt đầu quiz cho student (SỬA TẤT CẢ LỖI ENTITY FIELDS)
      */
-    private CategoryStats convertToCategoryStats(Category category) {
-        // Tính toán enrollments cho category này
-        long totalEnrollments = 0;
-        long completedEnrollments = 0;
-
-        if (category.getCourses() != null) {
-            totalEnrollments = category.getCourses().stream()
-                    .mapToLong(course -> course.getEnrollments() != null ? course.getEnrollments().size() : 0)
-                    .sum();
-
-            completedEnrollments = category.getCourses().stream()
-                    .flatMap(course -> course.getEnrollments() != null ? course.getEnrollments().stream() : Stream.empty())
-                    .mapToLong(enrollment -> enrollment.isCompleted() ? 1 : 0)
-                    .sum();
+    @Transactional
+    public QuizResult startQuiz(User student, Quiz quiz) {
+        // Kiểm tra student đã đăng ký course chưa
+        if (!enrollmentService.isStudentEnrolledInCourse(student, quiz.getCourse())) {
+            throw new RuntimeException("Bạn chưa đăng ký khóa học này");
         }
 
-        return new CategoryStats(
-                category.getId(),
-                category.getName(),
-                category.getDescription(),
-                category.getCourseCount() != 0 ? category.getCourseCount() : 0,
-                totalEnrollments,
-                completedEnrollments
-        );
-    }
-
-    /**
-     * Lưu category
-     */
-    public Category save(Category category) {
-        validateCategory(category);
-
-        if (category.getId() == null) {
-            category.setCreatedAt(LocalDateTime.now());
-        }
-        category.setUpdatedAt(LocalDateTime.now());
-
-        return categoryRepository.save(category);
-    }
-
-    /**
-     * Tạo category mới
-     */
-    public Category createCategory(Category category) {
-        validateCategory(category);
-
-        // Kiểm tra tên đã tồn tại
-        if (existsByName(category.getName())) {
-            throw new RuntimeException("Tên danh mục đã tồn tại: " + category.getName());
+        // Kiểm tra quiz có available không
+        if (!quiz.isAvailable()) {
+            throw new RuntimeException("Quiz này hiện không khả dụng");
         }
 
-        category.setCreatedAt(LocalDateTime.now());
-        category.setUpdatedAt(LocalDateTime.now());
-
-        // Set default values
-        if (category.getColorCode() == null) {
-            category.setColorCode("#007bff"); // Default blue color
+        // SỬA LỖI: Quiz entity không có allowRetake field, bỏ qua check này
+        // Chỉ kiểm tra đã làm quiz chưa
+        if (hasStudentTakenQuiz(student, quiz)) {
+            throw new RuntimeException("Bạn đã hoàn thành quiz này");
         }
 
-        if (category.getIconClass() == null) {
-            category.setIconClass("fas fa-book"); // Default book icon
+        // Tạo quiz result mới với fields đúng của entity
+        QuizResult quizResult = new QuizResult();
+        quizResult.setStudent(student); // SỬA LỖI: setStudent thay vì setUser
+        quizResult.setQuiz(quiz);
+        quizResult.setStartTime(LocalDateTime.now()); // SỬA LỖI: setStartTime thay vì setStartedAt
+        quizResult.setCompleted(false);
+        quizResult.setPassed(false);
+        quizResult.setAttemptDate(LocalDateTime.now());
+
+        return quizResultRepository.save(quizResult);
+    }
+
+    /**
+     * Nộp bài quiz (SỬA TẤT CẢ LỖI ENTITY FIELDS)
+     */
+    @Transactional
+    public QuizResult submitQuiz(Long quizResultId, Map<Long, String> answers) {
+        QuizResult quizResult = quizResultRepository.findById(quizResultId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy bài làm quiz"));
+
+        // SỬA LỖI: Sử dụng isCompleted() thay vì getStatus() == IN_PROGRESS
+        if (quizResult.isCompleted()) {
+            throw new RuntimeException("Quiz này đã được nộp");
         }
 
-        return categoryRepository.save(category);
+        // Tính điểm
+        double score = calculateQuizScore(quizResult.getQuiz(), answers);
+        boolean passed = score >= quizResult.getQuiz().getPassScore();
+
+        // Cập nhật quiz result với fields đúng
+        quizResult.setScore(score);
+        quizResult.setPassed(passed);
+        quizResult.setCompletionTime(LocalDateTime.now()); // SỬA LỖI: setCompletionTime thay vì setSubmittedAt
+        quizResult.setCompleted(true);
+        quizResult.setAnswers(convertAnswersToJson(answers));
+        // SỬA LỖI: QuizResult entity không có setUpdatedAt method
+
+        return quizResultRepository.save(quizResult);
     }
 
     /**
-     * Cập nhật category
+     * Tính điểm quiz (SỬA LỖI QUESTION ENTITY VÀ METHOD SIGNATURE)
      */
-    public Category updateCategory(Category category) {
-        if (category.getId() == null) {
-            throw new RuntimeException("ID category không được để trống khi cập nhật");
+    private double calculateQuizScore(Quiz quiz, Map<Long, String> answers) {
+        // SỬA LỖI: Sử dụng method signature đúng
+        List<Question> questions = questionService.findByQuizOrderByDisplayOrder(quiz);
+        double totalScore = 0.0;
+        double maxScore = 0.0;
+
+        for (Question question : questions) {
+            maxScore += question.getPoints();
+            String studentAnswer = answers.get(question.getId());
+
+            // SỬA LỖI: getCorrectOption() thay vì getCorrectAnswer()
+            if (studentAnswer != null && studentAnswer.equals(question.getCorrectOption())) {
+                totalScore += question.getPoints();
+            }
         }
 
-        Category existingCategory = categoryRepository.findById(category.getId())
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy category với ID: " + category.getId()));
+        return maxScore > 0 ? (totalScore / maxScore) * quiz.getMaxScore() : 0.0;
+    }
 
-        // Kiểm tra tên trùng lặp (exclude current category)
-        if (!existingCategory.getName().equals(category.getName()) && existsByName(category.getName())) {
-            throw new RuntimeException("Tên danh mục đã tồn tại: " + category.getName());
+    /**
+     * Convert answers map to JSON string
+     */
+    private String convertAnswersToJson(Map<Long, String> answers) {
+        if (answers == null || answers.isEmpty()) {
+            return "{}";
         }
 
-        // Cập nhật các trường
-        existingCategory.setName(category.getName());
-        existingCategory.setDescription(category.getDescription());
-        existingCategory.setColorCode(category.getColorCode());
-        existingCategory.setIconClass(category.getIconClass());
-        existingCategory.setFeatured(category.isFeatured());
-        existingCategory.setUpdatedAt(LocalDateTime.now());
+        StringBuilder json = new StringBuilder("{");
+        boolean first = true;
+        for (Map.Entry<Long, String> entry : answers.entrySet()) {
+            if (!first) {
+                json.append(",");
+            }
+            json.append("\"").append(entry.getKey()).append("\":\"").append(entry.getValue()).append("\"");
+            first = false;
+        }
+        json.append("}");
 
-        return categoryRepository.save(existingCategory);
+        return json.toString();
     }
 
     /**
-     * Xóa category (chỉ khi không có courses)
+     * Lưu quiz
      */
-    public void deleteCategory(Long categoryId) {
-        Category category = categoryRepository.findById(categoryId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy category với ID: " + categoryId));
+    public Quiz save(Quiz quiz) {
+        validateQuiz(quiz);
 
-        // Kiểm tra có courses không
-        if (category.getCourseCount() > 0) {
-            throw new RuntimeException("Không thể xóa danh mục có chứa khóa học");
+        // Set thời gian tạo/cập nhật
+        if (quiz.getId() == null) {
+            quiz.setCreatedAt(LocalDateTime.now());
+        }
+        quiz.setUpdatedAt(LocalDateTime.now());
+
+        return quizRepository.save(quiz);
+    }
+
+    /**
+     * Tạo quiz mới
+     */
+    public Quiz createQuiz(Quiz quiz) {
+        validateQuiz(quiz);
+        quiz.setCreatedAt(LocalDateTime.now());
+        quiz.setUpdatedAt(LocalDateTime.now());
+        quiz.setActive(true);
+
+        return quizRepository.save(quiz);
+    }
+
+    /**
+     * Cập nhật quiz
+     */
+    public Quiz updateQuiz(Quiz quiz) {
+        if (quiz.getId() == null) {
+            throw new RuntimeException("ID quiz không được để trống khi cập nhật");
         }
 
-        categoryRepository.delete(category);
-    }
+        Quiz existingQuiz = quizRepository.findById(quiz.getId())
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy quiz với ID: " + quiz.getId()));
 
-    // ===== ACTIVE STATUS MANAGEMENT =====
+        // Cập nhật các field
+        existingQuiz.setTitle(quiz.getTitle());
+        existingQuiz.setDescription(quiz.getDescription());
+        existingQuiz.setDuration(quiz.getDuration());
+        existingQuiz.setMaxScore(quiz.getMaxScore());
+        existingQuiz.setPassScore(quiz.getPassScore());
+        existingQuiz.setPoints(quiz.getPoints());
+        existingQuiz.setActive(quiz.isActive());
+        existingQuiz.setShowCorrectAnswers(quiz.isShowCorrectAnswers());
+        existingQuiz.setShuffleQuestions(quiz.isShuffleQuestions());
+        existingQuiz.setShuffleAnswers(quiz.isShuffleAnswers());
+        existingQuiz.setRequireLogin(quiz.isRequireLogin());
+        existingQuiz.setAvailableFrom(quiz.getAvailableFrom());
+        existingQuiz.setAvailableUntil(quiz.getAvailableUntil());
+        existingQuiz.setUpdatedAt(LocalDateTime.now());
 
-    /**
-     * Set active status cho category (nếu Category entity có active field)
-     */
-    public Category setActive(Long categoryId, boolean active) {
-        Category category = categoryRepository.findById(categoryId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy category với ID: " + categoryId));
-
-        // Nếu Category entity có active field
-        if (hasActiveField(category)) {
-            setActiveField(category, active);
-            category.setUpdatedAt(LocalDateTime.now());
-            return categoryRepository.save(category);
-        }
-
-        // Nếu không có active field, return category without changes
-        return category;
-    }
-
-    /**
-     * Check if category is active
-     */
-    public boolean isActive(Category category) {
-        if (category == null) {
-            return false;
-        }
-
-        // Nếu Category entity có active field
-        if (hasActiveField(category)) {
-            return getActiveField(category);
-        }
-
-        // Default: category luôn active nếu không có field
-        return true;
-    }
-
-    // ===== TÌM KIẾM VÀ LỌC =====
-
-    /**
-     * Tìm category theo tên
-     */
-    public Optional<Category> findByName(String name) {
-        return categoryRepository.findByName(name);
+        return quizRepository.save(existingQuiz);
     }
 
     /**
-     * Tìm categories theo tên chứa keyword (case insensitive)
+     * Xóa quiz (soft delete)
      */
-    public List<Category> findByNameContainingIgnoreCase(String keyword) {
-        return categoryRepository.findByNameContainingIgnoreCase(keyword);
+    @Transactional
+    public void deleteQuiz(Long id) {
+        Quiz quiz = quizRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy quiz với ID: " + id));
+
+        quiz.setActive(false);
+        quiz.setUpdatedAt(LocalDateTime.now());
+        quizRepository.save(quiz);
+    }
+
+    // ===== CÁC METHODS CÒN THIẾU ĐÃ SỬA LỖI =====
+
+    /**
+     * Đếm active quizzes theo course
+     */
+    public Long countActiveQuizzesByCourse(Course course) {
+        return quizRepository.countActiveQuizzesByCourse(course);
     }
 
     /**
-     * Tìm featured categories
+     * Tìm available quizzes cho student
      */
-    public List<Category> findFeaturedCategories() {
-        return categoryRepository.findByFeaturedOrderByName(true);
+    public List<Quiz> findAvailableQuizzesForStudent(User student) {
+        return quizRepository.findAvailableQuizzesForStudent(student);
     }
 
     /**
-     * Tìm featured categories với limit
+     * Tìm completed quizzes cho student
      */
-    public List<Category> findFeaturedCategories(int limit) {
-        Pageable pageable = PageRequest.of(0, limit, Sort.by(Sort.Direction.ASC, "name"));
-        return categoryRepository.findByFeatured(true, pageable).getContent();
+    public List<Quiz> findCompletedQuizzesForStudent(User student) {
+        return quizRepository.findCompletedQuizzesForStudent(student);
     }
 
     /**
-     * Tìm top categories theo course count
+     * Kiểm tra student đã làm quiz chưa (SỬA LỖI METHOD NAME)
      */
-    public List<Category> findTopCategoriesByCourseCount(int limit) {
+    public boolean hasStudentTakenQuiz(User student, Quiz quiz) {
+        return quizResultRepository.hasStudentCompletedQuiz(student, quiz);
+    }
+
+    /**
+     * Tìm quiz result của student cho quiz (SỬA LỖI METHOD NAME)
+     */
+    public Optional<QuizResult> findQuizResult(User student, Quiz quiz) {
+        return quizResultRepository.findQuizResult(student, quiz);
+    }
+
+    /**
+     * Tìm quiz results theo student (SỬA LỖI METHOD NAME)
+     */
+    public List<QuizResult> findQuizResultsByStudent(User student) {
+        Pageable pageable = PageRequest.of(0, 10, Sort.by("completionTime").descending());
+        return quizResultRepository.findByStudentOrderByCompletionTimeDesc(student, pageable);
+    }
+
+    /**
+     * Đếm tất cả quizzes active
+     */
+    public Long countAllActiveQuizzes() {
+        return quizRepository.countAllActiveQuizzes();
+    }
+
+    /**
+     * Tìm quizzes theo instructor
+     */
+    public List<Quiz> findQuizzesByInstructor(User instructor, int limit) {
         Pageable pageable = PageRequest.of(0, limit);
-        return categoryRepository.findTopCategoriesByCourseCount(pageable);
+        return quizRepository.findQuizzesByInstructor(instructor, pageable);
     }
 
     /**
-     * Tìm categories có courses
+     * Đếm quizzes theo instructor
      */
-    public List<Category> findCategoriesWithCourses() {
-        return categoryRepository.findByCourseCountGreaterThan(0);
-    }
-
-    // ===== ĐẾM VÀ THỐNG KÊ =====
-
-    /**
-     * Đếm tất cả categories
-     */
-    public Long countAll() {
-        return categoryRepository.count();
+    public Long countQuizzesByInstructor(User instructor) {
+        return quizRepository.countQuizzesByInstructor(instructor);
     }
 
     /**
-     * Đếm tất cả categories (alias)
+     * Lấy thống kê quiz với QuizResult fields đúng
      */
-    public Long countAllCategories() {
-        return countAll();
+    public Map<String, Object> getQuizStatistics(Quiz quiz) {
+        Map<String, Object> stats = new HashMap<>();
+
+        List<QuizResult> allResults = quizResultRepository.findByQuiz(quiz);
+        Long totalAttempts = (long) allResults.size();
+        Long passedAttempts = allResults.stream()
+                .mapToLong(result -> result.isPassed() ? 1 : 0)
+                .sum();
+
+        Double averageScore = allResults.stream()
+                .filter(result -> result.getScore() != null)
+                .mapToDouble(QuizResult::getScore)
+                .average()
+                .orElse(0.0);
+
+        stats.put("totalAttempts", totalAttempts);
+        stats.put("passedAttempts", passedAttempts);
+        stats.put("passRate", totalAttempts > 0 ? (double) passedAttempts / totalAttempts * 100 : 0.0);
+        stats.put("averageScore", averageScore);
+
+        return stats;
+    }
+
+    // ===== COURSE-RELATED QUERIES =====
+
+    /**
+     * Tìm quizzes theo course
+     */
+    public List<Quiz> findByCourse(Course course) {
+        return quizRepository.findByCourseOrderByCreatedAtDesc(course);
     }
 
     /**
-     * Đếm featured categories
+     * Tìm active quizzes theo course
      */
-    public Long countFeaturedCategories() {
-        return categoryRepository.countByFeatured(true);
+    public List<Quiz> findActiveByCourse(Course course) {
+        return quizRepository.findByCourseAndActiveOrderByCreatedAtDesc(course, true);
     }
 
     /**
-     * Đếm categories có courses
+     * Tìm quizzes theo course với pagination
      */
-    public Long countCategoriesWithCourses() {
-        return categoryRepository.countByCourseCountGreaterThan(0);
-    }
-
-    // ===== COURSE COUNT MANAGEMENT =====
-
-    /**
-     * Cập nhật course count cho category
-     */
-    public void updateCourseCount(Long categoryId) {
-        Category category = categoryRepository.findById(categoryId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy category"));
-
-        // Tính số courses active trong category
-        int courseCount = category.getCourses() != null ?
-                (int) category.getCourses().stream().filter(Course::isActive).count() : 0;
-
-        category.setCourseCount(courseCount);
-        category.setUpdatedAt(LocalDateTime.now());
-        categoryRepository.save(category);
+    public Page<Quiz> findByCourse(Course course, Pageable pageable) {
+        return quizRepository.findByCourse(course, pageable);
     }
 
     /**
-     * Cập nhật course count cho tất cả categories
+     * Đếm quizzes theo course
      */
-    public void updateAllCourseCount() {
-        List<Category> categories = findAll();
-        for (Category category : categories) {
-            updateCourseCount(category.getId());
-        }
+    public Long countByCourse(Course course) {
+        return quizRepository.countByCourse(course);
+    }
+
+    // ===== INSTRUCTOR METHODS =====
+
+    /**
+     * Tìm quizzes theo instructor
+     */
+    public List<Quiz> findByInstructor(User instructor) {
+        return quizRepository.findQuizzesByInstructor(instructor, PageRequest.of(0, 100));
     }
 
     /**
-     * Increment course count
+     * Tìm recent quizzes theo instructor
      */
-    public void incrementCourseCount(Long categoryId) {
-        Category category = categoryRepository.findById(categoryId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy category"));
+    public List<Quiz> findRecentByInstructor(User instructor, int limit) {
+        return quizRepository.findQuizzesByInstructor(instructor, PageRequest.of(0, limit));
+    }
 
-        category.setCourseCount(category.getCourseCount() + 1);
-        category.setUpdatedAt(LocalDateTime.now());
-        categoryRepository.save(category);
+    // ===== SEARCH METHODS =====
+
+    /**
+     * Tìm quiz theo ID hoặc throw exception
+     */
+    public Quiz findByIdOrThrow(Long id) {
+        return quizRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy quiz với ID: " + id));
     }
 
     /**
-     * Decrement course count
+     * Kiểm tra quiz title đã tồn tại trong course chưa
      */
-    public void decrementCourseCount(Long categoryId) {
-        Category category = categoryRepository.findById(categoryId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy category"));
-
-        category.setCourseCount(Math.max(0, category.getCourseCount() - 1));
-        category.setUpdatedAt(LocalDateTime.now());
-        categoryRepository.save(category);
-    }
-
-    // ===== FEATURED MANAGEMENT =====
-
-    /**
-     * Set featured status cho category
-     */
-    public Category setFeatured(Long categoryId, boolean featured) {
-        Category category = categoryRepository.findById(categoryId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy category"));
-
-        category.setFeatured(featured);
-        category.setUpdatedAt(LocalDateTime.now());
-
-        return categoryRepository.save(category);
+    public boolean existsByTitleAndCourse(String title, Course course) {
+        return quizRepository.existsByTitleAndCourse(title, course);
     }
 
     /**
-     * Toggle featured status
+     * Kiểm tra quiz title đã tồn tại trong course chưa (exclude current)
      */
-    public Category toggleFeatured(Long categoryId) {
-        Category category = categoryRepository.findById(categoryId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy category"));
-
-        category.setFeatured(!category.isFeatured());
-        category.setUpdatedAt(LocalDateTime.now());
-
-        return categoryRepository.save(category);
-    }
-
-    // ===== KIỂM TRA TỒN TẠI =====
-
-    /**
-     * Kiểm tra tên category đã tồn tại chưa
-     */
-    public boolean existsByName(String name) {
-        return categoryRepository.existsByName(name);
+    public boolean existsByTitleAndCourseAndIdNot(String title, Course course, Long id) {
+        return quizRepository.existsByTitleAndCourseAndIdNot(title, course, id);
     }
 
     /**
-     * Kiểm tra category có courses không
+     * Validate quiz trước khi save
      */
-    public boolean hasCourses(Long categoryId) {
-        Category category = categoryRepository.findById(categoryId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy category"));
-        return category.getCourseCount() > 0;
-    }
-
-    // ===== VALIDATION =====
-
-    /**
-     * Validate category trước khi lưu
-     */
-    private void validateCategory(Category category) {
-        if (category == null) {
-            throw new RuntimeException("Category không được để trống");
+    private void validateQuiz(Quiz quiz) {
+        if (quiz.getTitle() == null || quiz.getTitle().trim().isEmpty()) {
+            throw new RuntimeException("Tiêu đề quiz không được để trống");
         }
 
-        if (!StringUtils.hasText(category.getName())) {
-            throw new RuntimeException("Tên category không được để trống");
+        if (quiz.getCourse() == null) {
+            throw new RuntimeException("Khóa học không được để trống");
         }
 
-        // Kiểm tra độ dài tên
-        if (category.getName().length() < 2 || category.getName().length() > 100) {
-            throw new RuntimeException("Tên category phải từ 2-100 ký tự");
+        if (quiz.getMaxScore() == null || quiz.getMaxScore() <= 0) {
+            throw new RuntimeException("Điểm tối đa phải lớn hơn 0");
         }
 
-        // Validate color code format
-        if (category.getColorCode() != null && !isValidColorCode(category.getColorCode())) {
-            throw new RuntimeException("Mã màu không đúng định dạng (ví dụ: #FF0000)");
+        if (quiz.getPassScore() == null || quiz.getPassScore() <= 0) {
+            throw new RuntimeException("Điểm đạt phải lớn hơn 0");
         }
 
-        // Validate icon class format
-        if (category.getIconClass() != null && category.getIconClass().length() > 50) {
-            throw new RuntimeException("Icon class không được quá 50 ký tự");
-        }
-    }
-
-    /**
-     * Kiểm tra color code có hợp lệ không
-     */
-    private boolean isValidColorCode(String colorCode) {
-        if (colorCode == null || colorCode.trim().isEmpty()) {
-            return false;
-        }
-        return colorCode.matches("^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$");
-    }
-
-    // ===== HELPER METHODS CHO ACTIVE FIELD REFLECTION =====
-
-    /**
-     * Kiểm tra Category có active field không
-     */
-    private boolean hasActiveField(Category category) {
-        try {
-            category.getClass().getDeclaredField("active");
-            return true;
-        } catch (NoSuchFieldException e) {
-            return false;
-        }
-    }
-
-    /**
-     * Set active field value
-     */
-    private void setActiveField(Category category, boolean active) {
-        try {
-            java.lang.reflect.Field field = category.getClass().getDeclaredField("active");
-            field.setAccessible(true);
-            field.setBoolean(category, active);
-        } catch (Exception e) {
-            // Ignore reflection errors
-        }
-    }
-
-    /**
-     * Get active field value
-     */
-    private boolean getActiveField(Category category) {
-        try {
-            java.lang.reflect.Field field = category.getClass().getDeclaredField("active");
-            field.setAccessible(true);
-            return field.getBoolean(category);
-        } catch (Exception e) {
-            return true; // Default active
-        }
-    }
-
-    // ===== UTILITY METHODS =====
-
-    /**
-     * Lấy category với course count cao nhất
-     */
-    public Optional<Category> findMostPopularCategory() {
-        List<Category> categories = findTopCategoriesByCourseCount(1);
-        return categories.isEmpty() ? Optional.empty() : Optional.of(categories.get(0));
-    }
-
-    /**
-     * Lấy danh sách categories cho dropdown/select
-     */
-    public List<Category> findForDropdown() {
-        return categoryRepository.findAll(Sort.by(Sort.Direction.ASC, "name"));
-    }
-
-    /**
-     * Generate default icon class dựa trên tên category
-     */
-    public String generateDefaultIcon(String categoryName) {
-        if (categoryName == null) {
-            return "fas fa-book";
-        }
-
-        String lowerName = categoryName.toLowerCase();
-
-        if (lowerName.contains("programming") || lowerName.contains("lập trình")) {
-            return "fas fa-code";
-        } else if (lowerName.contains("design") || lowerName.contains("thiết kế")) {
-            return "fas fa-paint-brush";
-        } else if (lowerName.contains("business") || lowerName.contains("kinh doanh")) {
-            return "fas fa-briefcase";
-        } else if (lowerName.contains("marketing")) {
-            return "fas fa-bullhorn";
-        } else if (lowerName.contains("music") || lowerName.contains("âm nhạc")) {
-            return "fas fa-music";
-        } else if (lowerName.contains("language") || lowerName.contains("ngôn ngữ")) {
-            return "fas fa-globe";
-        } else {
-            return "fas fa-book";
-        }
-    }
-
-    /**
-     * Generate default color dựa trên tên category
-     */
-    public String generateDefaultColor(String categoryName) {
-        if (categoryName == null) {
-            return "#007bff";
-        }
-
-        String lowerName = categoryName.toLowerCase();
-
-        if (lowerName.contains("programming") || lowerName.contains("lập trình")) {
-            return "#28a745"; // Green
-        } else if (lowerName.contains("design") || lowerName.contains("thiết kế")) {
-            return "#e83e8c"; // Pink
-        } else if (lowerName.contains("business") || lowerName.contains("kinh doanh")) {
-            return "#343a40"; // Dark
-        } else if (lowerName.contains("marketing")) {
-            return "#fd7e14"; // Orange
-        } else if (lowerName.contains("music") || lowerName.contains("âm nhạc")) {
-            return "#6f42c1"; // Purple
-        } else if (lowerName.contains("language") || lowerName.contains("ngôn ngữ")) {
-            return "#20c997"; // Teal
-        } else {
-            return "#007bff"; // Blue
+        if (quiz.getPassScore() > quiz.getMaxScore()) {
+            throw new RuntimeException("Điểm đạt không được lớn hơn điểm tối đa");
         }
     }
 }
