@@ -44,7 +44,7 @@ public class Course {
     @Column()
     private Double price = 0.0;
 
-    @Column(name = "is_featured")
+    @Column(name = "is_featured", nullable = false)
     private boolean featured = false;
 
     @Column(name = "is_active")

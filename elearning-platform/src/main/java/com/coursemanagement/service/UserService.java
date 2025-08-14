@@ -261,7 +261,8 @@ public class UserService implements UserDetailsService {
      * Search instructors
      */
     public List<User> searchInstructors(String keyword, int limit) {
-        return userRepository.searchInstructors(keyword, limit);
+        Pageable pageable = PageRequest.of(0, limit);
+        return userRepository.searchInstructors(keyword, pageable);
     }
 
     /**

@@ -208,7 +208,7 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
             "LOWER(c.name) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(c.description) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
             "ORDER BY c.name")
-    List<Category> searchCategories(@Param("keyword") String keyword, @Param("limit") int limit);
+    List<Category> searchCategories(@Param("keyword") String keyword);
 
     /**
      * Tìm categories theo keyword (active only)
@@ -353,10 +353,11 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
      * Lấy category performance stats
      */
     @Query("SELECT c.name, c.courseCount, " +
-            "(SELECT COUNT(e) FROM Enrollment e WHERE e.course.category = c) as enrollmentCount " +
+            "(SELECT COUNT(e) FROM Enrollment e WHERE e.course.category = c) " +
             "FROM Category c " +
-            "ORDER BY enrollmentCount DESC")
+            "ORDER BY (SELECT COUNT(e) FROM Enrollment e WHERE e.course.category = c) DESC")
     List<Object[]> getCategoryPerformanceStats();
+
 
     /**
      * Lấy thống kê categories theo số courses

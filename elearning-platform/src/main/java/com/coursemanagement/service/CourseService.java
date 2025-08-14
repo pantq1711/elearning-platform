@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Dịch vụ xử lý logic nghiệp vụ liên quan đến Course
@@ -308,7 +309,9 @@ public class CourseService {
      * Tìm courses theo keyword với limit
      */
     public List<Course> searchCourses(String keyword, int limit) {
-        return courseRepository.searchCourses(keyword, limit);
+        return courseRepository.searchCourses(keyword).stream()
+                .limit(limit)
+                .collect(Collectors.toList());
     }
 
     /**

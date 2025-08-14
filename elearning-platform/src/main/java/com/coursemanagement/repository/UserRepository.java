@@ -125,13 +125,13 @@
                 "(LOWER(u.fullName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
                 "LOWER(u.username) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
                 "ORDER BY u.fullName")
-        List<User> searchInstructors(@Param("keyword") String keyword, @Param("limit") int limit);
+        List<User> searchInstructors(@Param("keyword") String keyword, Pageable pageable);
 
         @Query("SELECT u FROM User u WHERE u.role = 'STUDENT' AND u.active = true AND " +
                 "(LOWER(u.fullName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
                 "LOWER(u.username) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
                 "ORDER BY u.fullName")
-        List<User> searchStudents(@Param("keyword") String keyword, @Param("limit") int limit);
+        List<User> searchStudents(@Param("keyword") String keyword, Pageable pageable);
 
         // ===== UPDATE QUERIES =====
 
@@ -163,20 +163,6 @@
         @Query("SELECT u FROM User u WHERE u.createdAt >= :since ORDER BY u.createdAt DESC")
         Page<User> findRecentUsers(@Param("since") LocalDateTime since, Pageable pageable);
 
-        @Query("SELECT u, COUNT(c) as courseCount FROM User u " +
-                "LEFT JOIN u.instructorCourses c " +
-                "WHERE u.role = 'INSTRUCTOR' AND u.active = true " +
-                "GROUP BY u " +
-                "ORDER BY courseCount DESC")
-        List<Object[]> getTopInstructorsByEnrollments(@Param("limit") int limit);
-
-        @Query("SELECT u, COUNT(e) as enrollmentCount FROM User u " +
-                "LEFT JOIN u.instructorCourses c " +
-                "LEFT JOIN c.enrollments e " +
-                "WHERE u.role = 'INSTRUCTOR' AND u.active = true " +
-                "GROUP BY u " +
-                "ORDER BY enrollmentCount DESC")
-        List<Object[]> findMostActiveInstructors(@Param("limit") int limit);
 
         @Query("SELECT YEAR(u.createdAt), MONTH(u.createdAt), COUNT(u) " +
                 "FROM User u " +
@@ -234,11 +220,10 @@
         List<User> findAllByActiveTrueOrderByFullName();
 
         @Query("SELECT u FROM User u WHERE u.role = 'INSTRUCTOR' AND u.active = true AND " +
-                "(LOWER(u.username) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-                "LOWER(u.fullName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-                "LOWER(u.email) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
+                "(LOWER(u.fullName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+                "LOWER(u.username) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
                 "ORDER BY u.fullName")
-        List<User> searchInstructorsByKeyword(@Param("keyword") String keyword, @Param("limit") int limit);
+        List<User> searchInstructors(@Param("keyword") String keyword);
 
         Page<User> findByRole(User.Role role, Pageable pageable);
 

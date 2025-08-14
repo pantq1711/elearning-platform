@@ -319,21 +319,8 @@ public interface QuizRepository extends JpaRepository<Quiz, Long> {
             "FROM QuizResult qr WHERE qr.quiz = :quiz")
     Object[] getQuizPerformanceStats(@Param("quiz") Quiz quiz);
 
-    /**
-     * Lấy recent quizzes với limit
-     */
-    @Query("SELECT q FROM Quiz q WHERE q.active = true ORDER BY q.createdAt DESC")
-    List<Quiz> findRecentQuizzes(@Param("limit") int limit);
 
-    /**
-     * Lấy popular quizzes (nhiều attempts)
-     */
-    @Query("SELECT q, COUNT(qr) as attemptCount FROM Quiz q " +
-            "LEFT JOIN q.quizResults qr " +
-            "WHERE q.active = true " +
-            "GROUP BY q " +
-            "ORDER BY attemptCount DESC")
-    List<Object[]> findPopularQuizzes(@Param("limit") int limit);
+
 
     /**
      * Lấy quizzes theo difficulty level (dựa trên pass score)

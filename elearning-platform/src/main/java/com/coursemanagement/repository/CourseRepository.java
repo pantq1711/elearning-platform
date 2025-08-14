@@ -240,7 +240,7 @@ public interface CourseRepository extends JpaRepository<Course, Long>, JpaSpecif
             "(LOWER(c.name) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(c.description) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
             "ORDER BY c.createdAt DESC")
-    List<Course> searchCourses(@Param("keyword") String keyword, @Param("limit") int limit);
+    List<Course> searchCourses(@Param("keyword") String keyword);
 
     /**
      * Tìm courses với filters kết hợp

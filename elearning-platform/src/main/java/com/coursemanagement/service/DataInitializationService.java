@@ -39,7 +39,13 @@ public class DataInitializationService {
     @PostConstruct
     public void initializeData() {
         try {
-            System.out.println("🚀 Bắt đầu khởi tạo dữ liệu mẫu cho hệ thống e-learning...");
+            System.out.println("🚀 Bắt đầu khởi tạo dữ liệu mẫu...");
+
+            // Kiểm tra xem đã có dữ liệu chưa
+            if (userRepository.count() > 0) {
+                System.out.println("📝 Dữ liệu đã tồn tại, bỏ qua khởi tạo");
+                return;
+            }
 
             createSampleUsers();
             createSampleCategories();
@@ -48,11 +54,10 @@ public class DataInitializationService {
             createSampleQuizzes();
             createSampleEnrollments();
 
-            System.out.println("✅ Khởi tạo dữ liệu mẫu hoàn thành!");
-            printSystemStatistics();
+            System.out.println("✅ Khởi tạo dữ liệu hoàn thành!");
 
         } catch (Exception e) {
-            System.err.println("❌ Lỗi khi khởi tạo dữ liệu mẫu: " + e.getMessage());
+            System.err.println("❌ Lỗi khởi tạo dữ liệu: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -211,124 +216,70 @@ public class DataInitializationService {
      * Tạo khóa học mẫu với thông tin chi tiết và realistic
      */
     private void createSampleCourses() {
-        System.out.println("📚 Tạo khóa học mẫu...");
+        System.out.println("📚 Tạo courses mẫu...");
 
-        try {
-            if (courseRepository.count() > 0) {
-                System.out.println("⚠️ Dữ liệu khóa học đã tồn tại, bỏ qua...");
-                return;
-            }
+        List<User> instructors = userRepository.findByRole(User.Role.INSTRUCTOR);
+        List<Category> categories = categoryRepository.findAll();
 
-            List<Category> categories = categoryRepository.findAll();
-            List<User> instructors = userRepository.findByRole(User.Role.INSTRUCTOR);
+        if (instructors.isEmpty() || categories.isEmpty()) {
+            System.out.println("⚠️ Cần có instructors và categories trước khi tạo courses!");
+            return;
+        }
 
-            if (categories.isEmpty() || instructors.isEmpty()) {
-                System.out.println("⚠️ Chưa có danh mục hoặc giảng viên, bỏ qua tạo khóa học");
-                return;
-            }
+        String[] courseNames = {
+                "Java Căn Bản Cho Người Mới", "Spring Boot Thực Chiến",
+                "React.js Từ A-Z", "Python cho Data Science",
+                "Machine Learning Cơ Bản", "DevOps và Docker",
+                "Database Design MySQL", "JavaScript ES6+",
+                "Angular Framework", "Node.js Backend Development"
+        };
 
-            // Dữ liệu khóa học phong phú và realistic
-            Object[][] courseData = {
-                    {"Lập trình Java từ Zero đến Hero",
-                            "Khóa học Java toàn diện từ cơ bản đến nâng cao, bao gồm OOP, Collections, Streams, Spring Framework và xây dựng ứng dụng thực tế.",
-                            "Lập trình", 80, Course.DifficultyLevel.EASY, 1499000.0, true,
-                            "Biết sử dụng máy tính cơ bản",
-                            "Thành thạo Java Core, OOP, Spring Boot, MySQL, có thể xây dựng web application hoàn chỉnh"},
+        String[] descriptions = {
+                "Khóa học Java từ cơ bản đến nâng cao, phù hợp cho người mới bắt đầu",
+                "Học cách xây dựng ứng dụng web với Spring Boot",
+                "Mastering React.js với các dự án thực tế",
+                "Phân tích dữ liệu và machine learning với Python",
+                "Giới thiệu về machine learning và AI",
+                "Triển khai ứng dụng với Docker và Kubernetes",
+                "Thiết kế database hiệu quả với MySQL",
+                "JavaScript hiện đại với ES6+ features",
+                "Xây dựng SPA với Angular framework",
+                "Backend development với Node.js và Express"
+        };
 
-                    {"UI/UX Design với Figma Pro",
-                            "Tìm hiểu các nguyên tắc thiết kế UI/UX và thực hành với công cụ Figma chuyên nghiệp, từ wireframe đến prototype hoàn chỉnh.",
-                            "Thiết kế", 45, Course.DifficultyLevel.MEDIUM, 899000.0, true,
-                            "Không cần kinh nghiệm trước đó",
-                            "Thiết kế được giao diện app/web, thành thạo Figma, hiểu về User Experience"},
+        for (int i = 0; i < courseNames.length; i++) {
+            Course course = new Course();
+            course.setName(courseNames[i]);
+            course.setDescription(descriptions[i]);
 
-                    {"Digital Marketing Mastery 2024",
-                            "Khóa học marketing số toàn diện, bao gồm SEO, Google Ads, Facebook Ads, Content Marketing và Analytics với case study thực tế.",
-                            "Marketing", 60, Course.DifficultyLevel.HARD, 1299000.0, true,
-                            "Biết sử dụng internet và mạng xã hội",
-                            "Lập và thực hiện chiến lược marketing số, chạy quảng cáo hiệu quả, phân tích ROI"},
+            // QUAN TRỌNG: Đảm bảo không có null values
+            course.setSlug(createSlug(courseNames[i]));
+            course.setCategory(categories.get(i % categories.size()));
+            course.setInstructor(instructors.get(i % instructors.size()));
+            course.setDuration(random.nextInt(300) + 60); // 60-360 phút
+            course.setDifficultyLevel(Course.DifficultyLevel.values()[random.nextInt(3)]);
+            course.setPrice(random.nextDouble() * 500000); // 0-500k VND
 
-                    {"Tiếng Anh giao tiếp Business",
-                            "Khóa học tiếng Anh giao tiếp trong môi trường doanh nghiệp, presentation, negotiation và email writing chuyên nghiệp.",
-                            "Ngoại ngữ", 100, Course.DifficultyLevel.MEDIUM, 1199000.0, false,
-                            "Tiếng Anh cơ bản (A2 trở lên)",
-                            "Giao tiếp tự tin trong meeting, thuyết trình, viết email chuyên nghiệp"},
+            // ĐẢM BẢO featured không null
+            course.setFeatured(i < 3); // 3 course đầu là featured
+            course.setActive(true);
+            course.setLanguage("Vietnamese");
 
-                    {"Startup & Quản lý dự án Agile",
-                            "Học các phương pháp khởi nghiệp hiện đại, quản lý dự án với Agile/Scrum, xây dựng team và scale-up doanh nghiệp.",
-                            "Kinh doanh", 50, Course.DifficultyLevel.HARD, 1899000.0, true,
-                            "Có ý tưởng kinh doanh hoặc đang làm việc trong team",
-                            "Xây dựng business plan, quản lý team hiệu quả, ứng dụng Agile/Scrum"},
+            // SET thời gian tạo
+            course.setCreatedAt(LocalDateTime.now().minusDays(random.nextInt(30)));
+            course.setUpdatedAt(LocalDateTime.now());
 
-                    {"Thuyết trình và Public Speaking",
-                            "Phát triển kỹ năng thuyết trình và giao tiếp trước đám đông một cách tự tin, từ cơ bản đến nâng cao.",
-                            "Kỹ năng mềm", 30, Course.DifficultyLevel.EASY, 699000.0, false,
-                            "Không cần kinh nghiệm",
-                            "Thuyết trình tự tin, structure nội dung hiệu quả, xử lý Q&A"},
+            // Đảm bảo các field text không null
+            course.setPrerequisites(i % 2 == 0 ? "Kiến thức cơ bản về lập trình" : null);
+            course.setLearningObjectives("Học được kiến thức " + courseNames[i]);
+            course.setImageUrl("/images/courses/course-" + (i + 1) + ".jpg");
 
-                    {"Python cho Data Science",
-                            "Học Python để phân tích dữ liệu với Pandas, NumPy, Matplotlib và Machine Learning với Scikit-learn, bao gồm dự án thực tế.",
-                            "Công nghệ", 90, Course.DifficultyLevel.MEDIUM, 1699000.0, true,
-                            "Biết toán cơ bản và logic tư duy",
-                            "Phân tích dữ liệu với Python, xây dựng mô hình ML cơ bản, visualization"},
-
-                    {"Adobe Photoshop từ A-Z",
-                            "Khóa học Photoshop toàn diện cho thiết kế đồ họa và chỉnh sửa ảnh chuyên nghiệp, từ tools cơ bản đến kỹ thuật nâng cao.",
-                            "Nghệ thuật", 55, Course.DifficultyLevel.EASY, 999000.0, false,
-                            "Có máy tính và Photoshop",
-                            "Chỉnh sửa ảnh chuyên nghiệp, thiết kế poster, banner, hiệu ứng đặc biệt"},
-
-                    {"Machine Learning cơ bản",
-                            "Giới thiệu Machine Learning với Python, các thuật toán cơ bản, và ứng dụng thực tế trong business.",
-                            "Công nghệ", 70, Course.DifficultyLevel.HARD, 2199000.0, true,
-                            "Biết Python cơ bản, toán học đại cương",
-                            "Hiểu và ứng dụng ML algorithms, xây dựng model predictions"},
-
-                    {"Facebook Ads Advanced",
-                            "Chiến lược quảng cáo Facebook nâng cao, tối ưu hóa ROI, custom audience và retargeting với budget optimization.",
-                            "Marketing", 35, Course.DifficultyLevel.HARD, 1599000.0, true,
-                            "Đã chạy Facebook Ads cơ bản",
-                            "Tối ưu campaigns hiệu quả, scale budget, giảm cost per acquisition"}
-            };
-
-            for (Object[] data : courseData) {
-                Course course = new Course();
-                course.setName((String) data[0]);
-                course.setDescription((String) data[1]);
-                course.setDuration((Integer) data[3]);
-                course.setDifficultyLevel((Course.DifficultyLevel) data[4]);
-                course.setPrice((Double) data[5]);
-                course.setFeatured((Boolean) data[6]);
-                course.setPrerequisites((String) data[7]);
-                course.setLearningObjectives((String) data[8]);
-                course.setActive(true);
-                course.setLanguage("Vietnamese");
-
-                // Tạo slug từ tên
-                course.setSlug(createSlugFromName(course.getName()));
-
-                // Tìm category phù hợp
-                String categoryName = (String) data[2];
-                Category category = categories.stream()
-                        .filter(c -> c.getName().contains(categoryName))
-                        .findFirst()
-                        .orElse(categories.get(0));
-                course.setCategory(category);
-
-                // Random instructor
-                User instructor = instructors.get(random.nextInt(instructors.size()));
-                course.setInstructor(instructor);
-
-                course.setCreatedAt(LocalDateTime.now().minusDays(random.nextInt(30)));
-                course.setUpdatedAt(LocalDateTime.now());
-
+            try {
                 courseRepository.save(course);
+                System.out.println("✅ Tạo course: " + course.getName());
+            } catch (Exception e) {
+                System.err.println("❌ Lỗi tạo course " + courseNames[i] + ": " + e.getMessage());
             }
-
-            System.out.println("✅ Đã tạo " + courseData.length + " khóa học mẫu");
-
-        } catch (Exception e) {
-            System.err.println("❌ Lỗi tạo khóa học mẫu: " + e.getMessage());
-            e.printStackTrace();
         }
     }
 
@@ -663,6 +614,15 @@ public class DataInitializationService {
             System.err.println("❌ Lỗi tạo enrollment mẫu: " + e.getMessage());
             e.printStackTrace();
         }
+    }
+    private String createSlug(String name) {
+        if (name == null) return "default-slug";
+
+        return name.toLowerCase()
+                .replaceAll("\\s+", "-")
+                .replaceAll("[^a-z0-9-]", "")
+                .replaceAll("-+", "-")
+                .replaceAll("^-|-$", "");
     }
 
     /**

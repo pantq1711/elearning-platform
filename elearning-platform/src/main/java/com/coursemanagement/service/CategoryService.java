@@ -243,6 +243,10 @@ public class CategoryService {
             return new ArrayList<>();
         }
     }
+    public List<Category> searchCategories(String keyword, int limit) {
+        List<Category> allResults = categoryRepository.searchCategories(keyword);
+        return allResults.stream().limit(limit).collect(Collectors.toList());
+    }
     /**
      * Tìm tất cả categories active
      */

@@ -287,13 +287,13 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
      * Lấy recent enrollments của course
      */
     @Query("SELECT e FROM Enrollment e WHERE e.course = :course ORDER BY e.enrollmentDate DESC")
-    List<Enrollment> getRecentEnrollmentsByCourse(@Param("course") Course course, @Param("limit") int limit);
+    List<Enrollment> getRecentEnrollmentsByCourse(@Param("course") Course course);
 
     /**
      * Lấy top students của course (theo progress)
      */
     @Query("SELECT e FROM Enrollment e WHERE e.course = :course ORDER BY e.progress DESC")
-    List<Enrollment> getTopStudentsByCourse(@Param("course") Course course, @Param("limit") int limit);
+    List<Enrollment> getTopStudentsByCourse(@Param("course") Course course);
 
     /**
      * Tìm enrollments by course ID
