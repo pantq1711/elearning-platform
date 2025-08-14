@@ -70,21 +70,6 @@ public class WebConfig implements WebMvcConfigurer {
     }
 
     /**
-     * FIXED: Cấu hình JSP view resolver với JSTL support
-     */
-    @Bean
-    public InternalResourceViewResolver jspViewResolver() {
-        InternalResourceViewResolver resolver = new InternalResourceViewResolver();
-        resolver.setViewClass(JstlView.class);
-        resolver.setPrefix("/WEB-INF/views/");
-        resolver.setSuffix(".jsp");
-        resolver.setExposeContextBeansAsAttributes(true);
-        resolver.setExposedContextBeanNames("*");
-        resolver.setOrder(1); // Set priority
-
-        return resolver;
-    }
-
     /**
      * Alternative method: Configure view resolver via registry
      */
@@ -95,6 +80,7 @@ public class WebConfig implements WebMvcConfigurer {
         resolver.setPrefix("/WEB-INF/views/");
         resolver.setSuffix(".jsp");
         resolver.setExposeContextBeansAsAttributes(true);
+        resolver.setOrder(1);
 
         registry.viewResolver(resolver);
     }

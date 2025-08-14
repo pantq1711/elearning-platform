@@ -48,11 +48,11 @@ public class AuthController {
                             Model model) {
 
         // Kiểm tra nếu user đã login rồi thì redirect về dashboard
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth != null && auth.isAuthenticated() &&
-                !auth.getName().equals("anonymousUser")) {
-            return "redirect:/dashboard";
-        }
+//        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+//        if (auth != null && auth.isAuthenticated() &&
+//                !auth.getName().equals("anonymousUser")) {
+//            return "redirect:/dashboard";
+//        }
 
         // Xử lý thông báo lỗi đăng nhập
         if (error != null) {
