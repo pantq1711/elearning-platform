@@ -1,5 +1,6 @@
 package com.coursemanagement.service;
 
+import com.coursemanagement.dto.CategoryStats;
 import com.coursemanagement.entity.Category;
 import com.coursemanagement.entity.Course;
 import com.coursemanagement.repository.CategoryRepository;
@@ -16,6 +17,7 @@ import org.springframework.util.StringUtils;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 /**
  * Dịch vụ quản lý danh mục khóa học (Category)
@@ -56,6 +58,34 @@ public class CategoryService {
      */
     public List<Category> findAllOrderByName() {
         return categoryRepository.findAll(Sort.by(Sort.Direction.ASC, "name"));
+    }
+    /**
+     * Convert Category to CategoryStats (SỬA LỖI)
+     */
+    private CategoryStats convertToCategoryStats(Category category) {
+        // Tính toán enrollments cho category này
+        long totalEnrollments = 0;
+        long completedEnrollments = 0;
+
+        if (category.getCourses() != null) {
+            totalEnrollments = category.getCourses().stream()
+                    .mapToLong(course -> course.getEnrollments() != null ? course.getEnrollments().size() : 0)
+                    .sum();
+
+            completedEnrollments = category.getCourses().stream()
+                    .flatMap(course -> course.getEnrollments() != null ? course.getEnrollments().stream() : Stream.empty())
+                    .mapToLong(enrollment -> enrollment.isCompleted() ? 1 : 0)
+                    .sum();
+        }
+
+        return new CategoryStats(
+                category.getId(),
+                category.getName(),
+                category.getDescription(),
+                category.getCourseCount() != 0 ? category.getCourseCount() : 0,
+                totalEnrollments,
+                completedEnrollments
+        );
     }
 
     /**

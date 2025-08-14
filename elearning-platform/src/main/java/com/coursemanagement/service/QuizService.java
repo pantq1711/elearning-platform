@@ -29,6 +29,160 @@ import java.util.Optional;
 @Service
 @Transactional
 public class QuizService {
+    // ===== METHODS CÒN THIẾU CHO QUIZ SERVICE =====
+    // Thêm các methods này vào QuizService.java
+
+    /**
+     * Đếm active quizzes theo course
+     */
+    public Long countActiveQuizzesByCourse(Course course) {
+        return quizRepository.countActiveQuizzesByCourse(course);
+    }
+
+    /**
+     * Tìm available quizzes cho student
+     */
+    public List<Quiz> findAvailableQuizzesForStudent(User student) {
+        return quizRepository.findAvailableQuizzesForStudent(student);
+    }
+
+    /**
+     * Tìm completed quizzes cho student
+     */
+    public List<Quiz> findCompletedQuizzesForStudent(User student) {
+        return quizRepository.findCompletedQuizzesForStudent(student);
+    }
+
+    /**
+     * Kiểm tra student đã làm quiz chưa
+     */
+    public boolean hasStudentTakenQuiz(User student, Quiz quiz) {
+        return quizRepository.hasStudentTakenQuiz(student, quiz);
+    }
+
+    /**
+     * Tìm quiz result của student cho quiz
+     */
+    public Optional<QuizResult> findQuizResult(User student, Quiz quiz) {
+        return quizResultRepository.findQuizResult(student, quiz);
+    }
+
+    /**
+     * Bắt đầu quiz cho student
+     */
+    @Transactional
+    public QuizResult startQuiz(User student, Quiz quiz) {
+        // Kiểm tra student đã đăng ký course chưa
+        if (!enrollmentService.isStudentEnrolledInCourse(student, quiz.getCourse())) {
+            throw new RuntimeException("Bạn chưa đăng ký khóa học này");
+        }
+
+        // Kiểm tra quiz có available không
+        if (!quiz.isAvailable()) {
+            throw new RuntimeException("Quiz này hiện không khả dụng");
+        }
+
+        // Kiểm tra đã làm quiz chưa (nếu không cho phép làm lại)
+        if (!quiz.isAllowRetake() && hasStudentTakenQuiz(student, quiz)) {
+            throw new RuntimeException("Bạn đã hoàn thành quiz này");
+        }
+
+        // Tạo quiz result mới
+        QuizResult quizResult = new QuizResult();
+        quizResult.setStudent(student);
+        quizResult.setQuiz(quiz);
+        quizResult.setStartTime(LocalDateTime.now());
+        quizResult.set(QuizResult.IN_PROGRESS);
+        quizResult.setAttemptDate(LocalDateTime.now());
+
+        return quizResultRepository.save(quizResult);
+    }
+
+    /**
+     * Đếm tất cả quizzes active
+     */
+    public Long countAllActiveQuizzes() {
+        return quizRepository.countAllActiveQuizzes();
+    }
+
+    /**
+     * Tìm quizzes theo instructor
+     */
+    public List<Quiz> findQuizzesByInstructor(User instructor, int limit) {
+        Pageable pageable = PageRequest.of(0, limit);
+        return quizRepository.findQuizzesByInstructor(instructor, pageable);
+    }
+
+    /**
+     * Đếm quizzes theo instructor
+     */
+    public Long countQuizzesByInstructor(User instructor) {
+        return quizRepository.countQuizzesByInstructor(instructor);
+    }
+
+    /**
+     * Nộp bài quiz
+     */
+    @Transactional
+    public QuizResult submitQuiz(Long quizResultId, Map<Long, String> answers) {
+        QuizResult quizResult = quizResultRepository.findById(quizResultId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy bài làm quiz"));
+
+        if (quizResult.getStatus() != QuizResult.Status.IN_PROGRESS) {
+            throw new RuntimeException("Quiz này đã được nộp hoặc hết hạn");
+        }
+
+        // Tính điểm
+        double score = calculateQuizScore(quizResult.getQuiz(), answers);
+        boolean passed = score >= quizResult.getQuiz().getPassScore();
+
+        // Cập nhật quiz result
+        quizResult.setScore(score);
+        quizResult.setPassed(passed);
+        quizResult.setCompletionTime(LocalDateTime.now());
+        quizResult.setStatus(QuizResult.Status.COMPLETED);
+        quizResult.setUpdatedAt(LocalDateTime.now());
+
+        return quizResultRepository.save(quizResult);
+    }
+
+    /**
+     * Tính điểm quiz
+     */
+    private double calculateQuizScore(Quiz quiz, Map<Long, String> answers) {
+        List<Question> questions = questionService.findByQuiz(quiz);
+        double totalScore = 0.0;
+        double maxScore = 0.0;
+
+        for (Question question : questions) {
+            maxScore += question.getPoints();
+            String studentAnswer = answers.get(question.getId());
+
+            if (studentAnswer != null && studentAnswer.equals(question.getCorrectAnswer())) {
+                totalScore += question.getPoints();
+            }
+        }
+
+        return maxScore > 0 ? (totalScore / maxScore) * quiz.getMaxScore() : 0.0;
+    }
+
+    /**
+     * Lấy thống kê quiz
+     */
+    public Map<String, Object> getQuizStatistics(Quiz quiz) {
+        Map<String, Object> stats = new HashMap<>();
+
+        Long totalAttempts = quizResultRepository.countByQuiz(quiz);
+        Long passedAttempts = quizResultRepository.countByQuizAndPassed(quiz, true);
+        Double averageScore = quizResultRepository.getAverageScoreByQuiz(quiz);
+
+        stats.put("totalAttempts", totalAttempts);
+        stats.put("passedAttempts", passedAttempts);
+        stats.put("passRate", totalAttempts > 0 ? (double) passedAttempts / totalAttempts * 100 : 0.0);
+        stats.put("averageScore", averageScore != null ? averageScore : 0.0);
+
+        return stats;
+    }
 
     @Autowired
     private QuizRepository quizRepository;
@@ -249,14 +403,13 @@ public class QuizService {
     public QuizResult createQuizResult(Quiz quiz, User student, double score, int correctAnswers, int totalQuestions) {
         QuizResult result = new QuizResult();
         result.setQuiz(quiz);
-        result.setUser(student);
+        result.setStudent(student);
         result.setScore(score);
-        result.setCorrectAnswers(correctAnswers);
+        result.setAnswers(String.valueOf(correctAnswers));
         result.setTotalQuestions(totalQuestions);
-        result.setStartedAt(LocalDateTime.now());
-        result.setSubmittedAt(LocalDateTime.now());
+        result.setStartTime(LocalDateTime.now());
+        result.setCompletionTime(LocalDateTime.now());
         result.setPassed(score >= quiz.getPassScore());
-        result.setTimeTaken(0); // Set actual time taken
 
         return quizResultRepository.save(result);
     }
@@ -413,14 +566,14 @@ public class QuizService {
      * Get user từ QuizResult (wrapper method for compatibility)
      */
     public User getUser(QuizResult quizResult) {
-        return quizResult != null ? quizResult.getUser() : null;
+        return quizResult != null ? quizResult.getStudent() : null;
     }
 
     /**
      * Get submitted date từ QuizResult (wrapper method for compatibility)
      */
     public LocalDateTime getSubmittedAt(QuizResult quizResult) {
-        return quizResult != null ? quizResult.getSubmittedAt() : null;
+        return quizResult != null ? quizResult.getCompletionTime() : null;
     }
 
     // ===== VALIDATION =====

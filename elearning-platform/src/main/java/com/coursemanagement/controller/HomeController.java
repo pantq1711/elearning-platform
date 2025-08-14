@@ -1,4 +1,6 @@
 package com.coursemanagement.controller;
+import com.coursemanagement.dto.CategoryStats;
+import java.util.stream.Collectors;
 
 import com.coursemanagement.entity.User;
 import com.coursemanagement.entity.Course;
@@ -10,9 +12,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 import java.util.Map;
+
 
 /**
  * Controller xử lý các trang công khai và trang chủ
@@ -102,7 +104,7 @@ public class HomeController {
                          Model model) {
         try {
             // Lấy tất cả categories cho filter
-            List<Category> categories = categoryService.findAllActive();
+            List<Category> categories = categoryService.findAllOrderByName();
             model.addAttribute("categories", categories);
 
             List<Course> searchResults;
@@ -198,7 +200,7 @@ public class HomeController {
     @GetMapping("/categories")
     public String categories(Model model) {
         try {
-            List<Category> allCategories = categoryService.findAllActive();
+            List<Category> allCategories = categoryService.findAllOrderByName();
             model.addAttribute("categories", allCategories);
 
             // Thống kê cho mỗi category
@@ -221,7 +223,7 @@ public class HomeController {
     @GetMapping("/category/{slug}")
     public String categoryDetail(@PathVariable String slug, Model model) {
         try {
-            Category category = categoryService.findBySlug(slug)
+            Category category = categoryService.findByName(slug)
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy danh mục"));
 
             model.addAttribute("category", category);
@@ -270,7 +272,7 @@ public class HomeController {
             Map<String, Object> courseStats = courseService.getCourseStatisticsByMonth();
             model.addAttribute("courseStats", courseStats);
 
-            Map<String, Object> categoryStats = categoryService.getCategoryStatistics();
+            Map<String, Object> categoryStats = categoryService.findFeaturedCategories();
             model.addAttribute("categoryStats", categoryStats);
 
             return "public/stats";

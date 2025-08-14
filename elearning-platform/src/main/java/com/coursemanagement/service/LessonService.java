@@ -27,6 +27,106 @@ import java.util.Optional;
 @Service
 @Transactional
 public class LessonService {
+    /**
+     * Đếm active lessons theo course
+     */
+    public Long countActiveLessonsByCourse(Course course) {
+        return lessonRepository.countActiveLessonsByCourse(course);
+    }
+
+    /**
+     * Tìm active lessons theo course
+     */
+    public List<Lesson> findActiveByCourse(Course course) {
+        return lessonRepository.findByCourseAndActiveOrderByOrderIndex(course, true);
+    }
+
+    /**
+     * Tìm lesson trước đó
+     */
+    public Optional<Lesson> findPreviousLesson(Lesson lesson) {
+        return lessonRepository.findPreviousLesson(lesson);
+    }
+
+    /**
+     * Tìm lesson tiếp theo
+     */
+    public Optional<Lesson> findNextLesson(Lesson lesson) {
+        return lessonRepository.findNextLesson(lesson);
+    }
+
+    /**
+     * Tìm lessons theo course với order
+     */
+    public List<Lesson> findByCourseOrderByOrderIndex(Course course) {
+        return lessonRepository.findByCourseOrderByOrderIndex(course);
+    }
+    /**
+     * Tìm lessons theo instructor
+     */
+    public List<Lesson> findLessonsByInstructor(User instructor, int limit) {
+        Pageable pageable = PageRequest.of(0, limit);
+        return lessonRepository.findLessonsByInstructor(instructor, pageable);
+    }
+
+    /**
+     * Đếm tất cả lessons active
+     */
+    public Long countAllActiveLessons() {
+        return lessonRepository.countAllActiveLessons();
+    }
+
+    /**
+     * Cập nhật order index của lesson
+     */
+    @Transactional
+    public void updateLessonOrder(Long lessonId, Integer newOrderIndex) {
+        Lesson lesson = findByIdOrThrow(lessonId);
+
+        // Kiểm tra order index đã tồn tại chưa trong course
+        Optional<Lesson> existingLesson = lessonRepository
+                .findByCourseAndOrderIndex(lesson.getCourse(), newOrderIndex);
+
+        if (existingLesson.isPresent() && !existingLesson.get().getId().equals(lessonId)) {
+            // Swap order index
+            Lesson conflictLesson = existingLesson.get();
+            conflictLesson.setOrderIndex(lesson.getOrderIndex());
+            lessonRepository.save(conflictLesson);
+        }
+
+        lesson.setOrderIndex(newOrderIndex);
+        lesson.setUpdatedAt(LocalDateTime.now());
+        lessonRepository.save(lesson);
+    }
+
+    /**
+     * Sao chép lesson sang course khác
+     */
+    @Transactional
+    public Lesson duplicateLesson(Long lessonId, Course targetCourse) {
+        Lesson originalLesson = findByIdOrThrow(lessonId);
+
+        Lesson duplicatedLesson = new Lesson();
+        duplicatedLesson.setTitle(originalLesson.getTitle() + " (Copy)");
+        duplicatedLesson.setContent(originalLesson.getContent());
+        duplicatedLesson.setVideoLink(originalLesson.getVideoLink());
+        duplicatedLesson.setDocumentUrl(originalLesson.getDocumentUrl());
+        duplicatedLesson.setEstimatedDuration(originalLesson.getEstimatedDuration());
+        duplicatedLesson.setCourse(targetCourse);
+        duplicatedLesson.setPreview(originalLesson.isPreview());
+        duplicatedLesson.setActive(true);
+
+        return createLesson(duplicatedLesson);
+    }
+
+    /**
+     * Tìm lesson theo ID với exception
+     */
+    private Lesson findByIdOrThrow(Long id) {
+        return lessonRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy bài học với ID: " + id));
+    }
+
 
     @Autowired
     private LessonRepository lessonRepository;

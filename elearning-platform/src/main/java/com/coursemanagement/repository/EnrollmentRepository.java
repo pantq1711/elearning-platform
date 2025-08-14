@@ -1,5 +1,6 @@
 package com.coursemanagement.repository;
 
+import com.coursemanagement.entity.Category;
 import com.coursemanagement.entity.Course;
 import com.coursemanagement.entity.Enrollment;
 import com.coursemanagement.entity.User;
@@ -20,6 +21,78 @@ import java.util.Optional;
  */
 @Repository
 public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
+
+
+    /**
+     * Đếm enrollments theo category
+     */
+    @Query("SELECT COUNT(e) FROM Enrollment e WHERE e.course.category = :category")
+    Long countEnrollmentsByCategory(@Param("category") Category category);
+
+    /**
+     * Đếm completed enrollments
+     */
+
+    /**
+     * Tìm recent enrollments
+     */
+    @Query("SELECT e FROM Enrollment e ORDER BY e.enrollmentDate DESC")
+    List<Enrollment> findRecentEnrollments(Pageable pageable);
+
+    /**
+     * Tìm most active instructors theo enrollment count
+     */
+    @Query("SELECT e.course.instructor, COUNT(e) as enrollmentCount FROM Enrollment e " +
+            "GROUP BY e.course.instructor ORDER BY COUNT(e) DESC")
+    List<Object[]> findMostActiveInstructors(Pageable pageable);
+
+    /**
+     * Lấy monthly enrollment stats
+     */
+    @Query("SELECT YEAR(e.enrollmentDate), MONTH(e.enrollmentDate), COUNT(e) " +
+            "FROM Enrollment e WHERE e.enrollmentDate >= :fromDate " +
+            "GROUP BY YEAR(e.enrollmentDate), MONTH(e.enrollmentDate) " +
+            "ORDER BY YEAR(e.enrollmentDate), MONTH(e.enrollmentDate)")
+    List<Object[]> getMonthlyEnrollmentStats(@Param("fromDate") LocalDateTime fromDate);
+
+    /**
+     * Tính average completion rate
+     */
+
+    /**
+     * Tìm recent enrollments theo course
+     */
+    @Query("SELECT e FROM Enrollment e WHERE e.course = :course " +
+            "ORDER BY e.enrollmentDate DESC")
+    List<Enrollment> getRecentEnrollmentsByCourse(@Param("course") Course course, Pageable pageable);
+
+    /**
+     * Tìm top students theo course (by progress)
+     */
+    @Query("SELECT e FROM Enrollment e WHERE e.course = :course " +
+            "ORDER BY e.progress DESC, e.enrollmentDate ASC")
+    List<Enrollment> getTopStudentsByCourse(@Param("course") Course course, Pageable pageable);
+
+    /**
+     * Lấy detailed monthly stats
+     */
+    @Query("SELECT YEAR(e.enrollmentDate), MONTH(e.enrollmentDate), " +
+            "COUNT(e), COUNT(CASE WHEN e.completed = true THEN 1 END), " +
+            "AVG(e.progress) " +
+            "FROM Enrollment e WHERE e.enrollmentDate >= :fromDate " +
+            "GROUP BY YEAR(e.enrollmentDate), MONTH(e.enrollmentDate) " +
+            "ORDER BY YEAR(e.enrollmentDate), MONTH(e.enrollmentDate)")
+    List<Object[]> getDetailedMonthlyStats(@Param("fromDate") LocalDateTime fromDate);
+
+    /**
+     * Đếm tất cả enrollments
+     */
+    @Query("SELECT COUNT(e) FROM Enrollment e")
+    Long countAllEnrollments();
+
+    /**
+     * Tìm active enrollments theo student
+     */
 
     // Basic finders
     Optional<Enrollment> findByStudentIdAndCourseId(Long studentId, Long courseId);

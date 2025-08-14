@@ -38,6 +38,7 @@ public class CourseUtils {
     private static final List<String> ALLOWED_IMAGE_EXTENSIONS = Arrays.asList("jpg", "jpeg", "png", "gif", "webp", "svg");
     private static final List<String> ALLOWED_VIDEO_EXTENSIONS = Arrays.asList("mp4", "avi", "mov", "wmv", "flv", "webm", "mkv");
     private static final List<String> ALLOWED_DOCUMENT_EXTENSIONS = Arrays.asList("pdf", "doc", "docx", "ppt", "pptx", "xls", "xlsx", "txt");
+    public static DateTimeUtils DateTimeUtils;
 
     // ===== STATIC UTILITY METHODS =====
 

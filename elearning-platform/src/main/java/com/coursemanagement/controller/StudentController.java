@@ -129,7 +129,7 @@ public class StudentController {
             model.addAttribute("currentUser", currentUser);
 
             // Lấy danh sách categories
-            List<Category> categories = categoryService.findAllActive();
+            List<Category> categories = categoryService.findAllOrderByName();
             model.addAttribute("categories", categories);
 
             // Lấy courses theo filter
@@ -201,7 +201,7 @@ public class StudentController {
             }
 
             // Quizzes của course
-            List<Quiz> quizzes = quizService.findActiveByCourse(course);
+            List<Quiz> quizzes = quizService.findActiveQuizzesByCourse(course);
             model.addAttribute("quizzes", quizzes);
 
             // Thống kê course
@@ -221,22 +221,23 @@ public class StudentController {
     /**
      * Đăng ký khóa học
      */
-    @PostMapping("/enroll/{courseId}")
-    public String enrollCourse(@PathVariable Long courseId,
-                               Authentication authentication,
+    @GetMapping("/courses/{courseId}/enroll")
+    public String enrollCourse(@PathVariable Long courseId, Authentication authentication,
                                RedirectAttributes redirectAttributes) {
         try {
             User currentUser = (User) authentication.getPrincipal();
-            Course course = courseService.findById(courseId)
-                    .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học"));
 
-            enrollmentService.enrollStudent(currentUser, course);
-            redirectAttributes.addFlashAttribute("success", "Đăng ký khóa học thành công!");
-            return "redirect:/student/course/" + courseId;
+            // SỬA LỖI: Truyền currentUser.getId() thay vì currentUser
+            Enrollment enrollment = enrollmentService.enrollStudent(currentUser.getId(), courseId);
+
+            redirectAttributes.addFlashAttribute("message",
+                    "Đăng ký khóa học thành công!");
+            return "redirect:/student/courses/" + courseId;
 
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", "Lỗi đăng ký khóa học: " + e.getMessage());
-            return "redirect:/student/browse";
+            redirectAttributes.addFlashAttribute("error",
+                    "Có lỗi xảy ra: " + e.getMessage());
+            return "redirect:/courses";
         }
     }
 

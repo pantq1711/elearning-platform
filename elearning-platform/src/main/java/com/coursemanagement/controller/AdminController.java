@@ -14,7 +14,7 @@ import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
-
+import java.util.stream.Collectors;
 import jakarta.validation.Valid;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -29,7 +29,7 @@ import java.util.Optional;
 @Controller
 @RequestMapping("/admin")
 @PreAuthorize("hasRole('ADMIN')")
-public class AdminController {
+public class    AdminController {
 
     @Autowired
     private UserService userService;
@@ -89,11 +89,11 @@ public class AdminController {
             model.addAttribute("popularCourses", popularCourses);
 
             // Giảng viên hoạt động
-            List<User> activeInstructors = userService.findMostActiveInstructors(5);
+            List<User> activeInstructors = userService.findActiveInstructors();
             model.addAttribute("activeInstructors", activeInstructors);
 
             // Thống kê theo tháng (cho biểu đồ)
-            Map<String, Long> monthlyEnrollments = enrollmentService.getMonthlyEnrollmentStats();
+            Map<String, Object> monthlyEnrollments = enrollmentService.getEnrollmentStatisticsByMonth();
             model.addAttribute("monthlyEnrollments", monthlyEnrollments);
 
             // Thống kê completion rate
@@ -167,14 +167,14 @@ public class AdminController {
             // Thống kê chi tiết dựa vào role
             if (user.getRole() == User.Role.STUDENT) {
                 // Thống kê học viên
-                List<Enrollment> enrollments = enrollmentService.findByStudent(user);
+                List<Enrollment> enrollments = enrollmentService.findEnrollmentsByStudent(user);
                 model.addAttribute("enrollments", enrollments);
                 model.addAttribute("totalEnrollments", enrollments.size());
                 model.addAttribute("completedCourses",
                         enrollments.stream().mapToLong(e -> e.isCompleted() ? 1 : 0).sum());
             } else if (user.getRole() == User.Role.INSTRUCTOR) {
                 // Thống kê giảng viên
-                List<Course> courses = courseService.findByInstructor(user);
+                List<Course> courses = courseService.findCoursesByInstructor(user);
                 model.addAttribute("courses", courses);
                 model.addAttribute("totalCourses", courses.size());
                 model.addAttribute("totalStudents",
@@ -445,11 +445,11 @@ public class AdminController {
             model.addAttribute("course", course);
 
             // Thống kê khóa học chi tiết
-            Long enrollmentCount = enrollmentService.countEnrollmentsByCourse(course);
-            Long lessonCount = lessonService.countLessonsByCourse(course);
-            Long quizCount = quizService.countQuizzesByCourse(course);
+            Long enrollmentCount = enrollmentService.countByCourse(course);
+            Long lessonCount = lessonService.countByCourse(course);
+            Long quizCount = quizService.countByCourse(course);
             Double averageRating = courseService.getAverageRating(course);
-            Double completionRate = enrollmentService.getCompletionRateByCourse(course);
+            Double completionRate = enrollmentService.getAverageCompletionRate();
 
             model.addAttribute("enrollmentCount", enrollmentCount);
             model.addAttribute("lessonCount", lessonCount);
@@ -458,7 +458,7 @@ public class AdminController {
             model.addAttribute("completionRate", completionRate);
 
             // Học viên gần đây
-            List<Enrollment> recentEnrollments = enrollmentService.getRecentEnrollmentsByCourse(course, 10);
+            List<Enrollment> recentEnrollments = enrollmentService.findRecentEnrollments( 10);
             model.addAttribute("recentEnrollments", recentEnrollments);
 
             // Top students trong khóa học này
@@ -513,7 +513,7 @@ public class AdminController {
             model.addAttribute("currentUser", currentUser);
 
             // Thống kê tổng quan theo thời gian
-            Map<String, Object> monthlyStats = enrollmentService.getDetailedMonthlyStats();
+            Map<String, Object> monthlyStats = enrollmentService.getEnrollmentStatisticsByMonth();
             model.addAttribute("monthlyStats", monthlyStats);
 
             // Top performing courses

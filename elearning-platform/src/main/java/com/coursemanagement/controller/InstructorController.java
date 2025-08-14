@@ -461,7 +461,7 @@ public class InstructorController {
             model.addAttribute("instructorStats", instructorStats);
 
             // Thống kê courses
-            Map<String, Object> courseStats = courseService.getCourseStatisticsByInstructor();
+            Map<String, Object> courseStats = courseService.getCourseStatisticsByMonth();
             model.addAttribute("courseStats", courseStats);
 
             // Monthly enrollment stats

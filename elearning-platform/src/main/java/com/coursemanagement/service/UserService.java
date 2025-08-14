@@ -16,14 +16,191 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
 public class UserService implements UserDetailsService {
+
+    // ===== METHODS CÒN THIẾU CHO USER SERVICE =====
+    // Thêm các methods này vào UserService.java
+
+    /**
+     * Cập nhật last login time
+     */
+    @Transactional
+    public void updateLastLogin(Long userId) {
+        userRepository.updateLastLogin(userId, LocalDateTime.now());
+    }
+
+    /**
+     * Tìm top instructors theo enrollment count
+     */
+    public List<User> getTopInstructorsByEnrollments(int limit) {
+        Pageable pageable = PageRequest.of(0, limit);
+        List<Object[]> results = userRepository.getTopInstructorsByEnrollments(pageable);
+
+        return results.stream()
+                .map(result -> (User) result[0])
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Lấy user growth statistics
+     */
+    public Map<String, Long> getUserGrowthStats() {
+        LocalDateTime fromDate = LocalDateTime.now().minusMonths(12);
+        List<Object[]> stats = userRepository.getUserGrowthStats(fromDate);
+
+        Map<String, Long> result = new HashMap<>();
+        for (Object[] stat : stats) {
+            Integer year = (Integer) stat[0];
+            Integer month = (Integer) stat[1];
+            Long count = (Long) stat[2];
+            String key = year + "-" + String.format("%02d", month);
+            result.put(key, count);
+        }
+
+        return result;
+    }
+
+    /**
+     * Tìm users theo keyword
+     */
+    public Page<User> searchUsers(String keyword, Pageable pageable) {
+        return userRepository.searchUsers(keyword, pageable);
+    }
+
+    /**
+     * Tìm users theo role và active status
+     */
+    public Page<User> findUsersByRoleAndActive(User.Role role, boolean active, Pageable pageable) {
+        return userRepository.findByRoleAndActive(role, active, pageable);
+    }
+
+    /**
+     * Tìm recent users
+     */
+    public List<User> findRecentUsers(int limit) {
+        Pageable pageable = PageRequest.of(0, limit);
+        return userRepository.findRecentUsers(pageable);
+    }
+
+    /**
+     * Đếm users được tạo trong khoảng thời gian
+     */
+    public Long countUsersCreatedBetween(LocalDateTime startDate, LocalDateTime endDate) {
+        return userRepository.countUsersCreatedBetween(startDate, endDate);
+    }
+
+    /**
+     * Tìm instructors có nhiều students nhất
+     */
+    public List<User> findInstructorsWithMostStudents(int limit) {
+        Pageable pageable = PageRequest.of(0, limit);
+        List<Object[]> results = userRepository.findInstructorsWithMostStudents(pageable);
+
+        return results.stream()
+                .map(result -> (User) result[0])
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Tìm active students
+     */
+    public List<User> findActiveStudents(int limit) {
+        Pageable pageable = PageRequest.of(0, limit);
+        return userRepository.findActiveStudents(pageable);
+    }
+
+    /**
+     * Kiểm tra username đã tồn tại chưa
+     */
+    public boolean existsByUsername(String username) {
+        return userRepository.existsByUsername(username);
+    }
+
+    /**
+     * Kiểm tra email đã tồn tại chưa
+     */
+    public boolean existsByEmail(String email) {
+        return userRepository.existsByEmail(email);
+    }
+
+    /**
+     * Tạo user mới với validation
+     */
+    @Transactional
+    public User createUser(User user, String rawPassword) {
+        validateUser(user);
+
+        // Kiểm tra username và email đã tồn tại chưa
+        if (existsByUsername(user.getUsername())) {
+            throw new RuntimeException("Username đã tồn tại: " + user.getUsername());
+        }
+
+        if (existsByEmail(user.getEmail())) {
+            throw new RuntimeException("Email đã tồn tại: " + user.getEmail());
+        }
+
+        // Mã hóa password
+        user.setPassword(passwordEncoder.encode(rawPassword));
+        user.setActive(true);
+        user.setCreatedAt(LocalDateTime.now());
+        user.setUpdatedAt(LocalDateTime.now());
+
+        return userRepository.save(user);
+    }
+
+    /**
+     * Reset password
+     */
+    @Transactional
+    public String resetPassword(Long userId) {
+        User user = findByIdOrThrow(userId);
+
+        // Tạo password mới
+        String newPassword = generateRandomPassword();
+        user.setPassword(passwordEncoder.encode(newPassword));
+        user.setUpdatedAt(LocalDateTime.now());
+
+        userRepository.save(user);
+
+        return newPassword;
+    }
+
+    /**
+     * Validate password
+     */
+    private void validatePassword(String password) {
+        if (password == null || password.length() < 6) {
+            throw new RuntimeException("Mật khẩu phải ít nhất 6 ký tự");
+        }
+    }
+
+    /**
+     * Generate random password
+     */
+    private String generateRandomPassword() {
+        String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+        StringBuilder password = new StringBuilder();
+        Random random = new Random();
+
+        for (int i = 0; i < 8; i++) {
+            password.append(chars.charAt(random.nextInt(chars.length())));
+        }
+
+        return password.toString();
+    }
+
+    /**
+     * Tìm user theo ID với exception
+     */
+    public static User findByIdOrThrow(Long id) {
+        return userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng với ID: " + id));
+    }
 
     @Autowired
     private UserRepository userRepository;
@@ -164,8 +341,11 @@ public class UserService implements UserDetailsService {
 
     public List<User> findTopInstructorsByCourseCount(int limit) {
         Pageable pageable = PageRequest.of(0, limit);
-        return userRepository.findInstructorsOrderByCourseCount(User.Role.INSTRUCTOR, true, pageable);
+        return userRepository
+                .findInstructorsOrderByCourseCount(User.Role.INSTRUCTOR, true, pageable)
+                .getContent(); // Lấy List từ Page
     }
+
 
     public Page<User> findInstructorsOrderByCourseCount(User.Role role, boolean active, Pageable pageable) {
         return userRepository.findInstructorsOrderByCourseCount(role, active, pageable);

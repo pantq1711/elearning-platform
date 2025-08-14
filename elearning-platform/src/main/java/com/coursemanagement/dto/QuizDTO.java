@@ -75,14 +75,12 @@ public class QuizDTO {
         this.submissionCount = quiz.getQuizResults() != null ? quiz.getQuizResults().size() : 0;
         this.isAvailable = quiz.isAvailable();
 
-        // Tính average score
+        // Tính average score (SỬA LỖI)
         if (quiz.getQuizResults() != null && !quiz.getQuizResults().isEmpty()) {
             this.averageScore = quiz.getQuizResults().stream()
                     .mapToDouble(result -> result.getScore() != null ? result.getScore() : 0.0)
                     .average()
                     .orElse(0.0);
-        } else {
-            this.averageScore = 0.0;
         }
     }
 
@@ -120,12 +118,12 @@ public class QuizDTO {
         // Kiểm tra đã attempt chưa và lấy điểm số
         if (quiz.getQuizResults() != null) {
             quiz.getQuizResults().stream()
-                    .filter(result -> result.getUser().getId().equals(studentId))
+                    .filter(result -> result.getStudent().getId().equals(studentId))
                     .findFirst()
                     .ifPresent(result -> {
                         dto.hasAttempted = true;
                         dto.studentScore = result.getScore();
-                        dto.lastAttemptTime = result.getSubmittedAt();
+                        dto.lastAttemptTime = result.getCompletionTime();
                     });
         }
 

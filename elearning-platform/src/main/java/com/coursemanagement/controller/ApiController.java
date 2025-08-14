@@ -14,7 +14,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
+import java.util.Map;
+import java.util.HashMap;
+import org.springframework.http.ResponseEntity;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +31,44 @@ import java.util.stream.Collectors;
 @RequestMapping("/api")
 @CrossOrigin(origins = "*", maxAge = 3600)
 public class ApiController {
+
+    /**
+     * Kiểm tra enrollment status
+     */
+    @GetMapping("/enrollments/check")
+    @ResponseBody
+    public ResponseEntity<Map<String, Boolean>> checkEnrollment(
+            @RequestParam Long studentId,
+            @RequestParam Long courseId) {
+        try {
+            boolean isEnrolled = enrollmentService.isEnrolled(studentId, courseId);
+            Map<String, Boolean> response = new HashMap<>();
+            response.put("enrolled", isEnrolled);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, Boolean> response = new HashMap<>();
+            response.put("enrolled", false);
+            return ResponseEntity.ok(response);
+        }
+    }
+
+    /**
+     * Tạo enrollment mới
+     */
+    @PostMapping("/enrollments")
+    @ResponseBody
+    public ResponseEntity<?> createEnrollment(
+            @RequestParam Long studentId,
+            @RequestParam Long courseId) {
+        try {
+            Enrollment enrollment = enrollmentService.createEnrollment(studentId, courseId);
+            return ResponseEntity.ok(enrollment);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
 
     @Autowired
     private CourseService courseService;

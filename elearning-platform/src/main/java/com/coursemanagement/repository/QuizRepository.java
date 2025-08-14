@@ -1,5 +1,6 @@
 package com.coursemanagement.repository;
-
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.transaction.annotation.Transactional;
 import com.coursemanagement.entity.Course;
 import com.coursemanagement.entity.Quiz;
 import com.coursemanagement.entity.QuizResult;
@@ -21,6 +22,74 @@ import java.util.Optional;
  */
 @Repository
 public interface QuizRepository extends JpaRepository<Quiz, Long> {
+    /**
+     * Đếm active quizzes theo course
+     */
+    Long countActiveQuizzesByCourse(Course course);
+
+    /**
+     * Đếm active quizzes theo course (alternative)
+     */
+    /**
+     * Tìm available quizzes cho student (chưa làm hoặc có thể làm lại)
+     */
+    @Query("SELECT q FROM Quiz q WHERE q.course.id IN " +
+            "(SELECT e.course.id FROM Enrollment e WHERE e.student = :student) " +
+            "AND q.active = true " +
+            "AND (q.id NOT IN (SELECT qr.quiz.id FROM QuizResult qr WHERE qr.user = :student) " +
+            "     OR q.allowRetake = true)")
+    List<Quiz> findAvailableQuizzesForStudent(@Param("student") User student);
+
+    /**
+     * Tìm completed quizzes cho student
+     */
+    @Query("SELECT DISTINCT q FROM Quiz q JOIN q.quizResults qr " +
+            "WHERE qr.user = :student AND q.active = true " +
+            "ORDER BY qr.submittedAt DESC")
+    List<Quiz> findCompletedQuizzesForStudent(@Param("student") User student);
+
+    /**
+     * Kiểm tra student đã làm quiz chưa
+     */
+    @Query("SELECT CASE WHEN COUNT(qr) > 0 THEN true ELSE false END " +
+            "FROM QuizResult qr WHERE qr.user = :student AND qr.quiz = :quiz")
+    boolean hasStudentTakenQuiz(@Param("student") User student, @Param("quiz") Quiz quiz);
+
+    /**
+     * Tìm quiz result của student cho quiz
+     */
+    @Query("SELECT qr FROM QuizResult qr WHERE qr.user = :student AND qr.quiz = :quiz " +
+            "ORDER BY qr.submittedAt DESC LIMIT 1")
+    Optional<QuizResult> findQuizResult(@Param("student") User student, @Param("quiz") Quiz quiz);
+
+    /**
+     * Bắt đầu quiz cho student (tạo quiz session)
+     */
+    @Modifying
+    @Transactional
+    @Query("INSERT INTO QuizResult (user, quiz, startedAt, status) " +
+            "VALUES (:student, :quiz, :startedAt, 'IN_PROGRESS')")
+    void startQuiz(@Param("student") User student, @Param("quiz") Quiz quiz,
+                   @Param("startedAt") LocalDateTime startedAt);
+
+    /**
+     * Đếm tất cả quizzes active
+     */
+    @Query("SELECT COUNT(q) FROM Quiz q WHERE q.active = true")
+    Long countAllActiveQuizzes();
+
+    /**
+     * Tìm quizzes theo instructor
+     */
+    @Query("SELECT q FROM Quiz q WHERE q.course.instructor = :instructor AND q.active = true " +
+            "ORDER BY q.createdAt DESC")
+    List<Quiz> findQuizzesByInstructor(@Param("instructor") User instructor, Pageable pageable);
+
+    /**
+     * Đếm quizzes theo instructor
+     */
+    @Query("SELECT COUNT(q) FROM Quiz q WHERE q.course.instructor = :instructor AND q.active = true")
+    Long countQuizzesByInstructor(@Param("instructor") User instructor);
     // Course-related methods
     List<Quiz> findByCourseIdAndActiveOrderByCreatedAtDesc(Long courseId, boolean active);
     // Instructor methods

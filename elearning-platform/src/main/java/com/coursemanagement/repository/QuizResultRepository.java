@@ -1,5 +1,7 @@
 package com.coursemanagement.repository;
-
+import com.coursemanagement.entity.Course;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.transaction.annotation.Transactional;
 import com.coursemanagement.entity.Quiz;
 import com.coursemanagement.entity.QuizResult;
 import com.coursemanagement.entity.User;
@@ -21,6 +23,72 @@ import java.util.Optional;
 @Repository
 public interface QuizResultRepository extends JpaRepository<QuizResult, Long>
     {
+
+        /**
+         * Tìm quiz result theo user và quiz (latest)
+         */
+        @Query("SELECT qr FROM QuizResult qr WHERE qr.user = :user AND qr.quiz = :quiz " +
+                "ORDER BY qr.submittedAt DESC LIMIT 1")
+        Optional<QuizResult> findQuizResult(@Param("user") User user, @Param("quiz") Quiz quiz);
+
+        /**
+         * Bắt đầu quiz (tạo mới quiz result với status IN_PROGRESS)
+         */
+        @Modifying
+        @Transactional
+        @Query("INSERT INTO QuizResult (user_id, quiz_id, started_at, status, created_at) " +
+                "VALUES (:userId, :quizId, :startedAt, 'IN_PROGRESS', :createdAt)")
+        void startQuiz(@Param("userId") Long userId, @Param("quizId") Long quizId,
+                       @Param("startedAt") LocalDateTime startedAt, @Param("createdAt") LocalDateTime createdAt);
+
+        /**
+         * Tìm quiz results theo student
+         */
+        @Query("SELECT qr FROM QuizResult qr WHERE qr.user = :student " +
+                "ORDER BY qr.submittedAt DESC")
+        List<QuizResult> findQuizResultsByStudent(@Param("student") User student, Pageable pageable);
+
+        /**
+         * Tìm recent quiz results theo student
+         */
+        @Query("SELECT qr FROM QuizResult qr WHERE qr.user = :student " +
+                "AND qr.submittedAt IS NOT NULL " +
+                "ORDER BY qr.submittedAt DESC")
+        List<QuizResult> findRecentQuizResultsByStudent(@Param("student") User student, Pageable pageable);
+
+        /**
+         * Đếm total quiz results
+         */
+        @Query("SELECT COUNT(qr) FROM QuizResult qr")
+        Long countAllQuizResults();
+
+        /**
+         * Đếm passed quiz results
+         */
+        @Query("SELECT COUNT(qr) FROM QuizResult qr WHERE qr.passed = true")
+        Long countPassedQuizResults();
+
+        /**
+         * Tính average score
+         */
+        @Query("SELECT AVG(qr.score) FROM QuizResult qr WHERE qr.score IS NOT NULL")
+        Double getAverageScore();
+
+        /**
+         * Tìm best quiz results theo course
+         */
+        @Query("SELECT qr FROM QuizResult qr WHERE qr.quiz.course = :course " +
+                "AND qr.passed = true ORDER BY qr.score DESC")
+        List<QuizResult> findBestResultsByCourse(@Param("course") Course course, Pageable pageable);
+
+        /**
+         * Lấy thống kê quiz results theo tháng
+         */
+        @Query("SELECT YEAR(qr.submittedAt), MONTH(qr.submittedAt), COUNT(qr), AVG(qr.score) " +
+                "FROM QuizResult qr WHERE qr.submittedAt >= :fromDate " +
+                "GROUP BY YEAR(qr.submittedAt), MONTH(qr.submittedAt) " +
+                "ORDER BY YEAR(qr.submittedAt), MONTH(qr.submittedAt)")
+        List<Object[]> getQuizStatsbyMonth(@Param("fromDate") LocalDateTime fromDate);
 
         List<QuizResult> findByUserAndQuizOrderBySubmittedAtDesc(User user, Quiz quiz);
 

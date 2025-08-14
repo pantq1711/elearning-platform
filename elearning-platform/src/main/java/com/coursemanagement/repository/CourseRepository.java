@@ -21,7 +21,91 @@ import java.util.Optional;
  * Thêm JpaSpecificationExecutor để hỗ trợ dynamic queries
  */
 @Repository
-public interface CourseRepository extends JpaRepository<Course, Long>, JpaSpecificationExecutor<Course> {
+public interface CourseRepository extends JpaRepository<Course, Long>, JpaSpecificationExecutor<Course>
+{
+    /**
+     * Tìm courses theo category và active status
+     */
+    List<Course> findByCategoryAndActive(Category category, boolean active);
+
+    /**
+     * Đếm courses theo category và active status
+     */
+    Long countByCategoryAndActive(Category category, boolean active);
+    /**
+     * Tìm tất cả courses active sắp xếp theo tên
+     */
+    List<Course> findAllByActiveOrderByName(boolean active);
+
+    /**
+     * Tìm tất cả courses active (viết tắt)
+     */
+    @Query("SELECT c FROM Course c WHERE c.active = true ORDER BY c.name")
+    List<Course> findAllActive();
+
+    /**
+     * Đếm tất cả courses active (all active courses)
+     */
+    @Query("SELECT COUNT(c) FROM Course c WHERE c.active = true")
+    Long countAllActiveCourses();
+
+    /**
+     * Tìm course theo slug
+     */
+
+    /**
+     * Tìm courses theo instructor và active status
+     */
+    List<Course> findByInstructorAndActiveOrderByCreatedAtDesc(User instructor, boolean active);
+
+    /**
+     * Tìm top courses theo enrollment count
+     */
+    @Query("SELECT c FROM Course c LEFT JOIN c.enrollments e " +
+            "WHERE c.active = true " +
+            "GROUP BY c ORDER BY COUNT(e) DESC")
+    List<Course> findTopPopularCourses(Pageable pageable);
+
+    /**
+     * Tìm courses mới nhất theo active status
+     */
+    @Query("SELECT c FROM Course c WHERE c.active = true ORDER BY c.createdAt DESC")
+    List<Course> findActiveCoursesOrderByLatest();
+
+
+
+    /**
+     * Lấy thống kê courses theo tháng
+     */
+    @Query("SELECT YEAR(c.createdAt), MONTH(c.createdAt), COUNT(c) " +
+            "FROM Course c WHERE c.createdAt >= :fromDate " +
+            "GROUP BY YEAR(c.createdAt), MONTH(c.createdAt) " +
+            "ORDER BY YEAR(c.createdAt), MONTH(c.createdAt)")
+    List<Object[]> getCourseStatisticsByMonth(@Param("fromDate") LocalDateTime fromDate);
+
+    /**
+     * Tìm top performing courses theo enrollments
+     */
+    @Query("SELECT c FROM Course c LEFT JOIN c.enrollments e " +
+            "WHERE c.active = true " +
+            "GROUP BY c ORDER BY COUNT(e) DESC")
+    List<Course> getTopPerformingCourses(Pageable pageable);
+
+    /**
+     * Lấy thống kê performance theo category
+     */
+    @Query("SELECT c.category.name, COUNT(e) FROM Course c " +
+            "LEFT JOIN c.enrollments e " +
+            "WHERE c.active = true " +
+            "GROUP BY c.category.id, c.category.name " +
+            "ORDER BY COUNT(e) DESC")
+    List<Object[]> getCategoryPerformanceStats();
+
+    /**
+     * Đếm courses theo instructor
+     */
+    Long countByInstructor(User instructor);
+
 
     // ===== BASIC FINDER METHODS =====
 

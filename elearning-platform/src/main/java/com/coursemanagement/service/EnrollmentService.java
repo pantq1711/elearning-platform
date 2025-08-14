@@ -1,5 +1,6 @@
 package com.coursemanagement.service;
 
+import com.coursemanagement.entity.Category;
 import com.coursemanagement.entity.Course;
 import com.coursemanagement.entity.Enrollment;
 import com.coursemanagement.entity.User;
@@ -17,6 +18,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Service class để xử lý business logic liên quan đến Enrollment
@@ -25,6 +27,120 @@ import java.util.Optional;
 @Service
 @Transactional
 public class EnrollmentService {
+    public static class EnrollmentStats {
+        private long totalEnrollments;
+        private long activeEnrollments;
+        private long completedEnrollments;
+        private double completionRate;
+        private double averageProgress;
+
+        // Constructor
+        public EnrollmentStats(long totalEnrollments, long activeEnrollments,
+                               long completedEnrollments, double averageProgress) {
+            this.totalEnrollments = totalEnrollments;
+            this.activeEnrollments = activeEnrollments;
+            this.completedEnrollments = completedEnrollments;
+            this.completionRate = totalEnrollments > 0 ?
+                    (double) completedEnrollments / totalEnrollments * 100 : 0.0;
+            this.averageProgress = averageProgress;
+        }
+
+        // Getters
+        public long getTotalEnrollments() { return totalEnrollments; }
+        public long getActiveEnrollments() { return activeEnrollments; }
+        public long getCompletedEnrollments() { return completedEnrollments; }
+        public double getCompletionRate() { return completionRate; }
+        public double getAverageProgress() { return averageProgress; }
+    }
+
+    /**
+     * Đếm completed enrollments
+     */
+    public Long countCompletedEnrollments() {
+        return enrollmentRepository.countCompletedEnrollments();
+    }
+
+    /**
+     * Tìm recent enrollments
+     */
+    public List<Enrollment> findRecentEnrollments(int limit) {
+        Pageable pageable = PageRequest.of(0, limit, Sort.by("enrollmentDate").descending());
+        return enrollmentRepository.findRecentEnrollments(pageable);
+    }
+
+    /**
+     * Tìm most active instructors
+     */
+    public List<User> findMostActiveInstructors(int limit) {
+        Pageable pageable = PageRequest.of(0, limit);
+        List<Object[]> results = enrollmentRepository.findMostActiveInstructors(pageable);
+
+        return results.stream()
+                .map(result -> (User) result[0])
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Lấy monthly enrollment stats
+     */
+    public List<Object[]> getMonthlyEnrollmentStats() {
+        LocalDateTime fromDate = LocalDateTime.now().minusMonths(12);
+        return enrollmentRepository.getMonthlyEnrollmentStats(fromDate);
+    }
+
+    /**
+     * Tính average completion rate
+     */
+    public Double getAverageCompletionRate() {
+        return enrollmentRepository.getAverageCompletionRate();
+    }
+
+    /**
+     * Enroll student với Long IDs
+     */
+    @Transactional
+    public Enrollment enrollStudent(Long studentId, Long courseId) {
+        User student = UserService.findByIdOrThrow(studentId);
+        Course course = CourseService.findByIdOrThrow(courseId);
+        return enrollStudent(student, course);
+    }
+
+    /**
+     * Kiểm tra enrollment exists với Long IDs
+     */
+    public boolean isEnrolled(Long studentId, Long courseId) {
+        return enrollmentRepository.existsByStudentIdAndCourseId(studentId, courseId);
+    }
+
+    /**
+     * Tạo enrollment với Long IDs
+     */
+    @Transactional
+    public Enrollment createEnrollment(Long studentId, Long courseId) {
+        return enrollStudent(studentId, courseId);
+    }
+
+    /**
+     * Tìm enrollment theo student và course IDs
+     */
+    public Optional<Enrollment> findByStudentIdAndCourseId(Long studentId, Long courseId) {
+        return enrollmentRepository.findByStudentIdAndCourseId(studentId, courseId);
+    }
+
+    /**
+     * Đếm enrollments theo category
+     */
+    public Long countEnrollmentsByCategory(Category category) {
+        return enrollmentRepository.countEnrollmentsByCategory(category);
+    }
+
+    /**
+     * Đếm enrollments theo course
+     */
+    public Long countByCourse(Course course) {
+        return enrollmentRepository.countByCourse(course);
+    }
+
 
     @Autowired
     private EnrollmentRepository enrollmentRepository;
@@ -221,8 +337,11 @@ public class EnrollmentService {
      */
     public List<Enrollment> findRecentEnrollmentsByInstructor(User instructor, int limit) {
         Pageable pageable = PageRequest.of(0, limit, Sort.by(Sort.Direction.DESC, "enrollmentDate"));
-        return enrollmentRepository.findRecentEnrollmentsByInstructor(instructor, pageable);
+        return enrollmentRepository
+                .findRecentEnrollmentsByInstructor(instructor, pageable)
+                .getContent(); // Lấy danh sách từ Page
     }
+
 
     /**
      * Tìm recent enrollments của instructor (Page version)
@@ -498,7 +617,9 @@ public class EnrollmentService {
      */
     public List<Object[]> findTopStudentsByScore(int limit) {
         Pageable pageable = PageRequest.of(0, limit);
-        return enrollmentRepository.findTopStudentsByAverageScore(pageable);
+        return enrollmentRepository
+                .findTopStudentsByAverageScore(pageable)
+                .getContent(); // Lấy List từ Page
     }
 
     /**
@@ -526,51 +647,4 @@ public class EnrollmentService {
 
     // ===== INNER CLASS FOR STATISTICS =====
 
-    /**
-     * Class để chứa thống kê enrollment của student
-     */
-    public static class EnrollmentStats {
-        private Long totalEnrollments;
-        private Long activeEnrollments;
-        private Long completedEnrollments;
-        private Double completionRate;
-        private Double averageScore;
-        private Long totalStudyHours;
-
-        public EnrollmentStats() {}
-
-        public EnrollmentStats(Long totalEnrollments, Long activeEnrollments,
-                               Long completedEnrollments, Double averageScore) {
-            this.totalEnrollments = totalEnrollments;
-            this.activeEnrollments = activeEnrollments;
-            this.completedEnrollments = completedEnrollments;
-            this.averageScore = averageScore;
-
-            // Tính completion rate
-            if (totalEnrollments > 0) {
-                this.completionRate = (double) completedEnrollments / totalEnrollments * 100;
-            } else {
-                this.completionRate = 0.0;
-            }
-        }
-
-        // Getters và Setters
-        public Long getTotalEnrollments() { return totalEnrollments; }
-        public void setTotalEnrollments(Long totalEnrollments) { this.totalEnrollments = totalEnrollments; }
-
-        public Long getActiveEnrollments() { return activeEnrollments; }
-        public void setActiveEnrollments(Long activeEnrollments) { this.activeEnrollments = activeEnrollments; }
-
-        public Long getCompletedEnrollments() { return completedEnrollments; }
-        public void setCompletedEnrollments(Long completedEnrollments) { this.completedEnrollments = completedEnrollments; }
-
-        public Double getCompletionRate() { return completionRate; }
-        public void setCompletionRate(Double completionRate) { this.completionRate = completionRate; }
-
-        public Double getAverageScore() { return averageScore; }
-        public void setAverageScore(Double averageScore) { this.averageScore = averageScore; }
-
-        public Long getTotalStudyHours() { return totalStudyHours; }
-        public void setTotalStudyHours(Long totalStudyHours) { this.totalStudyHours = totalStudyHours; }
-    }
 }

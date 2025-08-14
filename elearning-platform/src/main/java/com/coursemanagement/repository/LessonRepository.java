@@ -25,6 +25,41 @@ public interface LessonRepository extends JpaRepository<Lesson, Long> {
      * Thêm các methods sau vào LessonRepository.java
      */
 
+    Long countActiveLessonsByCourse(Course course);
+
+
+    /**
+     * Tìm lesson trước đó (previous lesson)
+     */
+    @Query("SELECT l FROM Lesson l WHERE l.course = :#{#lesson.course} AND l.orderIndex < :#{#lesson.orderIndex} " +
+            "AND l.active = true ORDER BY l.orderIndex DESC LIMIT 1")
+    Optional<Lesson> findPreviousLesson(@Param("lesson") Lesson lesson);
+
+    /**
+     * Tìm lesson tiếp theo (next lesson)
+     */
+    @Query("SELECT l FROM Lesson l WHERE l.course = :#{#lesson.course} AND l.orderIndex > :#{#lesson.orderIndex} " +
+            "AND l.active = true ORDER BY l.orderIndex ASC LIMIT 1")
+    Optional<Lesson> findNextLesson(@Param("lesson") Lesson lesson);
+
+    /**
+     * Tìm lessons theo course sắp xếp theo order index
+     */
+    @Query("SELECT COUNT(l) FROM Lesson l WHERE l.course.instructor = :instructor AND l.active = true")
+    Long countLessonsByInstructor(@Param("instructor") User instructor);
+
+    /**
+     * Tìm lessons theo instructor
+     */
+    @Query("SELECT l FROM Lesson l WHERE l.course.instructor = :instructor AND l.active = true " +
+            "ORDER BY l.createdAt DESC")
+    List<Lesson> findLessonsByInstructor(@Param("instructor") User instructor, Pageable pageable);
+
+    /**
+     * Đếm tất cả lessons active
+     */
+    @Query("SELECT COUNT(l) FROM Lesson l WHERE l.active = true")
+    Long countAllActiveLessons();
 // Course-related finders
     List<Lesson> findByCourseIdAndActiveOrderByOrderIndex(Long courseId, boolean active);
     List<Lesson> findByCourseIdAndPreviewAndActiveOrderByOrderIndex(Long courseId, boolean preview, boolean active);

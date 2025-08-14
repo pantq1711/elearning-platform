@@ -80,7 +80,7 @@ public class CourseDto {
         dto.setCategoryId(course.getCategory().getId());
         dto.setInstructorId(course.getInstructor().getId());
         dto.setDuration(course.getDuration());
-        dto.setDifficultyLevel(course.getDifficultyLevel());
+        dto.setDifficultyLevel(course.getDifficultyLevelAsString());
         dto.setPrice(course.getPrice());
         dto.setFeatured(course.isFeatured());
         dto.setActive(course.isActive());
@@ -182,27 +182,6 @@ public class CourseDto {
         }
     }
 
-    /**
-     * Lấy formatted price
-     * @return Price được format
-     */
-    public String getFormattedPrice() {
-        if (price == null || price == 0.0) {
-            return "Miễn phí";
-        }
-        return CourseUtils.NumberUtils.formatCurrency(price);
-    }
-
-    /**
-     * Lấy formatted duration
-     * @return Duration được format
-     */
-    public String getFormattedDuration() {
-        if (duration == null) {
-            return "Chưa xác định";
-        }
-        return CourseUtils.CourseHelper.formatDuration(duration);
-    }
 
     /**
      * Validation method

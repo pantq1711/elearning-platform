@@ -1,5 +1,6 @@
 package com.coursemanagement.repository;
 
+import com.coursemanagement.dto.CategoryStats;
 import com.coursemanagement.entity.Category;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -20,6 +21,99 @@ import java.util.Optional;
  */
 @Repository
 public interface CategoryRepository extends JpaRepository<Category, Long> {
+    // ===== METHODS CÒN THIẾU CHO CATEGORY REPOSITORY =====
+    // Thêm các methods này vào CategoryRepository.java
+
+    /**
+     * Tìm tất cả categories active
+     */
+    @Query("SELECT c FROM Category c WHERE c.active = true ORDER BY c.name")
+    List<Category> findAllActive();
+
+
+    /**
+     * Lấy category statistics với course và enrollment data
+     */
+    @Query("SELECT new com.coursemanagement.dto.CategoryStats(" +
+            "c.id, c.name, c.description, c.courseCount, " +
+            "COALESCE(SUM(SIZE(co.enrollments)), 0), " +
+            "COALESCE(SUM(CASE WHEN e.completed = true THEN 1 ELSE 0 END), 0)) " +
+            "FROM Category c " +
+            "LEFT JOIN c.courses co " +
+            "LEFT JOIN co.enrollments e " +
+            "WHERE c.active = true " +
+            "GROUP BY c.id, c.name, c.description, c.courseCount " +
+            "ORDER BY SUM(SIZE(co.enrollments)) DESC")
+    List<CategoryStats> getCategoryStatistics();
+
+    /**
+     * Tìm category theo slug
+     */
+    Optional<Category> findBySlug(String slug);
+
+    /**
+     * Lấy category stats cho chart
+     */
+    @Query("SELECT c.name, c.courseCount, SIZE(co.enrollments) " +
+            "FROM Category c LEFT JOIN c.courses co " +
+            "WHERE c.active = true " +
+            "GROUP BY c.id, c.name, c.courseCount " +
+            "ORDER BY c.courseCount DESC")
+    List<Object[]> getCategoryChartData();
+
+    /**
+     * Đếm tất cả categories active
+     */
+    @Query("SELECT COUNT(c) FROM Category c WHERE c.active = true")
+    Long countAllActiveCategories();
+
+    /**
+     * Tìm categories với nhiều courses nhất
+     */
+    @Query("SELECT c FROM Category c WHERE c.active = true " +
+            "ORDER BY c.courseCount DESC, c.name ASC")
+    List<Category> findMostPopularCategories(Pageable pageable);
+
+    /**
+     * Tìm categories có enrollments
+     */
+    @Query("SELECT DISTINCT c FROM Category c " +
+            "JOIN c.courses co " +
+            "JOIN co.enrollments e " +
+            "WHERE c.active = true " +
+            "ORDER BY c.name")
+    List<Category> findCategoriesWithEnrollments();
+
+    /**
+     * Lấy revenue statistics theo category
+     */
+    @Query("SELECT c.name, SUM(co.price * SIZE(co.enrollments)) " +
+            "FROM Category c LEFT JOIN c.courses co " +
+            "WHERE c.active = true AND co.active = true " +
+            "GROUP BY c.id, c.name " +
+            "ORDER BY SUM(co.price * SIZE(co.enrollments)) DESC")
+    List<Object[]> getCategoryRevenueStats();
+
+
+    /**
+     * Cập nhật course count cho category
+     */
+    @Modifying
+    @Transactional
+    @Query("UPDATE Category c SET c.courseCount = " +
+            "(SELECT COUNT(co) FROM Course co WHERE co.category = c AND co.active = true) " +
+            "WHERE c.id = :categoryId")
+    void updateCourseCountForCategory(@Param("categoryId") Long categoryId);
+
+    /**
+     * Cập nhật course count cho tất cả categories
+     */
+    @Modifying
+    @Transactional
+    @Query("UPDATE Category c SET c.courseCount = " +
+            "(SELECT COUNT(co) FROM Course co WHERE co.category = c AND co.active = true)")
+    void updateAllCategoryCounts();
+
     // Basic finders
 
     // Search methods

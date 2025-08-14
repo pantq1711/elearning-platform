@@ -22,6 +22,70 @@
      */
     @Repository
     public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificationExecutor<User> {
+        /**
+         * Cập nhật last login time
+         */
+
+        /**
+         * Đếm tất cả users
+         */
+        @Query("SELECT COUNT(u) FROM User u")
+        Long countAllUsers();
+
+        /**
+         * Đếm active users trong tháng qua
+         */
+        @Query("SELECT COUNT(u) FROM User u WHERE u.lastLogin >= :fromDate")
+        Long countActiveUsersInLastMonth(@Param("fromDate") LocalDateTime fromDate);
+
+        /**
+         * Tìm top instructors theo enrollment count
+         */
+        @Query("SELECT u, COUNT(e) as enrollmentCount FROM User u " +
+                "LEFT JOIN Course c ON c.instructor = u " +
+                "LEFT JOIN Enrollment e ON e.course = c " +
+                "WHERE u.role = 'INSTRUCTOR' AND u.active = true " +
+                "GROUP BY u ORDER BY COUNT(e) DESC")
+        List<Object[]> getTopInstructorsByEnrollments(Pageable pageable);
+
+        /**
+         * Lấy user growth stats
+         */
+        @Query("SELECT YEAR(u.createdAt), MONTH(u.createdAt), COUNT(u) " +
+                "FROM User u WHERE u.createdAt >= :fromDate " +
+                "GROUP BY YEAR(u.createdAt), MONTH(u.createdAt) " +
+                "ORDER BY YEAR(u.createdAt), MONTH(u.createdAt)")
+        List<Object[]> getUserGrowthStats(@Param("fromDate") LocalDateTime fromDate);
+
+        /**
+         * Tìm recent users
+         */
+        @Query("SELECT u FROM User u ORDER BY u.createdAt DESC")
+        List<User> findRecentUsers(Pageable pageable);
+
+        /**
+         * Đếm users created trong khoảng thời gian
+         */
+        @Query("SELECT COUNT(u) FROM User u WHERE u.createdAt BETWEEN :startDate AND :endDate")
+        Long countUsersCreatedBetween(@Param("startDate") LocalDateTime startDate,
+                                      @Param("endDate") LocalDateTime endDate);
+
+        /**
+         * Tìm instructors có nhiều students nhất
+         */
+        @Query("SELECT u, COUNT(DISTINCT e.student) as studentCount FROM User u " +
+                "LEFT JOIN Course c ON c.instructor = u " +
+                "LEFT JOIN Enrollment e ON e.course = c " +
+                "WHERE u.role = 'INSTRUCTOR' AND u.active = true " +
+                "GROUP BY u ORDER BY COUNT(DISTINCT e.student) DESC")
+        List<Object[]> findInstructorsWithMostStudents(Pageable pageable);
+
+        /**
+         * Tìm active students
+         */
+        @Query("SELECT u FROM User u WHERE u.role = 'STUDENT' AND u.active = true " +
+                "ORDER BY u.lastLogin DESC")
+        List<User> findActiveStudents(Pageable pageable);
 
         // ===== BASIC FINDER METHODS =====
 

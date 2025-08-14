@@ -108,14 +108,7 @@ public class LessonDto {
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 
-    /**
-     * Lấy formatted duration
-     * @return Duration được format
-     */
-    public String getFormattedDuration() {
-        return CourseUtils.CourseHelper.formatDuration(estimatedDuration != null ? estimatedDuration : 0);
-    }
-
+    
     /**
      * Kiểm tra có video không
      * @return true nếu có video

@@ -357,4 +357,8 @@ public class QuizResult {
     public int hashCode() {
         return getClass().hashCode();
     }
+
+    public void setTotalQuestions(int totalQuestions) {
+
+    }
 }
