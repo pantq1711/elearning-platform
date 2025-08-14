@@ -69,7 +69,7 @@ public class Category {
     @Column(name = "total_enrollments")
     private Long totalEnrollments = 0L;
 
-    @Column(name = "average_rating", precision = 3, scale = 2)
+    @Column(name = "average_rating")
     private Double averageRating = 0.0;
 
     /**

@@ -41,7 +41,7 @@ public class Course {
     @Column(name = "difficulty_level", length = 20)
     private DifficultyLevel difficultyLevel = DifficultyLevel.EASY; // Sử dụng enum có sẵn trong file
 
-    @Column(precision = 10, scale = 2)
+    @Column()
     private Double price = 0.0;
 
     @Column(name = "is_featured")

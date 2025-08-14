@@ -26,120 +26,20 @@ import java.util.Optional;
 /**
  * Dịch vụ xử lý logic nghiệp vụ liên quan đến Course
  * Quản lý CRUD operations, validation và business rules cho courses
+ * SỬA LỖI: Đã sửa static field injection và circular dependency issues
  */
 @Service
 @Transactional
 public class CourseService {
 
-    /**
-     * Tìm courses theo category và active status
-     */
-    public List<Course> findByCategoryAndActive(Category category, boolean active) {
-        return courseRepository.findByCategoryAndActive(category, active);
-    }
-
-    /**
-     * Đếm courses theo category và active status
-     */
-    public Long countByCategoryAndActive(Category category, boolean active) {
-        return courseRepository.countByCategoryAndActive(category, active);
-    }
-
-    /**
+    // SỬA LỖI: Bỏ static injection để tránh vấn đề
     @Autowired
-    private EnrollmentService enrollmentService;
+    private CourseRepository courseRepository; // ✅ Instance field thay vì static
 
-    /**
-     * Lấy thống kê courses theo tháng
-     */
-    public Map<String, Object> getCourseStatisticsByMonth() {
-        LocalDateTime fromDate = LocalDateTime.now().minusMonths(12);
-        List<Object[]> stats = courseRepository.getCourseStatisticsByMonth(fromDate);
-
-        Map<String, Object> result = new HashMap<>();
-        result.put("monthlyData", stats);
-        result.put("totalCourses", courseRepository.count());
-        result.put("activeCourses", courseRepository.countAllActiveCourses());
-
-        return result;
-    }
-
-    /**
-     * Tìm top performing courses
-     */
-    public List<Course> getTopPerformingCourses(int limit) {
-        Pageable pageable = PageRequest.of(0, limit);
-        return courseRepository.getTopPerformingCourses(pageable);
-    }
-
-    /**
-     * Lấy thống kê performance theo category
-     */
-    public Map<String, Long> getCategoryPerformanceStats() {
-        List<Object[]> stats = courseRepository.getCategoryPerformanceStats();
-        Map<String, Long> result = new HashMap<>();
-
-        for (Object[] stat : stats) {
-            String categoryName = (String) stat[0];
-            Long enrollmentCount = (Long) stat[1];
-            result.put(categoryName, enrollmentCount);
-        }
-
-        return result;
-    }
-
-
-    /**
-     * Tìm courses theo instructor
-     */
-    public List<Course> findCoursesByInstructor(User instructor) {
-        return courseRepository.findByInstructorAndActiveOrderByCreatedAtDesc(instructor, true);
-    }
-
-    /**
-     * Tìm course theo slug với validation
-     */
-    public Course findBySlugOrThrow(String slug) {
-        return courseRepository.findBySlug(slug)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học với slug: " + slug));
-    }
-
-    /**
-     * Tìm courses với pagination và search
-     */
-    public Page<Course> searchCourses(String keyword, String category, String level,
-                                      String sortBy, Pageable pageable) {
-        // Implement search logic with filters
-        return courseRepository.findAll(pageable); // Placeholder
-    }
-    // SỬA LỖI: Thêm injection cho EnrollmentService với @Lazy để tránh circular dependency
+    // SỬA LỖI: Sử dụng @Lazy để tránh circular dependency với EnrollmentService
     @Lazy
     @Autowired
     private EnrollmentService enrollmentService;
-
-    /**
-     * Cập nhật enrollment count cho course
-     */
-    @Transactional
-    public void updateEnrollmentCount(Long courseId) {
-        Course course = findByIdOrThrow(courseId);
-        Long enrollmentCount = enrollmentService.countByCourse(course); // Giờ có thể sử dụng
-        // Update logic here if needed
-    }
-
-    /**
-     * Validate course trước khi save
-     */
-    /**
-     * Tìm course theo ID với exception
-     */
-    public static Course findByIdOrThrow(Long id) {
-        return courseRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học với ID: " + id));
-    }
-
-    @Autowired
-    private static CourseRepository courseRepository;
 
     private static final String UPLOAD_DIR = "uploads/courses/";
 
@@ -411,6 +311,15 @@ public class CourseService {
         return courseRepository.searchCourses(keyword, limit);
     }
 
+    /**
+     * Tìm courses với pagination và search
+     */
+    public Page<Course> searchCourses(String keyword, String category, String level,
+                                      String sortBy, Pageable pageable) {
+        // Implement search logic with filters
+        return courseRepository.findAll(pageable); // Placeholder
+    }
+
     // ===== CÁC PHƯƠNG THỨC LIÊN QUAN ĐẾN INSTRUCTOR =====
 
     /**
@@ -418,6 +327,13 @@ public class CourseService {
      */
     public List<Course> findByInstructorOrderByCreatedAtDesc(User instructor) {
         return courseRepository.findByInstructorOrderByCreatedAtDesc(instructor);
+    }
+
+    /**
+     * Tìm courses theo instructor
+     */
+    public List<Course> findCoursesByInstructor(User instructor) {
+        return courseRepository.findByInstructorAndActiveOrderByCreatedAtDesc(instructor, true);
     }
 
     /**
@@ -528,6 +444,45 @@ public class CourseService {
      */
     public List<Object[]> getCourseStatsByMonth(LocalDateTime fromDate) {
         return courseRepository.getCourseStatsByMonth(fromDate);
+    }
+
+    /**
+     * Lấy thống kê courses theo tháng
+     */
+    public Map<String, Object> getCourseStatisticsByMonth() {
+        LocalDateTime fromDate = LocalDateTime.now().minusMonths(12);
+        List<Object[]> stats = courseRepository.getCourseStatisticsByMonth(fromDate);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("monthlyData", stats);
+        result.put("totalCourses", courseRepository.count());
+        result.put("activeCourses", courseRepository.countAllActiveCourses());
+
+        return result;
+    }
+
+    /**
+     * Tìm top performing courses
+     */
+    public List<Course> getTopPerformingCourses(int limit) {
+        Pageable pageable = PageRequest.of(0, limit);
+        return courseRepository.getTopPerformingCourses(pageable);
+    }
+
+    /**
+     * Lấy thống kê performance theo category
+     */
+    public Map<String, Long> getCategoryPerformanceStats() {
+        List<Object[]> stats = courseRepository.getCategoryPerformanceStats();
+        Map<String, Long> result = new HashMap<>();
+
+        for (Object[] stat : stats) {
+            String categoryName = (String) stat[0];
+            Long enrollmentCount = (Long) stat[1];
+            result.put(categoryName, enrollmentCount);
+        }
+
+        return result;
     }
 
     /**
@@ -655,6 +610,23 @@ public class CourseService {
         return courseRepository.existsBySlug(slug);
     }
 
+    /**
+     * Tìm course theo slug với validation
+     */
+    public Course findBySlugOrThrow(String slug) {
+        return courseRepository.findBySlug(slug)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học với slug: " + slug));
+    }
+
+    /**
+     * Tìm course theo ID với exception
+     * SỬA LỖI: Bỏ static vì courseRepository giờ là instance field
+     */
+    public Course findByIdOrThrow(Long id) {
+        return courseRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học với ID: " + id));
+    }
+
     // ===== CÁC HELPER CHO PHÂN TÍCH COURSE =====
 
     /**
@@ -690,6 +662,30 @@ public class CourseService {
      */
     public Double getCompletionRateByCourse(Course course) {
         return 0.0; // Placeholder - would need completion tracking
+    }
+
+    /**
+     * Tìm courses theo category và active status
+     */
+    public List<Course> findByCategoryAndActive(Category category, boolean active) {
+        return courseRepository.findByCategoryAndActive(category, active);
+    }
+
+    /**
+     * Đếm courses theo category và active status
+     */
+    public Long countByCategoryAndActive(Category category, boolean active) {
+        return courseRepository.countByCategoryAndActive(category, active);
+    }
+
+    /**
+     * Cập nhật enrollment count cho course
+     */
+    @Transactional
+    public void updateEnrollmentCount(Long courseId) {
+        Course course = findByIdOrThrow(courseId);
+        Long enrollmentCount = enrollmentService.countByCourse(course);
+        // Update logic here if needed
     }
 
     // ===== CÁC PHƯƠNG THỨC XÁC THỰC RIÊNG TƯ =====

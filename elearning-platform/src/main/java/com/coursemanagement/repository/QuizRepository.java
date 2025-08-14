@@ -1,6 +1,5 @@
 package com.coursemanagement.repository;
-import org.springframework.data.jpa.repository.Modifying;
-import org.springframework.transaction.annotation.Transactional;
+
 import com.coursemanagement.entity.Course;
 import com.coursemanagement.entity.Quiz;
 import com.coursemanagement.entity.QuizResult;
@@ -8,9 +7,11 @@ import com.coursemanagement.entity.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -19,81 +20,10 @@ import java.util.Optional;
 /**
  * Repository interface cho Quiz entity
  * Chứa các custom queries cho quiz management
+ * SỬA LỖI: Đã bỏ method startQuiz gây lỗi và sửa các method trùng lặp
  */
 @Repository
 public interface QuizRepository extends JpaRepository<Quiz, Long> {
-
-    /**
-     * Đếm active quizzes theo course
-     */
-    Long countActiveQuizzesByCourse(Course course);
-
-    /**
-     * Đếm active quizzes theo course (alternative)
-     */
-    /**
-     * Tìm available quizzes cho student (chưa làm hoặc có thể làm lại)
-     */
-    @Query("SELECT q FROM Quiz q WHERE q.course.id IN " +
-            "(SELECT e.course.id FROM Enrollment e WHERE e.student = :student) " +
-            "AND q.active = true " +
-            "AND (q.id NOT IN (SELECT qr.quiz.id FROM QuizResult qr WHERE qr.student = :student) " +
-            "     OR q.allowRetake = true)")
-    List<Quiz> findAvailableQuizzesForStudent(@Param("student") User student);
-
-    /**
-     * Tìm completed quizzes cho student
-     */
-    @Query("SELECT DISTINCT q FROM Quiz q JOIN q.quizResults qr " +
-            "WHERE qr.student = :student AND q.active = true " +
-            "ORDER BY qr.completionTime DESC")
-    List<Quiz> findCompletedQuizzesForStudent(@Param("student") User student);
-
-    /**
-     * Kiểm tra student đã làm quiz chưa
-     */
-    @Query("SELECT CASE WHEN COUNT(qr) > 0 THEN true ELSE false END " +
-            "FROM QuizResult qr WHERE qr.student = :student AND qr.quiz = :quiz")
-    boolean hasStudentTakenQuiz(@Param("student") User student, @Param("quiz") Quiz quiz);
-
-    /**
-     * Tìm quiz result của student cho quiz
-     */
-    @Query("SELECT qr FROM QuizResult qr WHERE qr.student = :student AND qr.quiz = :quiz " +
-            "ORDER BY qr.completionTime DESC LIMIT 1")
-    Optional<QuizResult> findQuizResult(@Param("student") User student, @Param("quiz") Quiz quiz);
-
-    /**
-     * Bắt đầu quiz cho student (tạo quiz session)
-     */
-    @Modifying
-    @Transactional
-    @Query("INSERT INTO QuizResult (student, quiz, startTime, completed) " +
-            "VALUES (:student, :quiz, :startedAt, 'IN_PROGRESS')")
-    void startQuiz(@Param("student") User student, @Param("quiz") Quiz quiz,
-                   @Param("startedAt") LocalDateTime startedAt);
-
-    /**
-     * Đếm tất cả quizzes active
-     */
-    @Query("SELECT COUNT(q) FROM Quiz q WHERE q.active = true")
-    Long countAllActiveQuizzes();
-
-    /**
-     * Tìm quizzes theo instructor
-     */
-    @Query("SELECT q FROM Quiz q WHERE q.course.instructor = :instructor AND q.active = true " +
-            "ORDER BY q.createdAt DESC")
-    List<Quiz> findQuizzesByInstructor(@Param("instructor") User instructor, Pageable pageable);
-
-    /**
-     * Đếm quizzes theo instructor
-     */
-    @Query("SELECT COUNT(q) FROM Quiz q WHERE q.course.instructor = :instructor AND q.active = true")
-    Long countQuizzesByInstructor(@Param("instructor") User instructor);
-    // Course-related methods
-    List<Quiz> findByCourseIdAndActiveOrderByCreatedAtDesc(Long courseId, boolean active);
-    // Instructor methods
 
     // ===== BASIC FINDER METHODS =====
 
@@ -130,6 +60,11 @@ public interface QuizRepository extends JpaRepository<Quiz, Long> {
     List<Quiz> findByCourseAndActive(Course course, boolean active);
 
     /**
+     * Tìm quizzes theo course ID và active status
+     */
+    List<Quiz> findByCourseIdAndActiveOrderByCreatedAtDesc(Long courseId, boolean active);
+
+    /**
      * Tìm quizzes theo course với pagination
      */
     Page<Quiz> findByCourse(Course course, Pageable pageable);
@@ -150,6 +85,11 @@ public interface QuizRepository extends JpaRepository<Quiz, Long> {
     Long countByCourseAndActive(Course course, boolean active);
 
     /**
+     * Đếm active quizzes theo course (alternative method name)
+     */
+    Long countActiveQuizzesByCourse(Course course);
+
+    /**
      * Đếm quiz attempts cho course
      */
     @Query("SELECT COUNT(qr) FROM QuizResult qr WHERE qr.quiz.course = :course")
@@ -158,8 +98,7 @@ public interface QuizRepository extends JpaRepository<Quiz, Long> {
     /**
      * Đếm passed quiz attempts cho course
      */
-    @Query("SELECT COUNT(qr) FROM QuizResult qr WHERE qr.quiz.course = :course " +
-            "AND qr.score >= qr.quiz.passScore")
+    @Query("SELECT COUNT(qr) FROM QuizResult qr WHERE qr.quiz.course = :course AND qr.passed = true")
     Long countPassedByCourse(@Param("course") Course course);
 
     // ===== INSTRUCTOR-RELATED QUERIES =====
@@ -177,6 +116,13 @@ public interface QuizRepository extends JpaRepository<Quiz, Long> {
     Page<Quiz> findByInstructor(@Param("instructor") User instructor, Pageable pageable);
 
     /**
+     * Tìm quizzes theo instructor với pagination (với active filter)
+     */
+    @Query("SELECT q FROM Quiz q WHERE q.course.instructor = :instructor AND q.active = true " +
+            "ORDER BY q.createdAt DESC")
+    List<Quiz> findQuizzesByInstructor(@Param("instructor") User instructor, Pageable pageable);
+
+    /**
      * Đếm quizzes của instructor
      */
     @Query("SELECT COUNT(q) FROM Quiz q WHERE q.course.instructor = :instructor")
@@ -187,6 +133,12 @@ public interface QuizRepository extends JpaRepository<Quiz, Long> {
      */
     @Query("SELECT COUNT(q) FROM Quiz q WHERE q.course.instructor = :instructor AND q.active = :active")
     Long countByInstructorAndActive(@Param("instructor") User instructor, @Param("active") boolean active);
+
+    /**
+     * Đếm quizzes theo instructor (alternative method)
+     */
+    @Query("SELECT COUNT(q) FROM Quiz q WHERE q.course.instructor = :instructor AND q.active = true")
+    Long countQuizzesByInstructor(@Param("instructor") User instructor);
 
     // ===== AVAILABILITY QUERIES =====
 
@@ -199,13 +151,23 @@ public interface QuizRepository extends JpaRepository<Quiz, Long> {
     List<Quiz> findAvailableQuizzes(@Param("course") Course course, @Param("currentTime") LocalDateTime currentTime);
 
     /**
-     * Tìm quizzes available cho student (chưa làm và trong thời gian mở)
+     * Tìm quizzes available cho student (chưa làm và trong thời gian mở) - Version 1
      */
     @Query("SELECT q FROM Quiz q WHERE q.active = true " +
             "AND (q.availableFrom IS NULL OR q.availableFrom <= CURRENT_TIMESTAMP) " +
             "AND (q.availableUntil IS NULL OR q.availableUntil >= CURRENT_TIMESTAMP) " +
             "AND NOT EXISTS (SELECT qr FROM QuizResult qr WHERE qr.quiz = q AND qr.student.id = :studentId)")
-    List<Quiz> findAvailableQuizzesForStudent(@Param("studentId") Long studentId);
+    List<Quiz> findAvailableQuizzesForStudentById(@Param("studentId") Long studentId);
+
+    /**
+     * SỬA LỖI: Tìm available quizzes cho student (chưa làm hoặc có thể làm lại) - Version 2
+     * Bỏ allowRetake field không tồn tại
+     */
+    @Query("SELECT q FROM Quiz q WHERE q.course.id IN " +
+            "(SELECT e.course.id FROM Enrollment e WHERE e.student = :student) " +
+            "AND q.active = true " +
+            "AND q.id NOT IN (SELECT qr.quiz.id FROM QuizResult qr WHERE qr.student = :student AND qr.completed = true)")
+    List<Quiz> findAvailableQuizzesForStudent(@Param("student") User student);
 
     /**
      * Tìm quizzes sắp hết hạn (trong khoảng thời gian)
@@ -278,20 +240,42 @@ public interface QuizRepository extends JpaRepository<Quiz, Long> {
     List<Quiz> findPassedQuizzesByStudent(@Param("student") User student, @Param("course") Course course);
 
     /**
-     * Tìm completed quizzes cho student
+     * Tìm completed quizzes cho student - Version 1 (by User object)
      */
-    @Query("SELECT DISTINCT qr.quiz FROM QuizResult qr WHERE qr.student.id = :studentId " +
+    @Query("SELECT DISTINCT q FROM Quiz q JOIN q.quizResults qr " +
+            "WHERE qr.student = :student AND qr.completed = true AND q.active = true " +
             "ORDER BY qr.completionTime DESC")
-    List<Quiz> findCompletedQuizzesForStudent(@Param("studentId") Long studentId);
+    List<Quiz> findCompletedQuizzesForStudent(@Param("student") User student);
 
     /**
-     * Kiểm tra student đã làm quiz chưa
+     * Tìm completed quizzes cho student - Version 2 (by student ID)
+     */
+    @Query("SELECT DISTINCT qr.quiz FROM QuizResult qr WHERE qr.student.id = :studentId AND qr.completed = true " +
+            "ORDER BY qr.completionTime DESC")
+    List<Quiz> findCompletedQuizzesForStudentById(@Param("studentId") Long studentId);
+
+    /**
+     * Kiểm tra student đã làm quiz chưa - Version 1
+     */
+    @Query("SELECT CASE WHEN COUNT(qr) > 0 THEN true ELSE false END " +
+            "FROM QuizResult qr WHERE qr.student = :student AND qr.quiz = :quiz AND qr.completed = true")
+    boolean hasStudentTakenQuiz(@Param("student") User student, @Param("quiz") Quiz quiz);
+
+    /**
+     * Kiểm tra student đã làm quiz chưa - Version 2
      */
     @Query("SELECT COUNT(qr) > 0 FROM QuizResult qr WHERE qr.student = :student AND qr.quiz = :quiz")
     boolean existsByStudentAndQuiz(@Param("student") User student, @Param("quiz") Quiz quiz);
 
     /**
-     * Tìm quiz result theo student và quiz
+     * Tìm quiz result theo student và quiz - Version 1
+     */
+    @Query("SELECT qr FROM QuizResult qr WHERE qr.student = :student AND qr.quiz = :quiz " +
+            "ORDER BY qr.completionTime DESC LIMIT 1")
+    Optional<QuizResult> findQuizResult(@Param("student") User student, @Param("quiz") Quiz quiz);
+
+    /**
+     * Tìm quiz result theo student và quiz - Version 2
      */
     @Query("SELECT qr FROM QuizResult qr WHERE qr.student = :student AND qr.quiz = :quiz")
     Optional<QuizResult> findByStudentAndQuiz(@Param("student") User student, @Param("quiz") Quiz quiz);
@@ -301,6 +285,14 @@ public interface QuizRepository extends JpaRepository<Quiz, Long> {
      */
     @Query("SELECT qr FROM QuizResult qr WHERE qr.student = :student ORDER BY qr.completionTime DESC")
     List<QuizResult> findByStudentOrderByAttemptDateDesc(@Param("student") User student);
+
+    // ===== COUNT AND GENERAL QUERIES =====
+
+    /**
+     * Đếm tất cả quizzes active
+     */
+    @Query("SELECT COUNT(q) FROM Quiz q WHERE q.active = true")
+    Long countAllActiveQuizzes();
 
     // ===== ANALYTICS QUERIES =====
 
@@ -359,10 +351,14 @@ public interface QuizRepository extends JpaRepository<Quiz, Long> {
     List<Quiz> findEmptyQuizzes();
 
     /**
-     * Lấy average completion time cho quiz
+     * SỬA LỖI: Lấy average completion time cho quiz
+     * Sử dụng native query để tính chênh lệch thời gian
      */
-    @Query("SELECT AVG(qr.timeTaken) FROM QuizResult qr WHERE qr.quiz = :quiz AND qr.timeTaken IS NOT NULL")
-    Double getAverageCompletionTime(@Param("quiz") Quiz quiz);
+    @Query(value = "SELECT AVG(TIMESTAMPDIFF(SECOND, qr.start_time, qr.completion_time)) " +
+            "FROM quiz_results qr " +
+            "WHERE qr.quiz_id = :quizId AND qr.start_time IS NOT NULL AND qr.completion_time IS NOT NULL",
+            nativeQuery = true)
+    Double getAverageCompletionTime(@Param("quizId") Long quizId);
 
     /**
      * Lấy pass rate của quiz

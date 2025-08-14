@@ -201,7 +201,7 @@
 
         Long countByCreatedAtAfter(LocalDateTime createdAfter);
 
-        @Query("SELECT u FROM User u LEFT JOIN u.courses c WHERE u.role = :role AND u.active = :active " +
+        @Query("SELECT u FROM User u LEFT JOIN u.instructorCourses c WHERE u.role = :role AND u.active = :active " +
                 "GROUP BY u ORDER BY COUNT(c) DESC")
         Page<User> findInstructorsOrderByCourseCount(@Param("role") User.Role role,
                                                      @Param("active") boolean active,

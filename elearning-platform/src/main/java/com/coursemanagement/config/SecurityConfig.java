@@ -5,6 +5,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -31,15 +32,13 @@ import java.io.IOException;
 /**
  * Cấu hình bảo mật toàn diện cho hệ thống e-learning
  * Xử lý authentication (xác thực) và authorization (phân quyền)
- * Compatible với Spring Security 6.x - Đã sửa tất cả lỗi compilation
+ * Compatible với Spring Security 6.x - Đã sửa tất cả lỗi compilation và circular dependency
+ * SỬA LỖI: Sử dụng static methods để tránh circular dependency
  */
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity(prePostEnabled = true) // Bật phân quyền theo method
 public class SecurityConfig {
-
-    @Autowired
-    private UserService userService; // Service để load thông tin user
 
     // Key bí mật cho remember-me token
     private static final String REMEMBER_ME_KEY = "elearning-platform-remember-me-key-2024";
@@ -49,7 +48,7 @@ public class SecurityConfig {
      * @return PasswordEncoder - BCrypt encoder với cost factor 12
      */
     @Bean
-    public PasswordEncoder passwordEncoder() {
+    public static PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder(12); // Tăng cost factor cho bảo mật cao hơn
     }
 
@@ -58,20 +57,21 @@ public class SecurityConfig {
      * @return SessionRegistry implementation
      */
     @Bean
-    public SessionRegistry sessionRegistry() {
+    public static SessionRegistry sessionRegistry() {
         return new SessionRegistryImpl();
     }
 
     /**
      * Cấu hình Authentication Provider
      * Xác định cách thức xác thực user (username/password)
+     * SỬA LỖI: Sử dụng static method và dependency injection parameter
      * @return DaoAuthenticationProvider
      */
     @Bean
-    public DaoAuthenticationProvider authenticationProvider() {
+    public static DaoAuthenticationProvider authenticationProvider(UserService userService, PasswordEncoder passwordEncoder) {
         DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
         authProvider.setUserDetailsService(userService);
-        authProvider.setPasswordEncoder(passwordEncoder());
+        authProvider.setPasswordEncoder(passwordEncoder);
         authProvider.setHideUserNotFoundExceptions(false); // Show error cho debug
         return authProvider;
     }
@@ -89,10 +89,11 @@ public class SecurityConfig {
 
     /**
      * Remember Me Services với token-based approach
+     * SỬA LỖI: Sử dụng static method và dependency injection parameter
      * @return RememberMeServices
      */
     @Bean
-    public RememberMeServices rememberMeServices() {
+    public static RememberMeServices rememberMeServices(UserService userService) {
         TokenBasedRememberMeServices rememberMeServices =
                 new TokenBasedRememberMeServices(REMEMBER_ME_KEY, userService);
         rememberMeServices.setTokenValiditySeconds(30 * 24 * 60 * 60); // 30 ngày
@@ -141,51 +142,57 @@ public class SecurityConfig {
      * @throws Exception Nếu có lỗi cấu hình
      */
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http
-                // Cấu hình authorization rules
-                .authorizeHttpRequests(authz -> authz
-                        // Public resources - không cần authentication
-                        .requestMatchers("/", "/home", "/login", "/register").permitAll()
-                        .requestMatchers("/css/**", "/js/**", "/images/**", "/favicon.ico").permitAll()
-                        .requestMatchers("/public/**", "/about", "/contact", "/stats").permitAll()
-                        .requestMatchers("/api/v1/public/**").permitAll()
-                        .requestMatchers("/actuator/health").permitAll()
-                        .requestMatchers("/h2-console/**").permitAll() // H2 console trong dev
+    public SecurityFilterChain filterChain(HttpSecurity http,
+                                           RememberMeServices rememberMeServices,
+                                           SessionRegistry sessionRegistry,
+                                           AuthenticationSuccessHandler authenticationSuccessHandler,
+                                           UserService userService) throws Exception {
 
-                        // Admin-only endpoints
+        http
+                // ===== CẤU HÌNH AUTHORIZATION (PHÂN QUYỀN) =====
+                .authorizeHttpRequests(authz -> authz
+                        // Public endpoints - không cần authentication
+                        .requestMatchers("/", "/home", "/register", "/login", "/css/**", "/js/**", "/images/**", "/uploads/**").permitAll()
+                        .requestMatchers("/api/public/**").permitAll()
+                        .requestMatchers("/courses/public/**").permitAll()
+                        .requestMatchers("/courses/search", "/courses/category/**").permitAll()
+
+                        // Admin endpoints
                         .requestMatchers("/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
                         // Instructor endpoints
-                        .requestMatchers("/instructor/**").hasRole("INSTRUCTOR")
+                        .requestMatchers("/instructor/**").hasAnyRole("INSTRUCTOR", "ADMIN")
+                        .requestMatchers("/api/instructor/**").hasAnyRole("INSTRUCTOR", "ADMIN")
 
                         // Student endpoints
-                        .requestMatchers("/student/**").hasRole("STUDENT")
+                        .requestMatchers("/student/**").hasAnyRole("STUDENT", "INSTRUCTOR", "ADMIN")
+                        .requestMatchers("/api/student/**").hasAnyRole("STUDENT", "INSTRUCTOR", "ADMIN")
 
-                        // API endpoints với role-based access
-                        .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/api/v1/instructor/**").hasRole("INSTRUCTOR")
-                        .requestMatchers("/api/v1/student/**").hasRole("STUDENT")
+                        // Course management - Instructor và Admin
+                        .requestMatchers("/courses/create", "/courses/*/edit").hasAnyRole("INSTRUCTOR", "ADMIN")
+                        .requestMatchers("/api/courses/create", "/api/courses/*/edit").hasAnyRole("INSTRUCTOR", "ADMIN")
 
-                        // Dashboard - authenticated users only
-                        .requestMatchers("/dashboard").authenticated()
+                        // API endpoints
+                        .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/**").authenticated()
 
-                        // Tất cả request khác cần authentication
+                        // All other requests need authentication
                         .anyRequest().authenticated()
                 )
 
-                // Cấu hình form login với syntax mới Spring Security 6.x
+                // ===== CẤU HÌNH FORM LOGIN =====
                 .formLogin(form -> form
                         .loginPage("/login")
                         .loginProcessingUrl("/login")
-                        .usernameParameter("username")
-                        .passwordParameter("password")
-                        .successHandler(authenticationSuccessHandler())
+                        .successHandler(authenticationSuccessHandler)
                         .failureUrl("/login?error=true")
+                        .usernameParameter("email")
+                        .passwordParameter("password")
                         .permitAll()
                 )
 
-                // Cấu hình logout
+                // ===== CẤU HÌNH LOGOUT =====
                 .logout(logout -> logout
                         .logoutRequestMatcher(new AntPathRequestMatcher("/logout"))
                         .logoutSuccessUrl("/login?logout=true")
@@ -195,26 +202,37 @@ public class SecurityConfig {
                         .permitAll()
                 )
 
-                // Cấu hình Remember Me
+                // ===== CẤU HÌNH REMEMBER ME =====
                 .rememberMe(rememberMe -> rememberMe
-                        .rememberMeServices(rememberMeServices())
+                        .rememberMeServices(rememberMeServices)
                         .key(REMEMBER_ME_KEY)
                         .tokenValiditySeconds(30 * 24 * 60 * 60) // 30 ngày
+                        .userDetailsService(userService)
                 )
 
-                // Cấu hình session management với syntax mới
+                // ===== CẤU HÌNH SESSION MANAGEMENT =====
                 .sessionManagement(session -> session
-                        .maximumSessions(1) // Chỉ cho phép 1 session per user
-                        .maxSessionsPreventsLogin(false) // Session mới sẽ kick session cũ
-                        .sessionRegistry(sessionRegistry())
-                        .and()
-                        .sessionFixation(sessionFixation -> sessionFixation.migrateSession()) // Fix session fixation
-                        .invalidSessionUrl("/login?invalid=true")
+                        .maximumSessions(3) // Tối đa 3 sessions per user
+                        .maxSessionsPreventsLogin(false) // Cho phép login mới, logout session cũ
+                        .sessionRegistry(sessionRegistry)
+                        .expiredUrl("/login?expired=true")
                 )
 
-                // Cấu hình CSRF protection với exception cho API
+                // ===== CẤU HÌNH EXCEPTION HANDLING =====
+                .exceptionHandling(exceptions -> exceptions
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            response.sendRedirect("/login?error=unauthorized");
+                        })
+                        .accessDeniedHandler((request, response, accessDeniedException) -> {
+                            response.sendRedirect("/access-denied");
+                        })
+                )
+
+                // ===== CẤU HÌNH CSRF PROTECTION =====
                 .csrf(csrf -> csrf
-                        .ignoringRequestMatchers("/api/**", "/h2-console/**") // Bỏ qua CSRF cho REST API
+                        // Tắt CSRF cho API endpoints nếu cần
+                        .ignoringRequestMatchers("/api/**")
+                        // Cấu hình CSRF token repository
                         .csrfTokenRepository(org.springframework.security.web.csrf.CookieCsrfTokenRepository.withHttpOnlyFalse())
                 )
 
@@ -240,16 +258,6 @@ public class SecurityConfig {
                 );
 
         return http.build();
-    }
-
-    /**
-     * Authentication Provider configuration
-     * @param http HttpSecurity object
-     * @throws Exception Nếu có lỗi cấu hình
-     */
-    @Autowired
-    public void configureGlobal(HttpSecurity http) throws Exception {
-        http.authenticationProvider(authenticationProvider());
     }
 
     /**

@@ -385,7 +385,7 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
     @Query("SELECT DISTINCT e FROM Enrollment e " +
             "LEFT JOIN e.course.quizzes q " +
             "LEFT JOIN q.quizResults qr " +
-            "WHERE e.student = :student AND qr.user = :student")
+            "WHERE e.student = :student AND qr.student = :student")
     List<Enrollment> findEnrollmentsWithScoresByStudent(@Param("student") User student);
 
     /**

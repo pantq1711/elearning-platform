@@ -49,7 +49,7 @@ public class Question {
     @Column(name = "question_type")
     private QuestionType questionType = QuestionType.MULTIPLE_CHOICE;
 
-    @Column(name = "points", precision = 5, scale = 2)
+    @Column(name = "points")
     private Double points = 1.0; // Điểm số cho câu hỏi này
 
     @Column(name = "tags", length = 500)

@@ -20,7 +20,7 @@ public class Enrollment {
     /**
      * 1. Thêm final score field:
      */
-    @Column(name = "final_score", precision = 5, scale = 2)
+    @Column(name = "final_score")
     private Double finalScore; // Điểm cuối khóa của học viên
 
     /**
@@ -45,7 +45,7 @@ public class Enrollment {
     @Enumerated(EnumType.STRING)
     private PaymentStatus paymentStatus = PaymentStatus.FREE;
 
-    @Column(name = "payment_amount", precision = 10, scale = 2)
+    @Column(name = "payment_amount")
     private Double paymentAmount = 0.0;
 
     @Column(name = "payment_date")
@@ -54,7 +54,7 @@ public class Enrollment {
     /**
      * 5. Thêm feedback fields:
      */
-    @Column(name = "rating", precision = 2, scale = 1)
+    @Column(name = "rating")
     private Double rating; // Đánh giá từ 1-5 sao
 
     @Column(name = "review", columnDefinition = "TEXT")
@@ -292,7 +292,7 @@ public class Enrollment {
     @Column(nullable = false)
     private Double progress = 0.0; // Tiến độ từ 0-100%
 
-    @Column(precision = 5, scale = 2)
+    @Column()
     private Double score = 0.0; // Điểm cuối khóa
 
     @Column(name = "is_completed")

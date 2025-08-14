@@ -31,13 +31,13 @@ public class Quiz {
     @Column(nullable = false)
     private Integer duration; // Thời gian làm bài tính bằng phút
 
-    @Column(name = "max_score", nullable = false, precision = 5, scale = 2)
+    @Column(name = "max_score", nullable = false)
     private Double maxScore;
 
-    @Column(name = "pass_score", nullable = false, precision = 5, scale = 2)
+    @Column(name = "pass_score", nullable = false)
     private Double passScore;
 
-    @Column(name = "points", precision = 5, scale = 2)
+    @Column(name = "points")
     private Double points = 100.0; // Tổng điểm của quiz
 
     @Column(name = "is_active")
