@@ -8,6 +8,7 @@ import java.util.List;
 /**
  * Entity đại diện cho một khóa học trong hệ thống
  * Chứa thông tin chi tiết về khóa học, instructor, category và các quan hệ
+ * Mapping đầy đủ với database schema và JSP requirements
  */
 @Entity
 @Table(name = "courses")
@@ -22,6 +23,10 @@ public class Course {
 
     @Column(columnDefinition = "TEXT")
     private String description;
+
+    // Thêm field shortDescription để mapping với database và JSP
+    @Column(name = "short_description", length = 500)
+    private String shortDescription;
 
     @Column(unique = true, length = 255)
     private String slug;
@@ -39,7 +44,7 @@ public class Course {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "difficulty_level", length = 20)
-    private DifficultyLevel difficultyLevel = DifficultyLevel.EASY; // Sử dụng enum có sẵn trong file
+    private DifficultyLevel difficultyLevel = DifficultyLevel.EASY;
 
     @Column()
     private Double price = 0.0;
@@ -47,11 +52,19 @@ public class Course {
     @Column(name = "is_featured", nullable = false)
     private boolean featured = false;
 
-    @Column(name = "is_active")
+    @Column(name = "is_active", nullable = false)
     private boolean active = true;
 
-    @Column(length = 500)
+    @Column(name = "image_url", length = 500)
     private String imageUrl;
+
+    // Thêm field thumbnail để mapping với database
+    @Column(name = "thumbnail", length = 500)
+    private String thumbnail;
+
+    // Thêm field videoPreviewUrl để mapping với database
+    @Column(name = "video_preview_url", length = 500)
+    private String videoPreviewUrl;
 
     @Column(name = "language", length = 50)
     private String language = "Vietnamese";
@@ -61,6 +74,33 @@ public class Course {
 
     @Column(name = "learning_objectives", columnDefinition = "TEXT")
     private String learningObjectives;
+
+    // Thêm field targetAudience để mapping với database
+    @Column(name = "target_audience", columnDefinition = "TEXT")
+    private String targetAudience;
+
+    // Thêm field certificateAvailable để mapping với database
+    @Column(name = "certificate_available")
+    private Boolean certificateAvailable = false;
+
+    // Thêm field enrollmentCount để mapping với database
+    @Column(name = "enrollment_count")
+    private Integer enrollmentCount = 0;
+
+    // Thêm các field rating để mapping với database và JSP
+    @Column(name = "rating_average")
+    private Double ratingAverage = 0.0;
+
+    @Column(name = "rating_count")
+    private Integer ratingCount = 0;
+
+    // Thêm field viewCount để mapping với database
+    @Column(name = "view_count")
+    private Integer viewCount = 0;
+
+    // Thêm field publishedAt để mapping với database
+    @Column(name = "published_at")
+    private LocalDateTime publishedAt;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -105,20 +145,38 @@ public class Course {
     }
 
     /**
-     * Lấy số lượng enrollments
-     * @return Số lượng học viên đã đăng ký
+     * Method getRating() để tương thích với JSP files
+     * Trả về ratingAverage để khắc phục lỗi PropertyNotFoundException
      */
-    public int getEnrollmentCount() {
-        return enrollments != null ? enrollments.size() : 0;
+    public Double getRating() {
+        return ratingAverage != null ? ratingAverage : 0.0;
     }
 
     /**
-     * Set số lượng enrollments (để hiển thị trong DTO)
-     * @param count Số lượng enrollments
+     * Method getAverageRating() để tương thích với JSP files
+     * Trả về ratingAverage
      */
-    public void setEnrollmentCount(int count) {
-        // This is a transient setter used for display purposes
-        // The actual count is calculated from the enrollments list
+    public Double getAverageRating() {
+        return ratingAverage != null ? ratingAverage : 0.0;
+    }
+
+    /**
+     * Method getReviewCount() để tương thích với JSP files
+     * Trả về ratingCount để khắc phục lỗi PropertyNotFoundException
+     */
+    public Integer getReviewCount() {
+        return ratingCount != null ? ratingCount : 0;
+    }
+
+    /**
+     * Lấy số lượng enrollments từ database field (ưu tiên) hoặc từ relationship
+     * @return Số lượng học viên đã đăng ký
+     */
+    public int getEnrollmentCount() {
+        if (enrollmentCount != null) {
+            return enrollmentCount;
+        }
+        return enrollments != null ? enrollments.size() : 0;
     }
 
     /**
@@ -130,7 +188,14 @@ public class Course {
     }
 
     /**
-     * Set số lượng lessons (để hiển thị trong DTO)
+     * Lấy số lượng quizzes
+     * @return Số lượng bài kiểm tra
+     */
+    public int getQuizCount() {
+        return quizzes != null ? quizzes.size() : 0;
+    }
+    /**
+     * Set số lượng lessons (để hiển thị trong DTO/Service)
      * @param count Số lượng lessons
      */
     public void setLessonCount(int count) {
@@ -139,22 +204,13 @@ public class Course {
     }
 
     /**
-     * Lấy số lượng quizzes
-     * @return Số lượng bài kiểm tra
-     */
-    public int getQuizCount() {
-        return quizzes != null ? quizzes.size() : 0;
-    }
-
-    /**
-     * Set số lượng quizzes (để hiển thị trong DTO)
+     * Set số lượng quizzes (để hiển thị trong DTO/Service)
      * @param count Số lượng quizzes
      */
     public void setQuizCount(int count) {
         // This is a transient setter used for display purposes
         // The actual count is calculated from the quizzes list
     }
-
     /**
      * Kiểm tra course có active không
      * @return true nếu active
@@ -167,9 +223,7 @@ public class Course {
      * Kiểm tra course có featured không
      * @return true nếu featured
      */
-    public boolean isFeatured() {
-        return featured;
-    }
+
 
     /**
      * Lấy text hiển thị cho difficulty level
@@ -178,27 +232,19 @@ public class Course {
     public String getDifficultyLevelText() {
         return difficultyLevel != null ? difficultyLevel.getDisplayName() : "Không xác định";
     }
+
     /**
-     * Thêm method để lấy CSS class:
+     * Lấy CSS class cho difficulty level
+     * @return CSS class
      */
     public String getDifficultyLevelCssClass() {
-        return difficultyLevel != null ? difficultyLevel.getCssClass() : "badge-secondary";
+        return difficultyLevel != null ?
+                "difficulty-" + difficultyLevel.name().toLowerCase() : "difficulty-unknown";
     }
-
-    /**
-     * Thêm method để lấy icon:
-     */
-    public String getDifficultyLevelIcon() {
-        return difficultyLevel != null ? difficultyLevel.getIconClass() : "fas fa-question";
-    }
-    public String getDifficultyLevelAsString() {
-        return difficultyLevel != null ? difficultyLevel.name() : "EASY";
-    }
-
 
     /**
      * Lấy formatted price
-     * @return Price được format
+     * @return Formatted price string
      */
     public String getFormattedPrice() {
         if (price == null || price == 0.0) {
@@ -209,7 +255,7 @@ public class Course {
 
     /**
      * Lấy formatted duration
-     * @return Duration được format
+     * @return Formatted duration string
      */
     public String getFormattedDuration() {
         if (duration == null || duration == 0) {
@@ -229,7 +275,31 @@ public class Course {
         }
     }
 
-    // Getters và Setters
+    /**
+     * Lấy formatted average rating
+     * @return Formatted rating string
+     */
+    public String getFormattedRating() {
+        if (ratingAverage == null || ratingAverage == 0.0) {
+            return "Chưa có đánh giá";
+        }
+        return String.format("%.1f", ratingAverage);
+    }
+
+    /**
+     * Lấy path ảnh thumbnail với fallback
+     */
+    public String getThumbnailPath() {
+        if (thumbnail != null && !thumbnail.trim().isEmpty()) {
+            return thumbnail;
+        }
+        if (imageUrl != null && !imageUrl.trim().isEmpty()) {
+            return imageUrl;
+        }
+        return "default-course.jpg";
+    }
+
+    // Getters và Setters - Đầy đủ cho tất cả các fields
     public Long getId() {
         return id;
     }
@@ -239,14 +309,6 @@ public class Course {
     }
 
     public String getName() {
-        return name;
-    }
-
-    /**
-     * Method getName() alias - để tương thích với code cũ
-     * @return Tên course
-     */
-    public String getN() {
         return name;
     }
 
@@ -260,6 +322,14 @@ public class Course {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public String getShortDescription() {
+        return shortDescription;
+    }
+
+    public void setShortDescription(String shortDescription) {
+        this.shortDescription = shortDescription;
     }
 
     public String getSlug() {
@@ -301,35 +371,13 @@ public class Course {
     public void setDifficultyLevel(DifficultyLevel difficultyLevel) {
         this.difficultyLevel = difficultyLevel;
     }
-    public void setDifficultyLevelFromString(String level) {
-        if (level == null || level.trim().isEmpty()) {
-            this.difficultyLevel = DifficultyLevel.EASY;
-            return;
-        }
 
-        switch (level.toUpperCase()) {
-            case "BEGINNER":
-            case "EASY":
-            case "CƠ BẢN":
-                this.difficultyLevel = DifficultyLevel.EASY;
-                break;
-            case "INTERMEDIATE":
-            case "MEDIUM":
-            case "TRUNG BÌNH":
-                this.difficultyLevel = DifficultyLevel.MEDIUM;
-                break;
-            case "ADVANCED":
-            case "HARD":
-            case "NÂNG CAO":
-                this.difficultyLevel = DifficultyLevel.HARD;
-                break;
-            case "EXPERT":
-            case "CHUYÊN GIA":
-                this.difficultyLevel = DifficultyLevel.EXPERT;
-                break;
-            default:
-                this.difficultyLevel = DifficultyLevel.EASY;
-        }
+    /**
+     * Setter cho DifficultyLevel từ String (để compatibility với form data)
+     * @param level String representation của difficulty level
+     */
+    public void setDifficultyLevelFromString(String level) {
+        this.difficultyLevel = DifficultyLevel.fromString(level);
     }
 
     public Double getPrice() {
@@ -340,16 +388,12 @@ public class Course {
         this.price = price;
     }
 
-    public boolean getFeatured() {
+    public boolean isFeatured() {
         return featured;
     }
 
     public void setFeatured(boolean featured) {
         this.featured = featured;
-    }
-
-    public boolean getActive() {
-        return active;
     }
 
     public void setActive(boolean active) {
@@ -362,6 +406,22 @@ public class Course {
 
     public void setImageUrl(String imageUrl) {
         this.imageUrl = imageUrl;
+    }
+
+    public String getThumbnail() {
+        return thumbnail;
+    }
+
+    public void setThumbnail(String thumbnail) {
+        this.thumbnail = thumbnail;
+    }
+
+    public String getVideoPreviewUrl() {
+        return videoPreviewUrl;
+    }
+
+    public void setVideoPreviewUrl(String videoPreviewUrl) {
+        this.videoPreviewUrl = videoPreviewUrl;
     }
 
     public String getLanguage() {
@@ -386,6 +446,58 @@ public class Course {
 
     public void setLearningObjectives(String learningObjectives) {
         this.learningObjectives = learningObjectives;
+    }
+
+    public String getTargetAudience() {
+        return targetAudience;
+    }
+
+    public void setTargetAudience(String targetAudience) {
+        this.targetAudience = targetAudience;
+    }
+
+    public Boolean getCertificateAvailable() {
+        return certificateAvailable;
+    }
+
+    public void setCertificateAvailable(Boolean certificateAvailable) {
+        this.certificateAvailable = certificateAvailable;
+    }
+
+    public void setEnrollmentCount(Integer enrollmentCount) {
+        this.enrollmentCount = enrollmentCount;
+    }
+
+    public Double getRatingAverage() {
+        return ratingAverage;
+    }
+
+    public void setRatingAverage(Double ratingAverage) {
+        this.ratingAverage = ratingAverage;
+    }
+
+    public Integer getRatingCount() {
+        return ratingCount;
+    }
+
+    public void setRatingCount(Integer ratingCount) {
+        this.ratingCount = ratingCount;
+    }
+
+    public Integer getViewCount() {
+        return viewCount;
+    }
+
+    public void setViewCount(Integer viewCount) {
+        this.viewCount = viewCount;
+    }
+
+    public LocalDateTime getPublishedAt() {
+        return publishedAt;
+    }
+
+    public void setPublishedAt(LocalDateTime publishedAt) {
+        this.publishedAt = publishedAt;
     }
 
     public LocalDateTime getCreatedAt() {
@@ -428,6 +540,23 @@ public class Course {
         this.quizzes = quizzes;
     }
 
+
+    /**
+     * Kiểm tra course có miễn phí không
+     * @return true nếu miễn phí
+     */
+    public boolean isFree() {
+        return price == null || price == 0.0;
+    }
+
+    /**
+     * Kiểm tra course có được publish chưa
+     * @return true nếu đã publish
+     */
+    public boolean isPublished() {
+        return publishedAt != null && active;
+    }
+
     /**
      * Override toString để debug dễ dàng
      */
@@ -442,6 +571,7 @@ public class Course {
                 ", enrollmentCount=" + getEnrollmentCount() +
                 ", lessonCount=" + getLessonCount() +
                 ", quizCount=" + getQuizCount() +
+                ", averageRating=" + ratingAverage +
                 '}';
     }
 
@@ -462,26 +592,29 @@ public class Course {
     }
 
     /**
-     * Enum định nghĩa các mức độ khó của câu hỏi và quiz
-     * Sử dụng trong Question và Quiz entities
+     * Enum định nghĩa các mức độ khó cho khóa học và câu hỏi
+     * Sử dụng chung cho Course và Question entities
+     * Tránh conflict và đảm bảo tính nhất quán trong hệ thống
      */
     public enum DifficultyLevel {
-        EASY("Dễ", 1),
-        MEDIUM("Trung bình", 2),
-        HARD("Khó", 3),
-        EXPERT("Chuyên gia", 4);
+        EASY("Dễ", 1, "Dành cho người mới bắt đầu"),
+        MEDIUM("Trung bình", 2, "Cần kiến thức cơ bản"),
+        HARD("Khó", 3, "Cần kinh nghiệm và kiến thức sâu");
 
         private final String displayName;
         private final int level;
+        private final String description;
 
         /**
          * Constructor cho DifficultyLevel
          * @param displayName Tên hiển thị bằng tiếng Việt
-         * @param level Mức độ khó (1-4)
+         * @param level Mức độ khó (1-3)
+         * @param description Mô tả chi tiết
          */
-        DifficultyLevel(String displayName, int level) {
+        DifficultyLevel(String displayName, int level, String description) {
             this.displayName = displayName;
             this.level = level;
+            this.description = description;
         }
 
         /**
@@ -493,7 +626,7 @@ public class Course {
         }
 
         /**
-         * Lấy level số của độ khó (1-4)
+         * Lấy level số của độ khó (1-3)
          * @return Level số
          */
         public int getLevel() {
@@ -501,22 +634,23 @@ public class Course {
         }
 
         /**
+         * Lấy mô tả chi tiết
+         * @return Mô tả
+         */
+        public String getDescription() {
+            return description;
+        }
+
+        /**
          * Lấy màu CSS class cho hiển thị UI
          * @return CSS class name
          */
         public String getCssClass() {
-            switch (this) {
-                case EASY:
-                    return "badge-success";
-                case MEDIUM:
-                    return "badge-warning";
-                case HARD:
-                    return "badge-danger";
-                case EXPERT:
-                    return "badge-dark";
-                default:
-                    return "badge-secondary";
-            }
+            return switch (this) {
+                case EASY -> "badge-success";
+                case MEDIUM -> "badge-warning";
+                case HARD -> "badge-danger";
+            };
         }
 
         /**
@@ -524,18 +658,23 @@ public class Course {
          * @return Icon class name
          */
         public String getIconClass() {
-            switch (this) {
-                case EASY:
-                    return "fas fa-star";
-                case MEDIUM:
-                    return "fas fa-star-half-alt";
-                case HARD:
-                    return "fas fa-fire";
-                case EXPERT:
-                    return "fas fa-crown";
-                default:
-                    return "fas fa-question";
-            }
+            return switch (this) {
+                case EASY -> "fas fa-star";
+                case MEDIUM -> "fas fa-star-half-alt";
+                case HARD -> "fas fa-fire";
+            };
+        }
+
+        /**
+         * Lấy text color cho hiển thị
+         * @return Text color class
+         */
+        public String getTextColor() {
+            return switch (this) {
+                case EASY -> "text-success";
+                case MEDIUM -> "text-warning";
+                case HARD -> "text-danger";
+            };
         }
 
         /**
@@ -558,7 +697,7 @@ public class Course {
 
         /**
          * Lấy DifficultyLevel từ level số
-         * @param level Level số (1-4)
+         * @param level Level số (1-3)
          * @return DifficultyLevel tương ứng
          */
         public static DifficultyLevel fromLevel(int level) {
@@ -567,7 +706,25 @@ public class Course {
                     return difficulty;
                 }
             }
-            return MEDIUM; // Default
+            return EASY; // Default
+        }
+
+        /**
+         * Lấy DifficultyLevel từ string
+         * @param levelString String mức độ
+         * @return DifficultyLevel tương ứng
+         */
+        public static DifficultyLevel fromString(String levelString) {
+            if (levelString == null || levelString.trim().isEmpty()) {
+                return EASY;
+            }
+
+            return switch (levelString.toUpperCase()) {
+                case "BEGINNER", "EASY", "CƠ BẢN", "DỄ" -> EASY;
+                case "INTERMEDIATE", "MEDIUM", "TRUNG BÌNH" -> MEDIUM;
+                case "ADVANCED", "HARD", "NÂNG CAO", "KHÓ" -> HARD;
+                default -> EASY;
+            };
         }
 
         /**
@@ -576,14 +733,12 @@ public class Course {
          * @return DifficultyLevel phù hợp
          */
         public static DifficultyLevel fromPercentage(double percentage) {
-            if (percentage >= 90) {
+            if (percentage >= 80) {
                 return EASY;
-            } else if (percentage >= 70) {
+            } else if (percentage >= 60) {
                 return MEDIUM;
-            } else if (percentage >= 50) {
-                return HARD;
             } else {
-                return EXPERT;
+                return HARD;
             }
         }
 

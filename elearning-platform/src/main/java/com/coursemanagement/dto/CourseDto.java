@@ -80,7 +80,7 @@ public class CourseDto {
         dto.setCategoryId(course.getCategory().getId());
         dto.setInstructorId(course.getInstructor().getId());
         dto.setDuration(course.getDuration());
-        dto.setDifficultyLevel(course.getDifficultyLevelAsString());
+        dto.setDifficultyLevel(course.getDifficultyLevel().getDisplayName());
         dto.setPrice(course.getPrice());
         dto.setFeatured(course.isFeatured());
         dto.setActive(course.isActive());

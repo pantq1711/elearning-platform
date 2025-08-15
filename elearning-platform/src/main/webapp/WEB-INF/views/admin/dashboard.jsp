@@ -620,7 +620,7 @@
 
             <!-- Quick Actions -->
             <div class="quick-actions">
-                <a href="/admin/users/new"" class="action-btn">
+                <a href="/admin/users/create" class="action-btn">
                     <div class="action-icon">
                         <i class="fas fa-user-plus"></i>
                     </div>
@@ -630,7 +630,7 @@
                     </div>
                 </a>
 
-                <a href="/admin/categories/new"" class="action-btn">
+                <a href="/admin/categories/create" class="action-btn">
                     <div class="action-icon">
                         <i class="fas fa-tags"></i>
                     </div>

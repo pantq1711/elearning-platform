@@ -58,6 +58,7 @@ public class UserService implements UserDetailsService {
         return user;
     }
 
+
     // ===== CÁC THAO TÁC CRUD CƠ BẢN =====
 
     public Optional<User> findById(Long id) {
@@ -264,6 +265,7 @@ public class UserService implements UserDetailsService {
         Pageable pageable = PageRequest.of(0, limit);
         return userRepository.searchInstructors(keyword, pageable);
     }
+
 
     /**
      * Đếm active instructors

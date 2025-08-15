@@ -235,16 +235,10 @@
                                 <div class="col-md-2">
                                     <label class="form-label">Trạng thái</label>
                                     <select name="status" class="form-select">
-                                        <option value="">Tất cả</option>
-                                        <option value="active" ${param.status == 'active' ? 'selected' : ''}>
-                                            Đang học
-                                        </option>
-                                        <option value="completed" ${param.status == 'completed' ? 'selected' : ''}>
-                                            Hoàn thành
-                                        </option>
-                                        <option value="inactive" ${param.status == 'inactive' ? 'selected' : ''}>
-                                            Tạm dừng
-                                        </option>
+                                        <option value="">Tất cả trạng thái</option>
+                                        <option value="PUBLISHED" ${selectedStatus == 'PUBLISHED' ? 'selected' : ''}>Đã xuất bản</option>
+                                        <option value="DRAFT" ${selectedStatus == 'DRAFT' ? 'selected' : ''}>Bản nháp</option>
+                                        <option value="PENDING" ${selectedStatus == 'PENDING' ? 'selected' : ''}>Chờ duyệt</option>
                                     </select>
                                 </div>
 

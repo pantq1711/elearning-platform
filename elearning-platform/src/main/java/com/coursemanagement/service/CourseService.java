@@ -61,6 +61,35 @@ public class CourseService {
     }
 
     /**
+     * Tìm tất cả courses với pagination (alternative method)
+     */
+    public Page<Course> findAll(Pageable pageable) {
+        return courseRepository.findAll(pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<Course> findAllWithPagination(Pageable pageable) {
+        try {
+            // Thử dùng custom query với JOIN FETCH
+            return findAllWithJoinFetch(pageable);
+        } catch (Exception e) {
+            // Fallback về method thông thường nếu có lỗi
+            System.err.println("Fallback to simple findAll: " + e.getMessage());
+            return courseRepository.findAll(pageable);
+        }
+    }
+
+    /**
+     * Custom method với JOIN FETCH
+     */
+    @Transactional(readOnly = true)
+    public Page<Course> findAllWithJoinFetch(Pageable pageable) {
+        // Sử dụng custom query hoặc EntityManager để JOIN FETCH
+        // Tạm thời dùng method đơn giản và xử lý lazy loading ở JSP level
+        return courseRepository.findAll(pageable);
+    }
+
+    /**
      * Tìm course theo slug
      */
     public Optional<Course> findBySlug(String slug) {
