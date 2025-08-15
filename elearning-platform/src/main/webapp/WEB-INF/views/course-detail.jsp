@@ -792,7 +792,7 @@
                         <img src="${pageContext.request.contextPath}/images/avatars/${course.instructor.avatar}"
                              alt="${course.instructor.fullName}"
                              class="instructor-avatar"
-                             onerror="this.src='/images/avatar-default.png"'">
+                             onerror="this.src='/images/avatar-default.png'">
                         <div class="instructor-info">
                             <h6>${course.instructor.fullName}</h6>
                             <div class="instructor-role">${course.instructor.title}</div>
@@ -888,7 +888,7 @@
                                     <img src="${pageContext.request.contextPath}/images/avatars/${review.student.avatar}"
                                          alt="${review.student.fullName}"
                                          class="reviewer-avatar"
-                                         onerror="this.src='/images/avatar-default.png"'">
+                                         onerror="this.src='/images/avatar-default.png'">
                                     <div>
                                         <div class="reviewer-name">${review.student.fullName}</div>
                                         <div class="review-date">

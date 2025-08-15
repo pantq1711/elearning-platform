@@ -435,7 +435,7 @@
                                                      alt="${discussion.author.fullName}"
                                                      class="rounded-circle me-3"
                                                      style="width: 40px; height: 40px; object-fit: cover;"
-                                                     onerror="this.src='/images/avatar-default.png"'">
+                                                     onerror="this.src='/images/avatar-default.png'">
                                                 <div class="flex-grow-1">
                                                     <div class="d-flex justify-content-between align-items-start mb-2">
                                                         <div>
@@ -672,7 +672,7 @@
                              alt="${course.instructor.fullName}"
                              class="rounded-circle me-3"
                              style="width: 50px; height: 50px; object-fit: cover;"
-                             onerror="this.src='/images/avatar-default.png"'">
+                             onerror="this.src='/images/avatar-default.png'">
                         <div>
                             <div class="fw-medium">${course.instructor.fullName}</div>
                             <small class="text-muted">${course.instructor.title}</small>

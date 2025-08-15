@@ -309,7 +309,7 @@
                                                     <img src="${pageContext.request.contextPath}/images/avatars/${enrollment.student.avatar}"
                                                          alt="${enrollment.student.fullName}"
                                                          class="student-avatar me-3"
-                                                         onerror="this.src='/images/avatar-default.png"'">
+                                                         onerror="this.src='/images/avatar-default.png'">
                                                     <div class="flex-grow-1">
                                                         <h6 class="mb-1">${enrollment.student.fullName}</h6>
                                                         <small class="text-muted">${enrollment.student.email}</small>
@@ -433,7 +433,7 @@
                                                             <img src="${pageContext.request.contextPath}/images/avatars/${enrollment.student.avatar}"
                                                                  alt="${enrollment.student.fullName}"
                                                                  class="student-avatar me-3"
-                                                                 onerror="this.src='/images/avatar-default.png"'">
+                                                                 onerror="this.src='/images/avatar-default.png'">
                                                             <div>
                                                                 <div class="fw-medium">${enrollment.student.fullName}</div>
                                                                 <small class="text-muted">${enrollment.student.email}</small>

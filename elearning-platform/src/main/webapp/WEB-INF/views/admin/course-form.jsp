@@ -1,14 +1,15 @@
-<%-- File: src/main/webapp/WEB-INF/views/admin/category-form.jsp --%>
+<%-- File: src/main/webapp/WEB-INF/views/admin/course-form.jsp --%>
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="form" uri="http://www.springframework.org/tags/form" %>
+<%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 
 <!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${isEdit ? 'Sửa' : 'Thêm'} Danh Mục - Admin</title>
+    <title>${isEdit ? 'Sửa' : 'Thêm'} Khóa Học - Admin</title>
 
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -112,6 +113,12 @@
             transform: translateY(-1px);
         }
 
+        .form-label {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 8px;
+        }
+
         .alert {
             border: none;
             border-radius: 10px;
@@ -130,30 +137,16 @@
             color: #721c24;
         }
 
-        .color-picker {
-            width: 50px;
-            height: 40px;
-            border: 2px solid #e9ecef;
-            border-radius: 8px;
+        .level-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
         }
 
-        .icon-preview {
-            font-size: 24px;
-            width: 50px;
-            height: 50px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: 2px solid #e9ecef;
-            border-radius: 8px;
-            background: #f8f9fa;
-        }
-
-        .form-label {
-            font-weight: 600;
-            color: #495057;
-            margin-bottom: 8px;
-        }
+        .level-beginner { background: #28a745; color: white; }
+        .level-intermediate { background: #ffc107; color: #212529; }
+        .level-advanced { background: #dc3545; color: white; }
 
         .text-danger {
             font-size: 0.875rem;
@@ -164,7 +157,7 @@
 <body>
 <div class="container-fluid">
     <div class="row">
-        <!-- Sidebar đẹp hơn -->
+        <!-- Sidebar -->
         <nav class="col-md-3 col-lg-2 d-md-block sidebar">
             <div class="position-sticky">
                 <div class="sidebar-header">
@@ -186,12 +179,12 @@
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="/admin/courses">
+                            <a class="nav-link active" href="/admin/courses">
                                 <i class="fas fa-book me-2"></i>Khóa học
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link active" href="/admin/categories">
+                            <a class="nav-link" href="/admin/categories">
                                 <i class="fas fa-tags me-2"></i>Danh mục
                             </a>
                         </li>
@@ -217,11 +210,11 @@
                     <div>
                         <h1 class="h2 mb-2">
                             <i class="fas fa-${isEdit ? 'edit' : 'plus-circle'} me-2 text-primary"></i>
-                            ${isEdit ? 'Sửa' : 'Thêm'} Danh Mục
+                            ${isEdit ? 'Sửa' : 'Thêm'} Khóa Học
                         </h1>
-                        <p class="text-muted mb-0">${isEdit ? 'Cập nhật thông tin danh mục' : 'Tạo danh mục mới cho hệ thống'}</p>
+                        <p class="text-muted mb-0">${isEdit ? 'Cập nhật thông tin khóa học' : 'Tạo khóa học mới cho hệ thống'}</p>
                     </div>
-                    <a href="/admin/categories" class="btn btn-secondary">
+                    <a href="/admin/courses" class="btn btn-secondary">
                         <i class="fas fa-arrow-left me-2"></i>Quay lại
                     </a>
                 </div>
@@ -248,70 +241,96 @@
                     <div class="card">
                         <div class="card-header">
                             <h5 class="mb-0">
-                                <i class="fas fa-info-circle me-2"></i>Thông tin danh mục
+                                <i class="fas fa-info-circle me-2"></i>Thông tin khóa học
                             </h5>
                         </div>
                         <div class="card-body p-4">
                             <form:form method="post"
-                                       action="${isEdit ? '/admin/categories/'.concat(category.id).concat('/update') : '/admin/categories/create'}"
-                                       modelAttribute="category"
+                                       action="${isEdit ? '/admin/courses/'.concat(course.id).concat('/update') : '/admin/courses/create'}"
+                                       modelAttribute="course"
                                        class="needs-validation"
                                        novalidate="true">
 
                                 <div class="row">
-                                    <!-- Tên danh mục -->
+                                    <!-- Tên khóa học -->
                                     <div class="col-md-8 mb-3">
                                         <label for="name" class="form-label">
-                                            Tên danh mục <span class="text-danger">*</span>
+                                            Tên khóa học <span class="text-danger">*</span>
                                         </label>
                                         <form:input path="name" cssClass="form-control" id="name"
-                                                    required="true" maxlength="100"
-                                                    placeholder="Ví dụ: Lập trình Web" />
+                                                    required="true" maxlength="200"
+                                                    placeholder="Ví dụ: Lập trình Java từ cơ bản đến nâng cao" />
                                         <form:errors path="name" cssClass="text-danger small" />
                                     </div>
 
-                                    <!-- Màu sắc -->
+                                    <!-- Giá -->
                                     <div class="col-md-4 mb-3">
-                                        <label for="colorCode" class="form-label">Màu hiển thị</label>
-                                        <div class="d-flex align-items-center gap-2">
-                                            <form:input path="colorCode" cssClass="form-control color-picker"
-                                                        type="color" id="colorCode" value="#007bff" />
-                                            <small class="text-muted">Chọn màu</small>
+                                        <label for="price" class="form-label">Giá (VNĐ)</label>
+                                        <div class="input-group">
+                                            <form:input path="price" cssClass="form-control" type="number"
+                                                        id="price" min="0" step="1000" placeholder="0" />
+                                            <span class="input-group-text">₫</span>
                                         </div>
-                                        <form:errors path="colorCode" cssClass="text-danger small" />
+                                        <form:errors path="price" cssClass="text-danger small" />
                                     </div>
                                 </div>
 
-                                <!-- Mô tả -->
+                                <!-- Mô tả ngắn -->
                                 <div class="mb-3">
-                                    <label for="description" class="form-label">Mô tả</label>
+                                    <label for="description" class="form-label">Mô tả ngắn</label>
                                     <form:textarea path="description" cssClass="form-control" id="description"
                                                    rows="3" maxlength="500"
-                                                   placeholder="Mô tả ngắn gọn về danh mục này..." />
+                                                   placeholder="Mô tả ngắn gọn về khóa học này..." />
                                     <div class="form-text">Tối đa 500 ký tự</div>
                                     <form:errors path="description" cssClass="text-danger small" />
                                 </div>
 
                                 <div class="row">
-                                    <!-- Icon class -->
-                                    <div class="col-md-8 mb-3">
-                                        <label for="iconClass" class="form-label">Icon CSS Class</label>
-                                        <form:input path="iconClass" cssClass="form-control" id="iconClass"
-                                                    placeholder="fas fa-code" value="fas fa-book"
-                                                    oninput="updateIconPreview()" />
-                                        <div class="form-text">
-                                            Sử dụng Font Awesome icons. Ví dụ: fas fa-code, fas fa-palette, fas fa-chart-line
-                                        </div>
-                                        <form:errors path="iconClass" cssClass="text-danger small" />
+                                    <!-- Danh mục -->
+                                    <div class="col-md-6 mb-3">
+                                        <label for="category" class="form-label">
+                                            Danh mục <span class="text-danger">*</span>
+                                        </label>
+                                        <form:select path="category.id" cssClass="form-select" id="category" required="true">
+                                            <form:option value="">-- Chọn danh mục --</form:option>
+                                            <c:forEach var="cat" items="${categories}">
+                                                <form:option value="${cat.id}">${cat.name}</form:option>
+                                            </c:forEach>
+                                        </form:select>
+                                        <form:errors path="category" cssClass="text-danger small" />
                                     </div>
 
-                                    <!-- Icon preview -->
-                                    <div class="col-md-4 mb-3">
-                                        <label class="form-label">Xem trước</label>
-                                        <div class="icon-preview" id="iconPreview">
-                                            <i class="${not empty category.iconClass ? category.iconClass : 'fas fa-book'}"></i>
-                                        </div>
+                                    <!-- Cấp độ -->
+                                    <div class="col-md-6 mb-3">
+                                        <label for="difficultyLevel" class="form-label">Cấp độ</label>
+                                        <form:select path="difficultyLevel" cssClass="form-select" id="difficultyLevel">
+                                            <form:option value="EASY">Cơ bản</form:option>
+                                            <form:option value="MEDIUM">Trung cấp</form:option>
+                                            <form:option value="HARD">Nâng cao</form:option>
+                                        </form:select>
+                                        <form:errors path="difficultyLevel" cssClass="text-danger small" />
                                     </div>
+                                </div>
+
+                                <div class="row">
+                                    <!-- Thời lượng -->
+                                    <div class="col-md-6 mb-3">
+                                        <label for="duration" class="form-label">Thời lượng (giờ)</label>
+                                        <form:input path="duration" cssClass="form-control" type="number"
+                                                    id="duration" min="0" step="0.5" placeholder="0" />
+                                        <form:errors path="duration" cssClass="text-danger small" />
+                                    </div>
+
+                                    <!-- Giảng viên (chỉ hiện khi edit) -->
+                                    <c:if test="${isEdit}">
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Giảng viên</label>
+                                            <div class="form-control-plaintext">
+                                                <strong>${course.instructor.fullName}</strong>
+                                                <small class="text-muted d-block">${course.instructor.email}</small>
+                                            </div>
+                                        </div>
+                                    </c:if>
                                 </div>
 
                                 <!-- Checkboxes -->
@@ -320,8 +339,8 @@
                                         <div class="form-check form-switch">
                                             <form:checkbox path="active" cssClass="form-check-input" id="active" />
                                             <label class="form-check-label" for="active">
-                                                <strong>Kích hoạt danh mục</strong>
-                                                <small class="d-block text-muted">Cho phép hiển thị trong hệ thống</small>
+                                                <strong>Kích hoạt khóa học</strong>
+                                                <small class="d-block text-muted">Cho phép học viên đăng ký</small>
                                             </label>
                                         </div>
                                     </div>
@@ -330,7 +349,7 @@
                                         <div class="form-check form-switch">
                                             <form:checkbox path="featured" cssClass="form-check-input" id="featured" />
                                             <label class="form-check-label" for="featured">
-                                                <strong>Danh mục nổi bật</strong>
+                                                <strong>Khóa học nổi bật</strong>
                                                 <small class="d-block text-muted">Hiển thị ưu tiên trên trang chủ</small>
                                             </label>
                                         </div>
@@ -341,9 +360,9 @@
                                 <div class="d-flex gap-3 mt-4 pt-3 border-top">
                                     <button type="submit" class="btn btn-primary btn-lg">
                                         <i class="fas fa-${isEdit ? 'save' : 'plus'} me-2"></i>
-                                            ${isEdit ? 'Cập nhật' : 'Tạo'} danh mục
+                                            ${isEdit ? 'Cập nhật' : 'Tạo'} khóa học
                                     </button>
-                                    <a href="/admin/categories" class="btn btn-secondary">
+                                    <a href="/admin/courses" class="btn btn-secondary">
                                         <i class="fas fa-times me-2"></i>Hủy bỏ
                                     </a>
                                 </div>
@@ -363,34 +382,27 @@
                         <div class="card-body">
                             <div class="small">
                                 <div class="mb-3">
-                                    <strong>Tên danh mục:</strong>
-                                    <p class="text-muted mb-2">Nên ngắn gọn, rõ ràng và dễ hiểu. Ví dụ: "Lập trình Web", "Thiết kế Đồ họa"</p>
+                                    <strong>Tiêu đề khóa học:</strong>
+                                    <p class="text-muted mb-2">Nên rõ ràng, súc tích và thu hút. Bao gồm từ khóa chính để dễ tìm kiếm.</p>
                                 </div>
 
                                 <div class="mb-3">
-                                    <strong>Icons phổ biến:</strong>
-                                    <div class="d-flex flex-wrap gap-2 mt-2">
-                                        <span class="badge bg-light text-dark" onclick="setIcon('fas fa-code')">
-                                            <i class="fas fa-code"></i> fas fa-code
-                                        </span>
-                                        <span class="badge bg-light text-dark" onclick="setIcon('fas fa-palette')">
-                                            <i class="fas fa-palette"></i> fas fa-palette
-                                        </span>
-                                        <span class="badge bg-light text-dark" onclick="setIcon('fas fa-chart-line')">
-                                            <i class="fas fa-chart-line"></i> fas fa-chart-line
-                                        </span>
-                                        <span class="badge bg-light text-dark" onclick="setIcon('fas fa-language')">
-                                            <i class="fas fa-language"></i> fas fa-language
-                                        </span>
-                                        <span class="badge bg-light text-dark" onclick="setIcon('fas fa-microscope')">
-                                            <i class="fas fa-microscope"></i> fas fa-microscope
-                                        </span>
+                                    <strong>Cấp độ:</strong>
+                                    <div class="mt-2">
+                                        <span class="level-badge level-beginner me-2">Cơ bản</span>
+                                        <small class="text-muted d-block">Phù hợp với người mới bắt đầu</small>
+
+                                        <span class="level-badge level-intermediate me-2 mt-2 d-inline-block">Trung cấp</span>
+                                        <small class="text-muted d-block">Cần có kiến thức nền tảng</small>
+
+                                        <span class="level-badge level-advanced me-2 mt-2 d-inline-block">Nâng cao</span>
+                                        <small class="text-muted d-block">Dành cho chuyên gia</small>
                                     </div>
                                 </div>
 
                                 <div class="alert alert-info">
                                     <i class="fas fa-info-circle me-2"></i>
-                                    <strong>Lưu ý:</strong> Danh mục chỉ có thể xóa khi không còn khóa học nào thuộc danh mục này.
+                                    <strong>Lưu ý:</strong> Sau khi tạo khóa học, bạn có thể thêm bài giảng và quiz trong phần quản lý chi tiết.
                                 </div>
                             </div>
                         </div>
@@ -405,30 +417,6 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-    // Cập nhật icon preview khi thay đổi
-    function updateIconPreview() {
-        const iconClass = document.getElementById('iconClass').value || 'fas fa-book';
-        const preview = document.getElementById('iconPreview');
-        preview.innerHTML = '<i class="' + iconClass + '"></i>';
-    }
-
-    // Set icon từ gợi ý
-    function setIcon(iconClass) {
-        document.getElementById('iconClass').value = iconClass;
-        updateIconPreview();
-    }
-
-    // Initialize icon preview nếu đang edit
-    document.addEventListener('DOMContentLoaded', function() {
-        updateIconPreview();
-
-        // Nếu đang edit và chưa có active, set mặc định là true
-        const isEdit = ${isEdit ? 'true' : 'false'};
-        if (!isEdit) {
-            document.getElementById('active').checked = true;
-        }
-    });
-
     // Form validation
     (function() {
         'use strict';
@@ -445,6 +433,33 @@
             });
         }, false);
     })();
+
+    // Set default values khi tạo mới
+    document.addEventListener('DOMContentLoaded', function() {
+        const isEdit = ${isEdit ? 'true' : 'false'};
+
+        if (!isEdit) {
+            // Set mặc định active = true khi tạo mới
+            document.getElementById('active').checked = true;
+            // Set mặc định difficultyLevel = EASY
+            document.getElementById('difficultyLevel').value = 'EASY';
+        }
+
+        // Format price input
+        const priceInput = document.getElementById('price');
+        if (priceInput) {
+            priceInput.addEventListener('input', function() {
+                // Remove non-numeric characters except decimal
+                this.value = this.value.replace(/[^0-9]/g, '');
+
+                // Format number with commas
+                if (this.value) {
+                    const formatted = parseInt(this.value).toLocaleString('vi-VN');
+                    // Update display value but keep actual value for form submission
+                }
+            });
+        }
+    });
 </script>
 </body>
 </html>

@@ -797,7 +797,7 @@
                                                         <img src="${pageContext.request.contextPath}/images/avatars/${course.instructor.avatar}"
                                                              alt="${course.instructor.fullName}"
                                                              class="instructor-avatar"
-                                                             onerror="this.src='/images/avatar-default.png"'">
+                                                             onerror="this.src='/images/avatar-default.png'">
                                                         <span class="instructor-name">${course.instructor.fullName}</span>
                                                     </div>
 

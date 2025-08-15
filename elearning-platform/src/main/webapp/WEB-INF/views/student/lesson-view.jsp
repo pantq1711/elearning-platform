@@ -554,7 +554,7 @@
                              alt="${course.name}"
                              class="me-3"
                              style="width: 60px; height: 45px; object-fit: cover; border-radius: 8px;"
-                             onerror="this.src='/images/course-default.png"'">
+                             onerror="this.src='/images/course-default.png'">
                         <div>
                             <div class="fw-medium">${course.name}</div>
                             <small class="text-muted">bởi ${course.instructor.fullName}</small>

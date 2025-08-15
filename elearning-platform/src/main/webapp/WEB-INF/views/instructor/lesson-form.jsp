@@ -113,7 +113,7 @@
                                      alt="${course.name}"
                                      class="course-thumbnail"
                                      style="width: 60px; height: 45px; object-fit: cover; border-radius: 6px;"
-                                     onerror="this.src='/images/course-default.png"'">
+                                     onerror="this.src='/images/course-default.png'">
                             </div>
                             <div class="col">
                                 <h6 class="mb-1">${course.name}</h6>

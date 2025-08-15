@@ -372,7 +372,7 @@
                                                              alt="${quiz.course.name}"
                                                              class="me-2"
                                                              style="width: 32px; height: 24px; object-fit: cover; border-radius: 4px;"
-                                                             onerror="this.src='/images/course-default.png"'">
+                                                             onerror="this.src='/images/course-default.png'">
                                                         <div>
                                                             <div class="fw-medium">${quiz.course.name}</div>
                                                             <small class="text-muted">${quiz.course.category.name}</small>

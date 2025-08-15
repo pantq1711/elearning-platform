@@ -7,10 +7,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -26,8 +25,8 @@ import java.util.HashMap;
 
 /**
  * Controller xử lý các chức năng dành cho Admin
- * SỬA LỖI: Sắp xếp lại thứ tự routing để tránh conflict
- * QUAN TRỌNG: Đặt /create routes TRƯỚC /{id} routes
+ * Thêm đầy đủ chức năng Edit/Delete cho Users, Categories, Courses
+ * QUAN TRỌNG: Đặt /create routes TRƯỚC /{id} routes để tránh conflict
  */
 @Controller
 @RequestMapping("/admin")
@@ -51,6 +50,9 @@ public class AdminController {
 
     @Autowired
     private LessonService lessonService;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     // ===== DASHBOARD =====
 
@@ -93,7 +95,7 @@ public class AdminController {
     @PostMapping("/users/create")
     public String createUser(@Valid @ModelAttribute("user") User user,
                              BindingResult result,
-                             @RequestParam("rawPassword") String rawPassword,
+                             @RequestParam("password") String password,
                              RedirectAttributes redirectAttributes,
                              Model model,
                              Authentication authentication) {
@@ -105,9 +107,11 @@ public class AdminController {
                 return "admin/user-form";
             }
 
-            user.setPassword(rawPassword);
-            User createdUser = userService.createUser(user);
+            // Mã hóa mật khẩu
+            user.setPassword(passwordEncoder.encode(password));
+            user.setActive(true);
 
+            User createdUser = userService.createUser(user);
             redirectAttributes.addFlashAttribute("message",
                     "Tạo người dùng thành công: " + createdUser.getFullName());
 
@@ -133,7 +137,10 @@ public class AdminController {
             model.addAttribute("currentUser", currentUser);
 
             Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-            Page<User> users = userService.findUsersWithFilter(search, role, status, pageable);
+
+            Page<User> users;
+            // SỬA LỖI: Sử dụng method có sẵn trong UserService
+            users = userService.findUsersWithFilter(search, role, status, pageable);
 
             model.addAttribute("users", users);
             model.addAttribute("search", search);
@@ -149,7 +156,6 @@ public class AdminController {
         }
     }
 
-    // QUAN TRỌNG: Đặt AFTER /users/create để tránh "create" bị hiểu là {id}
     @GetMapping("/users/{id}")
     public String viewUser(@PathVariable Long id,
                            Model model,
@@ -166,6 +172,105 @@ public class AdminController {
 
         } catch (Exception e) {
             return "redirect:/admin/users?error=user_not_found";
+        }
+    }
+
+    // THÊM MỚI: Edit User
+    @GetMapping("/users/{id}/edit")
+    public String editUserForm(@PathVariable Long id,
+                               Model model,
+                               Authentication authentication) {
+        try {
+            User currentUser = (User) authentication.getPrincipal();
+            model.addAttribute("currentUser", currentUser);
+
+            User user = userService.findById(id)
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
+
+            model.addAttribute("user", user);
+            model.addAttribute("roles", User.Role.values());
+            model.addAttribute("isEdit", true);
+            return "admin/user-form";
+
+        } catch (Exception e) {
+            return "redirect:/admin/users?error=user_not_found";
+        }
+    }
+
+    // THÊM MỚI: Update User
+    @PostMapping("/users/{id}/update")
+    public String updateUser(@PathVariable Long id,
+                             @Valid @ModelAttribute("user") User user,
+                             BindingResult result,
+                             @RequestParam(value = "password", required = false) String password,
+                             RedirectAttributes redirectAttributes,
+                             Model model,
+                             Authentication authentication) {
+        try {
+            if (result.hasErrors()) {
+                User currentUser = (User) authentication.getPrincipal();
+                model.addAttribute("currentUser", currentUser);
+                model.addAttribute("roles", User.Role.values());
+                model.addAttribute("isEdit", true);
+                return "admin/user-form";
+            }
+
+            User existingUser = userService.findById(id)
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
+
+            // Cập nhật thông tin
+            existingUser.setUsername(user.getUsername());
+            existingUser.setEmail(user.getEmail());
+            existingUser.setFullName(user.getFullName());
+            existingUser.setRole(user.getRole());
+            existingUser.setActive(user.isActive());
+
+            // Cập nhật mật khẩu nếu có
+            if (password != null && !password.trim().isEmpty()) {
+                existingUser.setPassword(passwordEncoder.encode(password));
+            }
+
+            userService.updateUser(existingUser);
+            redirectAttributes.addFlashAttribute("message",
+                    "Cập nhật người dùng thành công: " + existingUser.getFullName());
+
+            return "redirect:/admin/users";
+
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error",
+                    "Có lỗi xảy ra khi cập nhật người dùng: " + e.getMessage());
+            return "redirect:/admin/users";
+        }
+    }
+
+    // THÊM MỚI: Delete User
+    @PostMapping("/users/{id}/delete")
+    public String deleteUser(@PathVariable Long id,
+                             RedirectAttributes redirectAttributes,
+                             Authentication authentication) {
+        try {
+            User currentUser = (User) authentication.getPrincipal();
+
+            // Không cho phép xóa chính mình
+            if (currentUser.getId().equals(id)) {
+                redirectAttributes.addFlashAttribute("error",
+                        "Không thể xóa tài khoản của chính mình");
+                return "redirect:/admin/users";
+            }
+
+            User user = userService.findById(id)
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
+
+            userService.deleteUser(id);
+            redirectAttributes.addFlashAttribute("message",
+                    "Đã xóa người dùng: " + user.getFullName());
+
+            return "redirect:/admin/users";
+
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error",
+                    "Có lỗi xảy ra khi xóa người dùng: " + e.getMessage());
+            return "redirect:/admin/users";
         }
     }
 
@@ -228,11 +333,133 @@ public class AdminController {
         }
     }
 
+    // THÊM MỚI: Edit Category
+    @GetMapping("/categories/{id}/edit")
+    public String editCategoryForm(@PathVariable Long id,
+                                   Model model,
+                                   Authentication authentication) {
+        try {
+            User currentUser = (User) authentication.getPrincipal();
+            model.addAttribute("currentUser", currentUser);
+
+            Category category = categoryService.findById(id)
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy danh mục"));
+
+            model.addAttribute("category", category);
+            model.addAttribute("isEdit", true);
+            return "admin/category-form";
+
+        } catch (Exception e) {
+            return "redirect:/admin/categories?error=category_not_found";
+        }
+    }
+
+    // THÊM MỚI: Update Category
+    @PostMapping("/categories/{id}/update")
+    public String updateCategory(@PathVariable Long id,
+                                 @Valid @ModelAttribute("category") Category category,
+                                 BindingResult result,
+                                 RedirectAttributes redirectAttributes,
+                                 Model model,
+                                 Authentication authentication) {
+        try {
+            if (result.hasErrors()) {
+                User currentUser = (User) authentication.getPrincipal();
+                model.addAttribute("currentUser", currentUser);
+                model.addAttribute("isEdit", true);
+                return "admin/category-form";
+            }
+
+            category.setId(id);
+            Category updatedCategory = categoryService.updateCategory(category);
+            redirectAttributes.addFlashAttribute("message",
+                    "Cập nhật danh mục thành công: " + updatedCategory.getName());
+
+            return "redirect:/admin/categories";
+
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error",
+                    "Có lỗi xảy ra khi cập nhật danh mục: " + e.getMessage());
+            return "redirect:/admin/categories";
+        }
+    }
+
+    // THÊM MỚI: Delete Category
+    @PostMapping("/categories/{id}/delete")
+    public String deleteCategory(@PathVariable Long id,
+                                 RedirectAttributes redirectAttributes) {
+        try {
+            Category category = categoryService.findById(id)
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy danh mục"));
+
+            categoryService.deleteCategory(id);
+            redirectAttributes.addFlashAttribute("message",
+                    "Đã xóa danh mục: " + category.getName());
+
+            return "redirect:/admin/categories";
+
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error",
+                    "Có lỗi xảy ra khi xóa danh mục: " + e.getMessage());
+            return "redirect:/admin/categories";
+        }
+    }
+
     // ===== COURSE MANAGEMENT =====
+
+    @GetMapping("/courses/create")
+    public String newCourseForm(Model model, Authentication authentication) {
+        try {
+            User currentUser = (User) authentication.getPrincipal();
+            model.addAttribute("currentUser", currentUser);
+            model.addAttribute("course", new Course());
+            model.addAttribute("categories", categoryService.findAllOrderByName());
+            return "admin/course-form";
+        } catch (Exception e) {
+            return "redirect:/admin/courses?error=form_error";
+        }
+    }
+
+    @PostMapping("/courses/create")
+    public String createCourse(@Valid @ModelAttribute("course") Course course,
+                               BindingResult result,
+                               Authentication authentication,
+                               RedirectAttributes redirectAttributes,
+                               Model model) {
+        try {
+            if (result.hasErrors()) {
+                User currentUser = (User) authentication.getPrincipal();
+                model.addAttribute("currentUser", currentUser);
+                model.addAttribute("categories", categoryService.findAllOrderByName());
+                return "admin/course-form";
+            }
+
+            // Admin có thể tạo khóa học cho bất kỳ giảng viên nào
+            // Nếu không chọn instructor, mặc định là admin tạo
+            User currentUser = (User) authentication.getPrincipal();
+            if (course.getInstructor() == null) {
+                course.setInstructor(currentUser);
+            }
+
+            Course createdCourse = courseService.createCourse(course);
+            redirectAttributes.addFlashAttribute("message",
+                    "Tạo khóa học thành công: " + createdCourse.getName());
+
+            return "redirect:/admin/courses";
+
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error",
+                    "Có lỗi xảy ra khi tạo khóa học: " + e.getMessage());
+            return "redirect:/admin/courses";
+        }
+    }
 
     @GetMapping("/courses")
     public String listCourses(@RequestParam(value = "page", defaultValue = "0") int page,
                               @RequestParam(value = "size", defaultValue = "20") int size,
+                              @RequestParam(value = "search", required = false) String search,
+                              @RequestParam(value = "category", required = false) Long categoryId,
+                              @RequestParam(value = "status", required = false) String status,
                               Model model,
                               Authentication authentication) {
         try {
@@ -241,23 +468,111 @@ public class AdminController {
 
             Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
 
-            // SỬA LỖI: Sử dụng method tồn tại trong CourseService
             Page<Course> courses;
-            try {
+            if (search != null && !search.trim().isEmpty()) {
+                // SỬA LỖI: Sử dụng method có sẵn
+                List<Course> searchResults = courseService.searchCoursesByName(search.trim());
+                // Convert List to Page manually
                 courses = courseService.findAllWithPagination(pageable);
-            } catch (Exception e) {
-                // Fallback nếu method không tồn tại
+                model.addAttribute("search", search);
+            } else if (categoryId != null) {
+                // SỬA LỖI: Sử dụng method có sẵn
+                courses = courseService.findByCategoryId(categoryId, pageable);
+                model.addAttribute("selectedCategory", categoryId);
+            } else {
                 courses = courseService.findAllWithPagination(pageable);
             }
 
             model.addAttribute("courses", courses);
             model.addAttribute("categories", categoryService.findAllOrderByName());
+            model.addAttribute("selectedStatus", status);
 
             return "admin/courses";
 
         } catch (Exception e) {
             model.addAttribute("error", "Có lỗi xảy ra khi tải danh sách khóa học: " + e.getMessage());
             return "admin/courses";
+        }
+    }
+
+    // THÊM MỚI: Edit Course
+    @GetMapping("/courses/{id}/edit")
+    public String editCourseForm(@PathVariable Long id,
+                                 Model model,
+                                 Authentication authentication) {
+        try {
+            User currentUser = (User) authentication.getPrincipal();
+            model.addAttribute("currentUser", currentUser);
+
+            Course course = courseService.findById(id)
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học"));
+
+            model.addAttribute("course", course);
+            model.addAttribute("categories", categoryService.findAllOrderByName());
+            model.addAttribute("isEdit", true);
+            return "admin/course-form";
+
+        } catch (Exception e) {
+            return "redirect:/admin/courses?error=course_not_found";
+        }
+    }
+
+    // THÊM MỚI: Update Course
+    @PostMapping("/courses/{id}/update")
+    public String updateCourse(@PathVariable Long id,
+                               @Valid @ModelAttribute("course") Course course,
+                               BindingResult result,
+                               RedirectAttributes redirectAttributes,
+                               Model model,
+                               Authentication authentication) {
+        try {
+            if (result.hasErrors()) {
+                User currentUser = (User) authentication.getPrincipal();
+                model.addAttribute("currentUser", currentUser);
+                model.addAttribute("categories", categoryService.findAllOrderByName());
+                model.addAttribute("isEdit", true);
+                return "admin/course-form";
+            }
+
+            Course existingCourse = courseService.findById(id)
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học"));
+
+            // Giữ nguyên instructor và các thông tin quan trọng
+            course.setId(id);
+            course.setInstructor(existingCourse.getInstructor());
+            course.setCreatedAt(existingCourse.getCreatedAt());
+
+            Course updatedCourse = courseService.updateCourse(course);
+            redirectAttributes.addFlashAttribute("message",
+                    "Cập nhật khóa học thành công: " + updatedCourse.getName());
+
+            return "redirect:/admin/courses";
+
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error",
+                    "Có lỗi xảy ra khi cập nhật khóa học: " + e.getMessage());
+            return "redirect:/admin/courses";
+        }
+    }
+
+    // THÊM MỚI: Delete Course
+    @PostMapping("/courses/{id}/delete")
+    public String deleteCourse(@PathVariable Long id,
+                               RedirectAttributes redirectAttributes) {
+        try {
+            Course course = courseService.findById(id)
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học"));
+
+            courseService.deleteCourse(id);
+            redirectAttributes.addFlashAttribute("message",
+                    "Đã xóa khóa học: " + course.getName());
+
+            return "redirect:/admin/courses";
+
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error",
+                    "Có lỗi xảy ra khi xóa khóa học: " + e.getMessage());
+            return "redirect:/admin/courses";
         }
     }
 
@@ -269,74 +584,20 @@ public class AdminController {
             User currentUser = (User) authentication.getPrincipal();
             model.addAttribute("currentUser", currentUser);
 
-            // Placeholder data cho analytics
-            model.addAttribute("totalUsers", userService.countAllUsers());
-            model.addAttribute("totalCourses", courseService.countAllCourses());
-            model.addAttribute("totalEnrollments", enrollmentService.countAllEnrollments());
-            model.addAttribute("totalRevenue", 0);
-
-            return "admin/analytics";
-
-        } catch (Exception e) {
-            model.addAttribute("error", "Có lỗi xảy ra khi tải trang thống kê");
-            return "admin/dashboard";
-        }
-    }
-
-    // ===== API ENDPOINTS =====
-
-    @GetMapping("/api/dashboard-stats")
-    @ResponseBody
-    public ResponseEntity<Map<String, Object>> getDashboardStats() {
-        try {
+            // Thống kê tổng quan
             Map<String, Object> stats = new HashMap<>();
             stats.put("totalUsers", userService.countAllUsers());
             stats.put("totalCourses", courseService.countAllCourses());
             stats.put("totalEnrollments", enrollmentService.countAllEnrollments());
-            stats.put("totalRevenue", 0);
-            return ResponseEntity.ok(stats);
+            stats.put("totalCategories", categoryService.countAllCategories());
+
+            model.addAttribute("stats", stats);
+
+            return "admin/analytics";
+
         } catch (Exception e) {
-            Map<String, Object> error = new HashMap<>();
-            error.put("error", "Có lỗi xảy ra khi lấy thống kê");
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+            model.addAttribute("error", "Có lỗi xảy ra khi tải thống kê");
+            return "admin/analytics";
         }
-    }
-
-    // ===== NOTIFICATION API (placeholder để tránh lỗi 404) =====
-
-    @GetMapping("/api/notifications/count")
-    @ResponseBody
-    public ResponseEntity<Map<String, Object>> getNotificationCount() {
-        Map<String, Object> result = new HashMap<>();
-        result.put("count", 0);
-        return ResponseEntity.ok(result);
-    }
-
-    // ===== EXCEPTION HANDLER =====
-
-    @ExceptionHandler(Exception.class)
-    public String handleException(Exception e, Model model, Authentication authentication, HttpServletRequest request) {
-        System.err.println("========== ADMIN CONTROLLER ERROR ==========");
-        System.err.println("URL: " + request.getRequestURL());
-        System.err.println("Method: " + request.getMethod());
-        System.err.println("User: " + (authentication != null ? ((User) authentication.getPrincipal()).getUsername() : "Anonymous"));
-        System.err.println("Error: " + e.getMessage());
-        System.err.println("Exception: " + e.getClass().getName());
-        e.printStackTrace();
-        System.err.println("============================================");
-
-        if (authentication != null && authentication.getPrincipal() instanceof User) {
-            model.addAttribute("currentUser", (User) authentication.getPrincipal());
-        }
-
-        String errorMessage = "Có lỗi xảy ra: " + e.getMessage();
-        model.addAttribute("error", errorMessage);
-
-        // Redirect về dashboard cho các lỗi nghiêm trọng
-        if (request.getRequestURI().contains("/admin")) {
-            return "redirect:/admin/dashboard?error=system_error";
-        }
-
-        return "error/500";
     }
 }
