@@ -101,7 +101,7 @@
                             <nav aria-label="breadcrumb">
                                 <ol class="breadcrumb">
                                     <li class="breadcrumb-item">
-                                        <a href="${pageContext.request.contextPath}/instructor/dashboard"">
+                                        <a href="${pageContext.request.contextPath}/instructor/dashboard">
                                             <i class="fas fa-home"></i> Dashboard
                                         </a>
                                     </li>

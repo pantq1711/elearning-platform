@@ -515,7 +515,7 @@
 
             <!-- Filters Section -->
             <div class="filters-section">
-                <form method="GET" action="/admin/courses" id="filterForm">
+                <form method="GET" action="admin/courses" id="filterForm">
                     <div class="filter-row">
                         <div class="filter-group">
                             <label class="form-label">Tìm kiếm</label>

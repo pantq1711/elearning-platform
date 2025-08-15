@@ -196,7 +196,17 @@ public class HomeController {
             } else if (category != null && !category.trim().isEmpty()) {
                 try {
                     Long categoryId = Long.parseLong(category);
-                    courses = courseService.findActiveCoursesByCategory(categoryId); // ✅ SỬA: Sử dụng đúng method name
+                    try {
+                        Category categoryEntity = categoryService.findById(categoryId)
+                                .orElse(null);
+                        if (categoryEntity != null) {
+                            courses = courseService.findActiveCoursesByCategory(categoryEntity);
+                        } else {
+                            courses = courseService.findAllActive();
+                        }
+                    } catch (NumberFormatException e) {
+                        courses = courseService.findAllActive();
+                    } // ✅ SỬA: Sử dụng đúng method name
                 } catch (NumberFormatException e) {
                     courses = courseService.findAllActive(); // Fallback nếu category không phải số
                 }

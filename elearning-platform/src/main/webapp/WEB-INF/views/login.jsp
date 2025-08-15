@@ -519,75 +519,75 @@
                     </div>
 
                     <!-- Form đăng nhập -->
-                    <form method="POST" action="//login"" id="loginForm" novalidate>
-                        <!-- CSRF Token -->
-                        <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}"/>
+                    <form method="POST"${pageContext.request.contextPath}/login" id="loginForm" novalidate>
+                    <!-- CSRF Token -->
+                    <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}"/>
 
-                        <!-- Tên đăng nhập -->
-                        <div class="form-floating">
-                            <input type="text"
-                                   class="form-control"
-                                   id="username"
-                                   name="username"
-                                   placeholder="Tên đăng nhập"
-                                   required
-                                   autocomplete="username">
-                            <label for="username">
-                                <i class="fas fa-user me-2"></i>Tên đăng nhập hoặc Email
+                    <!-- Tên đăng nhập -->
+                    <div class="form-floating">
+                        <input type="text"
+                               class="form-control"
+                               id="username"
+                               name="username"
+                               placeholder="Tên đăng nhập"
+                               required
+                               autocomplete="username">
+                        <label for="username">
+                            <i class="fas fa-user me-2"></i>Tên đăng nhập hoặc Email
+                        </label>
+                        <div class="invalid-feedback">
+                            Vui lòng nhập tên đăng nhập hoặc email
+                        </div>
+                    </div>
+
+                    <!-- Mật khẩu -->
+                    <div class="form-floating position-relative">
+                        <input type="password"
+                               class="form-control"
+                               id="password"
+                               name="password"
+                               placeholder="Mật khẩu"
+                               required
+                               autocomplete="current-password">
+                        <label for="password">
+                            <i class="fas fa-lock me-2"></i>Mật khẩu
+                        </label>
+                        <button type="button" class="password-toggle" onclick="togglePassword()">
+                            <i class="fas fa-eye" id="passwordToggleIcon"></i>
+                        </button>
+                        <div class="invalid-feedback">
+                            Vui lòng nhập mật khẩu
+                        </div>
+                    </div>
+
+                    <!-- Remember me và Forgot password -->
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" id="remember-me" name="remember-me">
+                            <label class="form-check-label" for="remember-me">
+                                Ghi nhớ đăng nhập
                             </label>
-                            <div class="invalid-feedback">
-                                Vui lòng nhập tên đăng nhập hoặc email
-                            </div>
                         </div>
+                        <a href="${pageContext.request.contextPath}/forgot-password" class="text-decoration-none">
+                            Quên mật khẩu?
+                        </a>
+                    </div>
 
-                        <!-- Mật khẩu -->
-                        <div class="form-floating position-relative">
-                            <input type="password"
-                                   class="form-control"
-                                   id="password"
-                                   name="password"
-                                   placeholder="Mật khẩu"
-                                   required
-                                   autocomplete="current-password">
-                            <label for="password">
-                                <i class="fas fa-lock me-2"></i>Mật khẩu
-                            </label>
-                            <button type="button" class="password-toggle" onclick="togglePassword()">
-                                <i class="fas fa-eye" id="passwordToggleIcon"></i>
-                            </button>
-                            <div class="invalid-feedback">
-                                Vui lòng nhập mật khẩu
-                            </div>
-                        </div>
-
-                        <!-- Remember me và Forgot password -->
-                        <div class="d-flex justify-content-between align-items-center mb-4">
-                            <div class="form-check">
-                                <input type="checkbox" class="form-check-input" id="remember-me" name="remember-me">
-                                <label class="form-check-label" for="remember-me">
-                                    Ghi nhớ đăng nhập
-                                </label>
-                            </div>
-                            <a href="TEMP_PLACEHOLDER/forgot-password" class="text-decoration-none">
-                                Quên mật khẩu?
-                            </a>
-                        </div>
-
-                        <!-- Submit button -->
-                        <button type="submit" class="btn-login" id="loginBtn">
+                    <!-- Submit button -->
+                    <button type="submit" class="btn-login" id="loginBtn">
                                 <span class="btn-text">
                                     <i class="fas fa-sign-in-alt me-2"></i>Đăng Nhập
                                 </span>
-                            <span class="loading-spinner">
+                        <span class="loading-spinner">
                                     <i class="fas fa-spinner fa-spin me-2"></i>Đang đăng nhập...
                                 </span>
-                        </button>
+                    </button>
                     </form>
 
                     <!-- Register link -->
                     <div class="register-link">
                         Chưa có tài khoản?
-                        <a href="TEMP_PLACEHOLDER/register"">Đăng ký ngay</a>
+                        <a href="${pageContext.request.contextPath}/register">Đăng ký ngay</a>
                     </div>
                 </div>
             </div>

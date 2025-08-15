@@ -33,17 +33,17 @@
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="${pageContext.request.contextPath}/courses"">
+                    <a class="nav-link" href="${pageContext.request.contextPath}/courses">
                         <i class="fas fa-book me-1"></i>Khóa Học
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="${pageContext.request.contextPath}/about"">
+                    <a class="nav-link" href="${pageContext.request.contextPath}/about">
                         <i class="fas fa-info-circle me-1"></i>Giới Thiệu
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="${pageContext.request.contextPath}/contact"">
+                    <a class="nav-link" href="${pageContext.request.contextPath}/contact">
                         <i class="fas fa-envelope me-1"></i>Liên Hệ
                     </a>
                 </li>
@@ -51,7 +51,7 @@
 
             <!-- Search box (hiển thị trên trang courses) -->
             <c:if test="${pageContext.request.servletPath == '/courses'}">
-                <form class="d-flex me-3" method="GET" action="//courses"">
+                <form class="d-flex me-3" method="GET" action="/courses">
                     <div class="input-group">
                         <input type="text" class="form-control" name="search"
                                placeholder="Tìm kiếm khóa học..." value="${param.search}">
@@ -84,7 +84,7 @@
 
                             <sec:authorize access="hasRole('INSTRUCTOR')">
                                 <li>
-                                    <a class="dropdown-item" href="${pageContext.request.contextPath}/instructor/dashboard"">
+                                    <a class="dropdown-item" href="${pageContext.request.contextPath}/instructor/dashboard">
                                         <i class="fas fa-chalkboard-teacher me-2"></i>Dashboard Giảng Viên
                                     </a>
                                 </li>
@@ -92,12 +92,12 @@
 
                             <sec:authorize access="hasRole('STUDENT')">
                                 <li>
-                                    <a class="dropdown-item" href="${pageContext.request.contextPath}/student/dashboard"">
+                                    <a class="dropdown-item" href="${pageContext.request.contextPath}/student/dashboard">
                                         <i class="fas fa-user-graduate me-2"></i>Dashboard Học Viên
                                     </a>
                                 </li>
                                 <li>
-                                    <a class="dropdown-item" href="${pageContext.request.contextPath}/student/my-courses"">
+                                    <a class="dropdown-item" href="${pageContext.request.contextPath}/student/my-courses">
                                         <i class="fas fa-book-reader me-2"></i>Khóa Học Của Tôi
                                     </a>
                                 </li>
@@ -107,12 +107,12 @@
 
                             <!-- Profile và settings -->
                             <li>
-                                <a class="dropdown-item" href="${pageContext.request.contextPath}/profile"">
+                                <a class="dropdown-item" href="${pageContext.request.contextPath}/profile">
                                     <i class="fas fa-user-edit me-2"></i>Hồ Sơ Cá Nhân
                                 </a>
                             </li>
                             <li>
-                                <a class="dropdown-item" href="${pageContext.request.contextPath}/change-password"">
+                                <a class="dropdown-item" href="${pageContext.request.contextPath}/change-password">
                                     <i class="fas fa-key me-2"></i>Đổi Mật Khẩu
                                 </a>
                             </li>
@@ -121,7 +121,7 @@
 
                             <!-- Logout -->
                             <li>
-                                <form method="POST" action="//logout"" class="d-inline">
+                                <form method="POST" action="logout" class="d-inline">
                                     <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}"/>
                                     <button type="submit" class="dropdown-item text-danger">
                                         <i class="fas fa-sign-out-alt me-2"></i>Đăng Xuất
@@ -135,12 +135,12 @@
                 <!-- Menu cho user chưa đăng nhập -->
                 <sec:authorize access="!isAuthenticated()">
                     <li class="nav-item">
-                        <a class="nav-link" href="${pageContext.request.contextPath}/login"">
+                        <a class="nav-link" href="${pageContext.request.contextPath}/login">
                             <i class="fas fa-sign-in-alt me-1"></i>Đăng Nhập
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link btn btn-outline-light ms-2 px-3" href="${pageContext.request.contextPath}/register"">
+                        <a class="nav-link btn btn-outline-light ms-2 px-3" href="${pageContext.request.contextPath}/register">
                             <i class="fas fa-user-plus me-1"></i>Đăng Ký
                         </a>
                     </li>

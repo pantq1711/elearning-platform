@@ -548,7 +548,7 @@
 
                 <sec:authorize access="isAuthenticated()">
                     <!-- Logout and try different account -->
-                    <form method="POST" action="//logout"" style="display: inline;">
+                    <form method="POST" action="logout" style="display: inline;">
                         <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}"/>
                         <button type="submit" class="btn-danger-custom">
                             <i class="fas fa-sign-out-alt"></i>
@@ -695,7 +695,7 @@
         // Alt+H: Go to home page
         if (e.altKey && e.key === 'h') {
             e.preventDefault();
-            window.location.href = '<c:url value="/" />';
+            window.location.href = '<c:url value="/home" />';
         }
 
         // Alt+C: Go to contact page

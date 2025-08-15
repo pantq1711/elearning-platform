@@ -98,12 +98,12 @@
                     <nav aria-label="breadcrumb">
                         <ol class="breadcrumb">
                             <li class="breadcrumb-item">
-                                <a href="${pageContext.request.contextPath}/instructor/dashboard"">
+                                <a href="${pageContext.request.contextPath}/instructor/dashboard">
                                     <i class="fas fa-home"></i> Dashboard
                                 </a>
                             </li>
                             <li class="breadcrumb-item">
-                                <a href="${pageContext.request.contextPath}/instructor/quizzes"">Quiz</a>
+                                <a href="${pageContext.request.contextPath}/instructor/quizzes">Quiz</a>
                             </li>
                             <li class="breadcrumb-item active">
                                 ${quiz.id != null ? 'Chỉnh sửa' : 'Tạo mới'}

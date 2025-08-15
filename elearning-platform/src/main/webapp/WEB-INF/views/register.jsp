@@ -541,7 +541,7 @@
                 </c:if>
 
                 <!-- Register Form -->
-                <form action="/register" method="POST" id="registerForm" novalidate>
+                <form register" method="POST" id="registerForm" novalidate>
                     <!-- CSRF Token -->
                     <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}"/>
 

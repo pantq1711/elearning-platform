@@ -739,7 +739,7 @@
             </h5>
 
             <!-- Profile Update Form -->
-            <form:form method="POST" modelAttribute="user" action="/student/profile/update"
+            <form:form method="POST" modelAttribute="user" student/profile/update"
                        cssClass="needs-validation" novalidate="true">
                 <form:hidden path="id" />
 

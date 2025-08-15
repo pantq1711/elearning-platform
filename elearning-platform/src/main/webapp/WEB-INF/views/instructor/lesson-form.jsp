@@ -81,15 +81,15 @@
                     <nav aria-label="breadcrumb">
                         <ol class="breadcrumb">
                             <li class="breadcrumb-item">
-                                <a href="${pageContext.request.contextPath}/instructor/dashboard"">
+                                <a href="${pageContext.request.contextPath}/instructor/dashboard">
                                     <i class="fas fa-home"></i> Dashboard
                                 </a>
                             </li>
                             <li class="breadcrumb-item">
-                                <a href="${pageContext.request.contextPath}/instructor/courses"">Khóa học</a>
+                                <a href="${pageContext.request.contextPath}/instructor/courses">Khóa học</a>
                             </li>
                             <li class="breadcrumb-item">
-                                <a href="${pageContext.request.contextPath}/instructor/lessons?courseId=${course.id}"">Bài học</a>
+                                <a href="${pageContext.request.contextPath}/instructor/lessons?courseId=${course.id}">Bài học</a>
                             </li>
                             <li class="breadcrumb-item active">
                                 ${lesson.id != null ? 'Chỉnh sửa' : 'Tạo mới'}

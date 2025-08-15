@@ -527,7 +527,7 @@
                     Điền thông tin vào form bên dưới và chúng tôi sẽ phản hồi trong vòng 24 giờ.
                 </p>
 
-                <form method="POST" action="//contact"" id="contactForm" novalidate>
+                <form method="POST" action="/contact" id="contactForm" novalidate>
                     <!-- CSRF Token -->
                     <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}"/>
 

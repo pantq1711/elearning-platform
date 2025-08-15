@@ -325,7 +325,7 @@
 
         <!-- Question Container -->
         <div class="question-container">
-            <form id="quizForm" method="POST" action="//student/quiz/${quiz.id}/submit"">
+            <form id="quizForm" method="POST" action="//student/quiz/${quiz.id}/submit">
                 <input type="hidden" name="quizResultId" value="${quizResult.id}" />
 
                 <!-- Quiz Instructions -->

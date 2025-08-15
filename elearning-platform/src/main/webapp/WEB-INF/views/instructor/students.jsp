@@ -108,7 +108,7 @@
                             <nav aria-label="breadcrumb">
                                 <ol class="breadcrumb">
                                     <li class="breadcrumb-item">
-                                        <a href="${pageContext.request.contextPath}/instructor/dashboard"">
+                                        <a href="${pageContext.request.contextPath}/instructor/dashboard">
                                             <i class="fas fa-home"></i> Dashboard
                                         </a>
                                     </li>
@@ -130,17 +130,17 @@
                                 </button>
                                 <ul class="dropdown-menu">
                                     <li>
-                                        <a class="dropdown-item" href="${pageContext.request.contextPath}/instructor/students/export?format=excel"">
+                                        <a class="dropdown-item" href="${pageContext.request.contextPath}/instructor/students/export?format=excel">
                                             <i class="fas fa-file-excel me-2 text-success"></i>Excel (.xlsx)
                                         </a>
                                     </li>
                                     <li>
-                                        <a class="dropdown-item" href="${pageContext.request.contextPath}/instructor/students/export?format=csv"">
+                                        <a class="dropdown-item" href="${pageContext.request.contextPath}/instructor/students/export?format=csv">
                                             <i class="fas fa-file-csv me-2 text-info"></i>CSV
                                         </a>
                                     </li>
                                     <li>
-                                        <a class="dropdown-item" href="${pageContext.request.contextPath}/instructor/students/export?format=pdf"">
+                                        <a class="dropdown-item" href="${pageContext.request.contextPath}/instructor/students/export?format=pdf">
                                             <i class="fas fa-file-pdf me-2 text-danger"></i>PDF
                                         </a>
                                     </li>
@@ -203,7 +203,7 @@
                 <!-- Filters & Search -->
                 <div class="card mb-4">
                     <div class="card-body">
-                        <form method="GET" action="//instructor/students"">
+                        <form method="GET" action="/instructor/students">
                             <div class="row align-items-end g-3">
                                 <!-- Search -->
                                 <div class="col-md-4">
@@ -328,13 +328,13 @@
                                                         <ul class="dropdown-menu">
                                                             <li>
                                                                 <a class="dropdown-item"
-                                                                   href="${pageContext.request.contextPath}/instructor/students/${enrollment.student.id}/profile"">
+                                                                   href="${pageContext.request.contextPath}/instructor/students/${enrollment.student.id}/profile">
                                                                     <i class="fas fa-user me-2"></i>Xem hồ sơ
                                                                 </a>
                                                             </li>
                                                             <li>
                                                                 <a class="dropdown-item"
-                                                                   href="${pageContext.request.contextPath}/instructor/students/${enrollment.student.id}/progress"">
+                                                                   href="${pageContext.request.contextPath}/instructor/students/${enrollment.student.id}/progress">
                                                                     <i class="fas fa-chart-line me-2"></i>Tiến độ học tập
                                                                 </a>
                                                             </li>

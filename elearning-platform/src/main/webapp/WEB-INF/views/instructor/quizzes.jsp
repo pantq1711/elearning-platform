@@ -77,12 +77,12 @@
                             <nav aria-label="breadcrumb">
                                 <ol class="breadcrumb">
                                     <li class="breadcrumb-item">
-                                        <a href="${pageContext.request.contextPath}/instructor/dashboard"">
+                                        <a href="${pageContext.request.contextPath}/instructor/dashboard">
                                             <i class="fas fa-home"></i> Dashboard
                                         </a>
                                     </li>
                                     <li class="breadcrumb-item">
-                                        <a href="${pageContext.request.contextPath}/instructor/courses"">Khóa học</a>
+                                        <a href="${pageContext.request.contextPath}/instructor/courses">Khóa học</a>
                                     </li>
                                     <li class="breadcrumb-item active">Quiz</li>
                                 </ol>
@@ -106,17 +106,17 @@
                                 </button>
                                 <ul class="dropdown-menu">
                                     <li>
-                                        <a class="dropdown-item" href="${pageContext.request.contextPath}/instructor/quizzes/create?type=PRACTICE"">
+                                        <a class="dropdown-item" href="${pageContext.request.contextPath}/instructor/quizzes/create?type=PRACTICE">
                                             <i class="fas fa-dumbbell me-2"></i>Quiz luyện tập
                                         </a>
                                     </li>
                                     <li>
-                                        <a class="dropdown-item" href="${pageContext.request.contextPath}/instructor/quizzes/create?type=EXAM"">
+                                        <a class="dropdown-item" href="${pageContext.request.contextPath}/instructor/quizzes/create?type=EXAM">
                                             <i class="fas fa-graduation-cap me-2"></i>Bài kiểm tra
                                         </a>
                                     </li>
                                     <li>
-                                        <a class="dropdown-item" href="${pageContext.request.contextPath}/instructor/quizzes/create?type=SURVEY"">
+                                        <a class="dropdown-item" href="${pageContext.request.contextPath}/instructor/quizzes/create?type=SURVEY">
                                             <i class="fas fa-poll me-2"></i>Khảo sát
                                         </a>
                                     </li>
@@ -212,7 +212,7 @@
                 <!-- Filters & Search -->
                 <div class="card mb-4">
                     <div class="card-body">
-                        <form method="GET" action="//instructor/quizzes"">
+                        <form method="GET" action="/instructor/quizzes">
                             <div class="row align-items-end g-3">
                                 <!-- Search -->
                                 <div class="col-md-4">

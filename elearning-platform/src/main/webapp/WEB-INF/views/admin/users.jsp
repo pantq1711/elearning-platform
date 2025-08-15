@@ -474,7 +474,7 @@
 
             <!-- Search and Filters -->
             <div class="search-filters">
-                <form method="GET" action="/admin/users"" id="filterForm">
+                <form method="GET" action="admin/users"" id="filterForm">
                     <div class="filter-row">
                         <div class="filter-group">
                             <label class="form-label">Tìm kiếm</label>
@@ -661,7 +661,7 @@
                                 <!-- Previous Page -->
                                 <c:if test="${userPage.hasPrevious()}">
                                     <li class="page-item">
-                                        <a class="page-link" href="/admin/users?page=${userPage.number - 1}&${queryString}"">
+                                        <a class="page-link" href="/admin/users?page=${userPage.number - 1}&${queryString}">
                                             <i class="fas fa-chevron-left"></i>
                                         </a>
                                     </li>
@@ -671,7 +671,7 @@
                                 <c:forEach begin="0" end="${userPage.totalPages - 1}" var="pageNum">
                                     <c:if test="${pageNum >= userPage.number - 2 && pageNum <= userPage.number + 2}">
                                         <li class="page-item ${pageNum == userPage.number ? 'active' : ''}">
-                                            <a class="page-link" href="/admin/users?page=${pageNum}&${queryString}"">
+                                            <a class="page-link" href="/admin/users?page=${pageNum}&${queryString}">
                                                     ${pageNum + 1}
                                             </a>
                                         </li>
@@ -681,7 +681,7 @@
                                 <!-- Next Page -->
                                 <c:if test="${userPage.hasNext()}">
                                     <li class="page-item">
-                                        <a class="page-link" href="/admin/users?page=${userPage.number + 1}&${queryString}"">
+                                        <a class="page-link" href="/admin/users?page=${userPage.number + 1}&${queryString}">
                                             <i class="fas fa-chevron-right"></i>
                                         </a>
                                     </li>
@@ -721,7 +721,7 @@
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form action="/admin/users/create"" method="POST" id="addUserForm">
+            <form admin/users/create"" method="POST" id="addUserForm">
                 <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}"/>
 
                 <div class="modal-body">

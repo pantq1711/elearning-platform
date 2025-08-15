@@ -615,7 +615,7 @@
             </ul>
 
             <!-- Search and Filter -->
-            <form method="GET" action="//student/my-courses"" id="filterForm">
+            <form method="GET" action="/student/my-courses"" id="filterForm">
                 <input type="hidden" name="status" value="${param.status}" id="statusInput">
                 <div class="search-filter">
                     <div class="search-group">

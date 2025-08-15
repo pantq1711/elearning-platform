@@ -568,7 +568,7 @@
                             </div>
                         </a>
                         <div class="dropdown-divider"></div>
-                        <a class="dropdown-item text-center" href="/admin/notifications"">
+                        <a class="dropdown-item text-center" href="/admin/notifications">
                             Xem tất cả thông báo
                         </a>
                     </div>
@@ -587,14 +587,14 @@
                         <i class="fas fa-chevron-down ms-2"></i>
                     </a>
                     <div class="dropdown-menu dropdown-menu-end">
-                        <a class="dropdown-item" href="${pageContext.request.contextPath}/profile"">
+                        <a class="dropdown-item" href="${pageContext.request.contextPath}/profile">
                             <i class="fas fa-user me-2"></i>Hồ sơ cá nhân
                         </a>
-                        <a class="dropdown-item" href="/admin/settings"">
+                        <a class="dropdown-item" href="/admin/settings">
                             <i class="fas fa-cog me-2"></i>Cài đặt
                         </a>
                         <div class="dropdown-divider"></div>
-                        <form method="POST" action="//logout"" class="d-inline">
+                        <form method="POST" action="logout" class="d-inline">
                             <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}"/>
                             <button type="submit" class="dropdown-item text-danger">
                                 <i class="fas fa-sign-out-alt me-2"></i>Đăng xuất

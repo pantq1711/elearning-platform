@@ -654,7 +654,7 @@
                     <a href="${pageContext.request.contextPath}/courses">Khóa học</a>
                 </li>
                 <li class="breadcrumb-item">
-                    <a href="${pageContext.request.contextPath}/courses?category=${course.category.name}"">${course.category.name}</a>
+                    <a href="${pageContext.request.contextPath}/courses?category=${course.category.name}">${course.category.name}</a>
                 </li>
                 <li class="breadcrumb-item active">${course.name}</li>
             </ol>
@@ -1021,7 +1021,7 @@
                                          onerror="this.src='/images/course-default.jpg"'">
                                     <div class="course-info-small">
                                         <div class="course-title-small">
-                                            <a href="${pageContext.request.contextPath}/courses/${relatedCourse.id}"">
+                                            <a href="${pageContext.request.contextPath}/courses/${relatedCourse.id}">
                                                     ${relatedCourse.name}
                                             </a>
                                         </div>

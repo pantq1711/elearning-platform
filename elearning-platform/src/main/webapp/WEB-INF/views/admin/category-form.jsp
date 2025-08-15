@@ -397,7 +397,7 @@
                         ${currentUser.fullName}
                     </button>
                     <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="${pageContext.request.contextPath}/logout"">
+                        <li><a class="dropdown-item" href="${pageContext.request.contextPath}/logout">
                             <i class="fas fa-sign-out-alt me-1"></i>Đăng xuất
                         </a></li>
                     </ul>
@@ -416,7 +416,7 @@
                         </a>
                     </li>
                     <li class="breadcrumb-item">
-                        <a href="/admin/categories"">Danh mục</a>
+                        <a href="/admin/categories">Danh mục</a>
                     </li>
                     <li class="breadcrumb-item active">
                         <c:choose>

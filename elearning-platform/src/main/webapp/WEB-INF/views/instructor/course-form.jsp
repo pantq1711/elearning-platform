@@ -515,12 +515,12 @@
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb">
                     <li class="breadcrumb-item">
-                        <a href="${pageContext.request.contextPath}/instructor/dashboard"">
+                        <a href="${pageContext.request.contextPath}/instructor/dashboard">
                             <i class="fas fa-home me-1"></i>Dashboard
                         </a>
                     </li>
                     <li class="breadcrumb-item">
-                        <a href="${pageContext.request.contextPath}/instructor/courses"">Khóa học</a>
+                        <a href="${pageContext.request.contextPath}/instructor/courses">Khóa học</a>
                     </li>
                     <li class="breadcrumb-item active">
                         ${course != null ? 'Chỉnh sửa' : 'Tạo mới'}
@@ -539,7 +539,7 @@
         <!-- Course Form -->
         <div class="form-container">
             <form method="POST"
-                  action="/${course != null ? "/instructor/courses/".concat(course.id).concat("/edit") : "/instructor/courses/new"}""
+                  ${course != null ? "/instructor/courses/".concat(course.id).concat("/edit") : "/instructor/courses/new"}""
                   enctype="multipart/form-data"
                   id="courseForm"
                   novalidate>

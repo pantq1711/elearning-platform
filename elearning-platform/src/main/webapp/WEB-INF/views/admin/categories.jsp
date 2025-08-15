@@ -349,7 +349,7 @@
                         ${currentUser.fullName}
                     </button>
                     <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="${pageContext.request.contextPath}/logout"">
+                        <li><a class="dropdown-item" href="${pageContext.request.contextPath}/logout">
                             <i class="fas fa-sign-out-alt me-1"></i>Đăng xuất
                         </a></li>
                     </ul>
@@ -481,8 +481,7 @@
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form:form method="POST" action="/admin/categories" modelAttribute="newCategory">
-                <div class="modal-body">
+            <form:form method="POST" action="admin/categories" modelAttribute="newCategory">                <div class="modal-body">
                     <div class="row">
                         <div class="col-md-8">
                             <!-- Tên danh mục -->

@@ -1,57 +1,69 @@
 package com.coursemanagement.config;
-
-import com.coursemanagement.service.UserService;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.core.session.SessionRegistry;
+import org.springframework.security.core.session.SessionRegistryImpl;
+import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
+import org.springframework.security.web.authentication.RememberMeServices;
+import org.springframework.security.web.authentication.rememberme.TokenBasedRememberMeServices;
+import com.coursemanagement.service.UserService;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
-import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.session.SessionRegistry;
-import org.springframework.security.core.session.SessionRegistryImpl;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.RememberMeServices;
-import org.springframework.security.web.authentication.rememberme.TokenBasedRememberMeServices;
-import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
-import java.io.IOException;
-
 /**
- * ✅ SỬA LỖI REDIRECT LOOP: Cấu hình bảo mật với success handler đơn giản
- * Xử lý authentication (xác thực) và authorization (phân quyền)
- * Compatible với Spring Security 6.x
+ * ✅ SECURITY CONFIG - BƯỚC 2: BẬT AUTHENTICATION ĐƠN GIẢN
+ *
+ * Trang login đã hoạt động ở bước 1!
+ * Bây giờ bật authentication từ từ:
+ * - Chỉ yêu cầu login, chưa phân quyền role
+ * - Test với demo accounts có sẵn
+ * - Redirect đơn giản về trang chủ
  */
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
 
-    // Key bí mật cho remember-me token
-    private static final String REMEMBER_ME_KEY = "elearning-platform-remember-me-key-2024";
+    private final UserService userService;
 
     /**
-     * Cấu hình mã hóa mật khẩu bằng BCrypt với strength cao
+     * ✅ Constructor injection với @Lazy để tránh circular dependency
+     */
+    public SecurityConfig(@Lazy UserService userService) {
+        this.userService = userService;
+    }
+
+    /**
+     * ✅ PasswordEncoder static method
      */
     @Bean
     public static PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder(12);
     }
+    @Bean
+    public RememberMeServices rememberMeServices(UserService userService) {
+        // "uniqueKey" có thể đổi theo dự án của bạn
+        TokenBasedRememberMeServices rememberMeServices =
+                new TokenBasedRememberMeServices("uniqueKey", userService);
+        rememberMeServices.setAlwaysRemember(false);
+        return rememberMeServices;
+    }
 
     /**
-     * Session Registry để quản lý sessions
+     * ✅ Bean SessionRegistry
      */
     @Bean
     public SessionRegistry sessionRegistry() {
@@ -59,7 +71,19 @@ public class SecurityConfig {
     }
 
     /**
-     * Cấu hình Authentication Provider
+     * ✅ Bean AuthenticationSuccessHandler cơ bản
+     */
+    @Bean
+    public AuthenticationSuccessHandler authenticationSuccessHandler() {
+        SimpleUrlAuthenticationSuccessHandler handler =
+                new SimpleUrlAuthenticationSuccessHandler();
+        handler.setDefaultTargetUrl("/"); // Redirect sau khi login thành công
+        handler.setAlwaysUseDefaultTargetUrl(true);
+        return handler;
+    }
+
+    /**
+     * ✅ DaoAuthenticationProvider - CẦN CHO AUTHENTICATION
      */
     @Bean
     public DaoAuthenticationProvider authenticationProvider(UserService userService, PasswordEncoder passwordEncoder) {
@@ -71,7 +95,7 @@ public class SecurityConfig {
     }
 
     /**
-     * Cấu hình Authentication Manager
+     * ✅ AuthenticationManager
      */
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
@@ -79,58 +103,27 @@ public class SecurityConfig {
     }
 
     /**
-     * Remember Me Services với token-based approach
+     * ✅ BƯỚC 1: PERMIT ALL (ĐÃ TEST OK - COMMENT LẠI)
      */
-    @Bean
-    public RememberMeServices rememberMeServices(UserService userService) {
-        TokenBasedRememberMeServices rememberMeServices =
-                new TokenBasedRememberMeServices(REMEMBER_ME_KEY, userService);
-        rememberMeServices.setTokenValiditySeconds(30 * 24 * 60 * 60); // 30 ngày
-        rememberMeServices.setCookieName("elearning-remember-me");
-        rememberMeServices.setParameter("remember-me");
-        return rememberMeServices;
-    }
+//    @Bean
+//    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+//        http
+//                .csrf(csrf -> csrf.disable())
+//                .authorizeHttpRequests(auth -> auth
+//                        .anyRequest().permitAll()
+//                )
+//                .formLogin(login -> login.disable())
+//                .logout(logout -> logout.disable())
+//                .headers(headers -> headers
+//                        .frameOptions().sameOrigin()
+//                );
+//        return http.build();
+//    }
 
     /**
-     * ✅ SỬA LỖI: Success Handler đơn giản, tránh redirect loop
-     * REDIRECT VỀ TRANG CHÍNH THAY VÌ DASHBOARD CỤ THỂ
-     */
-    @Bean
-    public AuthenticationSuccessHandler authenticationSuccessHandler() {
-        return new AuthenticationSuccessHandler() {
-            @Override
-            public void onAuthenticationSuccess(HttpServletRequest request,
-                                                HttpServletResponse response,
-                                                Authentication authentication) throws IOException, ServletException {
-
-                System.out.println("✅ Login thành công cho user: " + authentication.getName());
-                System.out.println("✅ Authorities: " + authentication.getAuthorities());
-
-                // ✅ SỬA LỖI: Redirect về trang chính "/" thay vì dashboard cụ thể
-                // Tránh redirect loop khi dashboard controllers chưa sẵn sàng
-                String redirectURL = "/";
-
-                // Hoặc có thể redirect theo role nhưng tới trang đơn giản hơn
-                var authorities = authentication.getAuthorities();
-                if (authorities.contains(new SimpleGrantedAuthority("ROLE_ADMIN"))) {
-                    redirectURL = "/"; // Tạm thời redirect về home page
-                } else if (authorities.contains(new SimpleGrantedAuthority("ROLE_INSTRUCTOR"))) {
-                    redirectURL = "/"; // Tạm thời redirect về home page
-                } else if (authorities.contains(new SimpleGrantedAuthority("ROLE_STUDENT"))) {
-                    redirectURL = "/"; // Tạm thời redirect về home page
-                }
-
-                System.out.println("✅ Redirecting to: " + redirectURL);
-
-                if (!response.isCommitted()) {
-                    response.sendRedirect(redirectURL);
-                }
-            }
-        };
-    }
-
-    /**
-     * ✅ SỬA LỖI: Cấu hình Security Filter Chain đơn giản để test
+     * ✅ BƯỚC 2: BẬT AUTHENTICATION ĐƠN GIẢN
+     * - Chỉ yêu cầu login, chưa phân quyền role cụ thể
+     * - Test với demo accounts: admin/admin123, instructor1/instructor123, student1/student123
      */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http,
@@ -141,53 +134,90 @@ public class SecurityConfig {
                 // CSRF Configuration - Tắt CSRF cho development
                 .csrf(csrf -> csrf.disable())
 
-                // ✅ AUTHORIZATION: Cấu hình quyền truy cập
+                // ✅ SỬA LỖI: AUTHORIZATION CƠ BẢN
                 .authorizeHttpRequests(auth -> auth
-                        // ✅ TẮT AUTHENTICATION TẠM THỜI ĐỂ TEST
-                        .anyRequest().permitAll()
+                        // Public pages - không cần login
+                        .requestMatchers("/", "/home", "/login", "/register").permitAll()
+                        .requestMatchers("/css/**", "/js/**", "/images/**", "/favicon.ico").permitAll()
+                        .requestMatchers("/error").permitAll()
+
+                        // ✅ TẤT CẢ TRANG KHÁC CẦN LOGIN NHƯNG CHƯA PHÂN QUYỀN ROLE
+                        .anyRequest().authenticated()
                 )
 
-                // ✅ TẮT FORM LOGIN TẠM THỜI ĐỂ TEST
-                .formLogin(login -> login.disable())
+                // ✅ SỬA LỖI: BẬT LẠI FORM LOGIN ĐÚNG CÁCH
+                .formLogin(login -> login
+                        .loginPage("/login")                    // Custom login page
+                        .loginProcessingUrl("/login")           // URL xử lý POST login
+                        .usernameParameter("username")          // Tên field username
+                        .passwordParameter("password")          // Tên field password
+                        .defaultSuccessUrl("/", true)          // Redirect về home sau login
+                        .failureUrl("/login?error=true")       // Redirect khi login fail
+                        .permitAll()                           // Cho phép truy cập login page
+                )
 
-                // ✅ LOGOUT: Cấu hình đăng xuất
+                // ✅ SỬA LỖI: LOGOUT ĐÚNG CÁCH
                 .logout(logout -> logout
                         .logoutRequestMatcher(new AntPathRequestMatcher("/logout"))
-                        .logoutSuccessUrl("/login?logout=true")
-                        .deleteCookies("JSESSIONID", "elearning-remember-me")
+                        .logoutSuccessUrl("/")                 // ✅ SỬA: Redirect về HOME thay vì login
+                        .deleteCookies("JSESSIONID")
                         .invalidateHttpSession(true)
                         .clearAuthentication(true)
                         .permitAll()
                 )
 
-                // ✅ REMEMBER ME: Cấu hình ghi nhớ đăng nhập
-                .rememberMe(remember -> remember
-                        .rememberMeServices(rememberMeServices)
-                        .key(REMEMBER_ME_KEY)
-                        .tokenValiditySeconds(30 * 24 * 60 * 60)
-                )
-
-                // ✅ SESSION MANAGEMENT: Quản lý phiên đăng nhập
+                // ✅ SESSION MANAGEMENT ĐƠNGIẢN
                 .sessionManagement(session -> session
-                        .maximumSessions(2) // Cho phép tối đa 2 session cùng lúc
-                        .maxSessionsPreventsLogin(false) // Không chặn login mới
+                        .maximumSessions(1)                    // Chỉ cho phép 1 session
+                        .maxSessionsPreventsLogin(false)       // Không chặn login mới
                         .sessionRegistry(sessionRegistry)
                         .and()
                         .sessionFixation().migrateSession()
-                        .invalidSessionUrl("/login?expired=true")
+                        .invalidSessionUrl("/")               // ✅ SỬA: Redirect về HOME khi session hết hạn
                 )
 
-                // ✅ SECURITY HEADERS: Cấu hình header bảo mật
+                // ✅ HEADERS CƠ BẢN
                 .headers(headers -> headers
-                        .frameOptions().deny()
-                        .contentTypeOptions().and()
-                        .httpStrictTransportSecurity(hstsConfig -> hstsConfig
-                                .maxAgeInSeconds(31536000)
-                                .includeSubDomains(true)
-                        )
-                        .referrerPolicy(ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN)
+                        .frameOptions().sameOrigin()
                 );
 
         return http.build();
     }
+
+    /**
+     * ✅ BƯỚC 3: ROLE-BASED AUTHORIZATION (SỬ DỤNG KHI ĐÃ TEST OK BƯỚC 2)
+     */
+//    @Bean
+//    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+//        http
+//                .csrf(csrf -> csrf.disable())
+//
+//                .authorizeHttpRequests(auth -> auth
+//                        // Public pages
+//                        .requestMatchers("/", "/login", "/register", "/test-*").permitAll()
+//                        .requestMatchers("/css/**", "/js/**", "/images/**", "/webjars/**").permitAll()
+//
+//                        // Role-based authorization - CHỈ KHI ĐÃ TEST OK AUTHENTICATION CƠ BẢN
+//                        .requestMatchers("/admin/**").hasRole("ADMIN")
+//                        .requestMatchers("/instructor/**").hasRole("INSTRUCTOR")
+//                        .requestMatchers("/student/**").hasRole("STUDENT")
+//
+//                        // Default
+//                        .anyRequest().authenticated()
+//                )
+//
+//                .formLogin(login -> login
+//                        .loginPage("/login")
+//                        .defaultSuccessUrl("/")
+//                        .permitAll()
+//                )
+//
+//                .logout(logout -> logout
+//                        .logoutUrl("/logout")
+//                        .logoutSuccessUrl("/login?logout=true")
+//                        .permitAll()
+//                );
+//
+//        return http.build();
+//    }
 }

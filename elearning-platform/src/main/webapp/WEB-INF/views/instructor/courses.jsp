@@ -582,7 +582,7 @@
 
         <!-- Filter Section -->
         <div class="filter-section">
-            <form method="GET" action="//instructor/courses"" id="filterForm">
+            <form method="GET" action="action="/instructor/courses" id="filterForm">
                 <div class="filter-row">
                     <!-- Search -->
                     <div class="form-group">

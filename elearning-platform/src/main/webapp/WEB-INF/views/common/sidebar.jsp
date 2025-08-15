@@ -266,7 +266,7 @@ Sử dụng cho các trang dashboard và quản lý
 
     <!-- Logout Button -->
     <div class="sidebar-footer">
-        <form method="POST" action="//logout"" class="w-100">
+        <form method="POST" action="logout" class="w-100">
             <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}"/>
             <button type="submit" class="btn-logout">
                 <i class="fas fa-sign-out-alt me-2"></i>
