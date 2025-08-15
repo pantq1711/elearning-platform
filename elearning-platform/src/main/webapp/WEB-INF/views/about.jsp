@@ -836,7 +836,7 @@
         <p class="cta-subtitle">
             Tham gia cùng hàng nghìn người đã thay đổi cuộc sống thông qua giáo dục trực tuyến
         </p>
-        <a href="//register"" class="btn-cta">
+        <a href="${pageContext.request.contextPath}/register"" class="btn-cta">
             <i class="fas fa-rocket"></i>
             Đăng ký ngay hôm nay
         </a>

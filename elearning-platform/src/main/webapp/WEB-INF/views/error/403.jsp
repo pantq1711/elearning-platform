@@ -540,7 +540,7 @@
             <!-- Action Buttons -->
             <div class="error-actions">
                 <sec:authorize access="!isAuthenticated()">
-                    <a href="//login"" class="btn-primary-custom">
+                    <a href="${pageContext.request.contextPath}/login"> class="btn-primary-custom">
                         <i class="fas fa-sign-in-alt"></i>
                         Đăng nhập
                     </a>
@@ -564,20 +564,20 @@
                         </a>
                     </sec:authorize>
                     <sec:authorize access="hasRole('INSTRUCTOR')">
-                        <a href="//instructor/dashboard"" class="btn-primary-custom">
+                        <a href="${pageContext.request.contextPath}/instructor/dashboard" class="btn-primary-custom">
                             <i class="fas fa-chalkboard-teacher"></i>
                             Dashboard Giảng viên
                         </a>
                     </sec:authorize>
                     <sec:authorize access="hasRole('STUDENT')">
-                        <a href="//student/dashboard"" class="btn-primary-custom">
+                        <a href="${pageContext.request.contextPath}/student/dashboard" class="btn-primary-custom">
                             <i class="fas fa-user-graduate"></i>
                             Dashboard Học viên
                         </a>
                     </sec:authorize>
                 </sec:authorize>
 
-                <a href="//"" class="btn-secondary-custom">
+                <a href="${pageContext.request.contextPath}/" class="btn-secondary-custom">
                     <i class="fas fa-home"></i>
                     Về trang chủ
                 </a>
@@ -587,7 +587,7 @@
             <div class="help-links">
                 <h3>Cần hỗ trợ?</h3>
 
-                <a href="//contact"" class="help-item">
+                <a href="${pageContext.request.contextPath}/contact"" class="help-item">
                     <div class="help-icon">
                         <i class="fas fa-envelope"></i>
                     </div>
@@ -597,7 +597,7 @@
                     </div>
                 </a>
 
-                <a href="//about"" class="help-item">
+                <a href="${pageContext.request.contextPath}/about"" class="help-item">
                     <div class="help-icon">
                         <i class="fas fa-info-circle"></i>
                     </div>
@@ -607,7 +607,7 @@
                     </div>
                 </a>
 
-                <a href="//courses"" class="help-item">
+                <a href="${pageContext.request.contextPath}/courses"" class="help-item">
                     <div class="help-icon">
                         <i class="fas fa-book"></i>
                     </div>
@@ -623,8 +623,8 @@
                 <p class="text-muted">
                     <small>
                         Lỗi 403 - Truy cập bị từ chối |
-                        <a href="//contact"" class="text-primary">Báo lỗi</a> |
-                        <a href="//"" class="text-primary">Trang chủ</a>
+                        <a href="${pageContext.request.contextPath}/contact"" class="text-primary">Báo lỗi</a> |
+                        <a href="${pageContext.request.contextPath}/" class="text-primary">Trang chủ</a>
                     </small>
                 </p>
             </div>

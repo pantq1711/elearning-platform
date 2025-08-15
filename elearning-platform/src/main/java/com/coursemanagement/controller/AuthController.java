@@ -176,44 +176,44 @@ public class AuthController {
      * @param request HttpServletRequest để lấy session
      * @return Redirect URL dựa vào role
      */
-    @GetMapping("/dashboard")
-    public String dashboard(Authentication authentication, HttpServletRequest request) {
-
-        if (authentication == null || !authentication.isAuthenticated()) {
-            return "redirect:/login";
-        }
-
-        User user = (User) authentication.getPrincipal();
-        HttpSession session = request.getSession();
-
-        // Cập nhật last login time
-        try {
-            userService.updateLastLogin(user.getId());
-        } catch (Exception e) {
-            System.err.println("Lỗi khi cập nhật last login: " + e.getMessage());
-        }
-
-        // Lưu thông tin user vào session để sử dụng trong toàn bộ ứng dụng
-        session.setAttribute("currentUser", user);
-        session.setAttribute("userRole", user.getRole().toString());
-
-        // ✅ SỬA LỖI: Redirect dựa vào role (fallback cho SecurityConfig)
-        switch (user.getRole()) {
-            case ADMIN:
-                return "redirect:/admin/dashboard";
-
-            case INSTRUCTOR:
-                return "redirect:/instructor/dashboard";
-
-            case STUDENT:
-                return "redirect:/student/dashboard";
-
-            default:
-                // Fallback cho trường hợp role không hợp lệ
-                System.err.println("Role không hợp lệ cho user: " + user.getUsername());
-                return "redirect:/login?error=invalid_role";
-        }
-    }
+//    @GetMapping("/dashboard")
+//    public String dashboard(Authentication authentication, HttpServletRequest request) {
+//
+//        if (authentication == null || !authentication.isAuthenticated()) {
+//            return "redirect:/login";
+//        }
+//
+//        User user = (User) authentication.getPrincipal();
+//        HttpSession session = request.getSession();
+//
+//        // Cập nhật last login time
+//        try {
+//            userService.updateLastLogin(user.getId());
+//        } catch (Exception e) {
+//            System.err.println("Lỗi khi cập nhật last login: " + e.getMessage());
+//        }
+//
+//        // Lưu thông tin user vào session để sử dụng trong toàn bộ ứng dụng
+//        session.setAttribute("currentUser", user);
+//        session.setAttribute("userRole", user.getRole().toString());
+//
+//        // ✅ SỬA LỖI: Redirect dựa vào role (fallback cho SecurityConfig)
+//        switch (user.getRole()) {
+//            case ADMIN:
+//                return "redirect:/admin/dashboard";
+//
+//            case INSTRUCTOR:
+//                return "redirect:/instructor/dashboard";
+//
+//            case STUDENT:
+//                return "redirect:/student/dashboard";
+//
+//            default:
+//                // Fallback cho trường hợp role không hợp lệ
+//                System.err.println("Role không hợp lệ cho user: " + user.getUsername());
+//                return "redirect:/login?error=invalid_role";
+//        }
+//    }
 
     /**
      * Xử lý logout (thực tế được handle bởi Spring Security)

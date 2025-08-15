@@ -549,7 +549,7 @@
 
         <!-- Quick Actions -->
         <div class="quick-actions">
-            <a href="//instructor/courses/new"" class="action-card">
+            <a href="${pageContext.request.contextPath}/instructor/courses/new"" class="action-card">
                 <div class="action-icon">
                     <i class="fas fa-plus"></i>
                 </div>
@@ -557,7 +557,7 @@
                 <div class="action-description">Bắt đầu tạo một khóa học mới</div>
             </a>
 
-            <a href="//instructor/lessons/new"" class="action-card">
+            <a href="${pageContext.request.contextPath}/instructor/lessons/new"" class="action-card">
                 <div class="action-icon">
                     <i class="fas fa-video"></i>
                 </div>
@@ -565,7 +565,7 @@
                 <div class="action-description">Tạo bài giảng cho khóa học</div>
             </a>
 
-            <a href="//instructor/quizzes/new"" class="action-card">
+            <a href="${pageContext.request.contextPath}/instructor/quizzes/new"" class="action-card">
                 <div class="action-icon">
                     <i class="fas fa-question-circle"></i>
                 </div>
@@ -573,7 +573,7 @@
                 <div class="action-description">Thêm quiz cho học viên</div>
             </a>
 
-            <a href="//instructor/students"" class="action-card">
+            <a href="${pageContext.request.contextPath}/instructor/students"" class="action-card">
                 <div class="action-icon">
                     <i class="fas fa-users"></i>
                 </div>
@@ -660,7 +660,7 @@
                         <i class="fas fa-book"></i>
                         Khóa học gần đây
                     </h3>
-                    <a href="//instructor/courses"" class="section-action">
+                    <a href="${pageContext.request.contextPath}/instructor/courses"" class="section-action">
                         Xem tất cả <i class="fas fa-arrow-right ms-1"></i>
                     </a>
                 </div>
@@ -705,7 +705,7 @@
                         <div class="text-center py-4">
                             <i class="fas fa-book fa-3x text-muted mb-3"></i>
                             <p class="text-muted">Bạn chưa có khóa học nào.</p>
-                            <a href="//instructor/courses/new"" class="btn btn-primary">
+                            <a href="${pageContext.request.contextPath}/instructor/courses/new"" class="btn btn-primary">
                                 <i class="fas fa-plus me-2"></i>Tạo khóa học đầu tiên
                             </a>
                         </div>
@@ -720,7 +720,7 @@
                         <i class="fas fa-clock"></i>
                         Hoạt động gần đây
                     </h3>
-                    <a href="//instructor/activity"" class="section-action">
+                    <a href="${pageContext.request.contextPath}/instructor/activity"" class="section-action">
                         Xem tất cả <i class="fas fa-arrow-right ms-1"></i>
                     </a>
                 </div>

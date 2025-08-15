@@ -587,7 +587,7 @@
                         <i class="fas fa-chevron-down ms-2"></i>
                     </a>
                     <div class="dropdown-menu dropdown-menu-end">
-                        <a class="dropdown-item" href="//profile"">
+                        <a class="dropdown-item" href="${pageContext.request.contextPath}/profile"">
                             <i class="fas fa-user me-2"></i>Hồ sơ cá nhân
                         </a>
                         <a class="dropdown-item" href="/admin/settings"">

@@ -586,12 +586,12 @@
                                     </div>
                                     <div class="col-md-2 text-end">
                                         <div class="btn-group-vertical">
-                                            <a href="//student/courses/${enrollment.course.id}""
+                                            <a href="${pageContext.request.contextPath}/student/courses/${enrollment.course.id}""
                                                class="btn btn-sm btn-primary mb-1">
                                                 <i class="fas fa-play me-1"></i>Tiếp tục
                                             </a>
                                             <c:if test="${enrollment.completed}">
-                                                <a href="//student/courses/${enrollment.course.id}/certificate""
+                                                <a href="${pageContext.request.contextPath}/student/courses/${enrollment.course.id}/certificate""
                                                    class="btn btn-sm btn-warning">
                                                     <i class="fas fa-certificate me-1"></i>Chứng chỉ
                                                 </a>
@@ -607,7 +607,7 @@
                             <i class="fas fa-book-open text-muted fa-3x mb-3"></i>
                             <h6 class="text-muted">Chưa có khóa học nào</h6>
                             <p class="text-muted">Khám phá và đăng ký các khóa học hấp dẫn</p>
-                            <a href="//courses"" class="btn btn-primary">
+                            <a href="${pageContext.request.contextPath}/courses"" class="btn btn-primary">
                                 <i class="fas fa-search me-2"></i>Tìm khóa học
                             </a>
                         </div>

@@ -499,7 +499,7 @@
                         ${currentUser.fullName}
                     </button>
                     <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="//logout"">
+                        <li><a class="dropdown-item" href="${pageContext.request.contextPath}/logout"">
                             <i class="fas fa-sign-out-alt me-1"></i>Đăng xuất
                         </a></li>
                     </ul>

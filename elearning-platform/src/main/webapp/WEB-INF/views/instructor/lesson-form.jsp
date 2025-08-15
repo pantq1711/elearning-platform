@@ -81,15 +81,15 @@
                     <nav aria-label="breadcrumb">
                         <ol class="breadcrumb">
                             <li class="breadcrumb-item">
-                                <a href="//instructor/dashboard"">
+                                <a href="${pageContext.request.contextPath}/instructor/dashboard"">
                                     <i class="fas fa-home"></i> Dashboard
                                 </a>
                             </li>
                             <li class="breadcrumb-item">
-                                <a href="//instructor/courses"">Khóa học</a>
+                                <a href="${pageContext.request.contextPath}/instructor/courses"">Khóa học</a>
                             </li>
                             <li class="breadcrumb-item">
-                                <a href="//instructor/lessons?courseId=${course.id}"">Bài học</a>
+                                <a href="${pageContext.request.contextPath}/instructor/lessons?courseId=${course.id}"">Bài học</a>
                             </li>
                             <li class="breadcrumb-item active">
                                 ${lesson.id != null ? 'Chỉnh sửa' : 'Tạo mới'}
@@ -422,7 +422,7 @@
 
                                         <!-- Preview Button -->
                                         <c:if test="${lesson.id != null}">
-                                            <a href="//instructor/lessons/${lesson.id}/preview""
+                                            <a href="${pageContext.request.contextPath}/instructor/lessons/${lesson.id}/preview""
                                                class="btn btn-outline-info" target="_blank">
                                                 <i class="fas fa-eye me-2"></i>
                                                 Xem trước
@@ -430,7 +430,7 @@
                                         </c:if>
 
                                         <!-- Cancel Button -->
-                                        <a href="//instructor/lessons?courseId=${course.id}""
+                                        <a href="${pageContext.request.contextPath}/instructor/lessons?courseId=${course.id}""
                                            class="btn btn-outline-secondary">
                                             <i class="fas fa-times me-2"></i>
                                             Hủy

@@ -758,19 +758,19 @@
                                     <c:choose>
                                         <c:when test="${enrollment.status == 'COMPLETED'}">
                                             <!-- Show certificate if completed -->
-                                            <a href="//student/certificates/${enrollment.course.id}""
+                                            <a href="${pageContext.request.contextPath}/student/certificates/${enrollment.course.id}""
                                                class="btn-success-custom">
                                                 <i class="fas fa-certificate"></i>Xem chứng chỉ
                                             </a>
                                             <!-- Review course -->
-                                            <a href="//student/courses/${enrollment.course.id}/review""
+                                            <a href="${pageContext.request.contextPath}/student/courses/${enrollment.course.id}/review""
                                                class="btn-outline-custom">
                                                 <i class="fas fa-star"></i>Đánh giá
                                             </a>
                                         </c:when>
                                         <c:otherwise>
                                             <!-- Continue learning -->
-                                            <a href="//student/courses/${enrollment.course.id}/learn""
+                                            <a href="${pageContext.request.contextPath}/student/courses/${enrollment.course.id}/learn""
                                                class="btn-primary-custom">
                                                 <i class="fas fa-play"></i>
                                                     ${enrollment.progressPercentage > 0 ? 'Tiếp tục học' : 'Bắt đầu học'}
@@ -827,7 +827,7 @@
                             </c:otherwise>
                         </c:choose>
                     </p>
-                    <a href="//courses"" class="btn-primary-custom">
+                    <a href="${pageContext.request.contextPath}/courses"" class="btn-primary-custom">
                         <i class="fas fa-search me-2"></i>Khám phá khóa học
                     </a>
                 </div>

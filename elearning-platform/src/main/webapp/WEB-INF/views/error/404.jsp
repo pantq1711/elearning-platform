@@ -463,7 +463,7 @@
 
         if (query) {
             // Redirect to courses page with search query - Chuyển hướng đến trang khóa học với từ khóa tìm kiếm
-            const searchUrl = `${pageContext.servletContext.contextPath}/courses?search=${encodeURIComponent(query)}`;
+            const searchUrl = `${pageContext.servletContext.contextPath}/courses?search=${pageContext.request.contextPath}/courses?search=" + encodeURIComponent(query)`;
             window.location.href = searchUrl;
         }
     }

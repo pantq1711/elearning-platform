@@ -411,7 +411,7 @@
                 <div class="lesson-navigation">
                     <div>
                         <c:if test="${not empty previousLesson}">
-                            <a href="//student/lessons/${previousLesson.id}""
+                            <a href="${pageContext.request.contextPath}/student/lessons/${previousLesson.id}""
                                class="btn btn-outline-secondary">
                                 <i class="fas fa-chevron-left me-2"></i>${previousLesson.title}
                             </a>
@@ -419,7 +419,7 @@
                     </div>
 
                     <div class="text-center">
-                        <a href="//student/courses/${course.id}""
+                        <a href="${pageContext.request.contextPath}/student/courses/${course.id}""
                            class="btn btn-outline-primary">
                             <i class="fas fa-list me-2"></i>Danh sách bài học
                         </a>
@@ -427,7 +427,7 @@
 
                     <div class="text-end">
                         <c:if test="${not empty nextLesson}">
-                            <a href="//student/lessons/${nextLesson.id}""
+                            <a href="${pageContext.request.contextPath}/student/lessons/${nextLesson.id}""
                                class="btn btn-primary">
                                     ${nextLesson.title}<i class="fas fa-chevron-right ms-2"></i>
                             </a>
@@ -518,7 +518,7 @@
                         </h6>
                         <c:forEach items="${relatedLessons}" var="relatedLesson" varStatus="status">
                             <div class="related-lesson-item mb-2">
-                                <a href="//student/lessons/${relatedLesson.id}""
+                                <a href="${pageContext.request.contextPath}/student/lessons/${relatedLesson.id}""
                                    class="text-decoration-none">
                                     <div class="d-flex align-items-center p-2 border rounded hover-bg-light">
                                         <div class="me-2">
@@ -580,7 +580,7 @@
 
                     <!-- Quick Actions -->
                     <div class="d-grid gap-2">
-                        <a href="//student/courses/${course.id}""
+                        <a href="${pageContext.request.contextPath}/student/courses/${course.id}""
                            class="btn btn-outline-primary btn-sm">
                             <i class="fas fa-arrow-left me-2"></i>Quay lại khóa học
                         </a>

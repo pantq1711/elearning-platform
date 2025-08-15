@@ -16,7 +16,7 @@
     <!-- Font Awesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <!-- Custom CSS -->
-    <link href="//css/student.css"" rel="stylesheet">
+    <link href="${pageContext.request.contextPath}/css/student.css"" rel="stylesheet">
 
     <style>
         .course-sidebar {
@@ -130,7 +130,7 @@
             <!-- Course Header -->
             <div class="course-header mb-4">
                 <div class="d-flex align-items-center mb-3">
-                    <a href="//student/my-courses"" class="btn btn-outline-secondary me-3">
+                    <a href="${pageContext.request.contextPath}/student/my-courses"" class="btn btn-outline-secondary me-3">
                         <i class="fas fa-arrow-left me-2"></i>Quay lại
                     </a>
                     <div class="flex-grow-1">
@@ -272,7 +272,7 @@
                             <!-- Navigation -->
                             <div class="lesson-navigation d-flex justify-content-between">
                                 <c:if test="${not empty previousLesson}">
-                                    <a href="//student/courses/${course.id}/lessons/${previousLesson.id}""
+                                    <a href="${pageContext.request.contextPath}/student/courses/${course.id}/lessons/${previousLesson.id}""
                                        class="btn btn-outline-secondary">
                                         <i class="fas fa-chevron-left me-2"></i>Bài trước
                                     </a>
@@ -281,7 +281,7 @@
                                 <div class="flex-grow-1"></div>
 
                                 <c:if test="${not empty nextLesson}">
-                                    <a href="//student/courses/${course.id}/lessons/${nextLesson.id}""
+                                    <a href="${pageContext.request.contextPath}/student/courses/${course.id}/lessons/${nextLesson.id}""
                                        class="btn btn-primary">
                                         Bài tiếp theo<i class="fas fa-chevron-right ms-2"></i>
                                     </a>
@@ -351,12 +351,12 @@
                                                                 </div>
                                                             </div>
                                                             <div>
-                                                                <a href="//student/quiz/${quiz.id}/result""
+                                                                <a href="${pageContext.request.contextPath}/student/quiz/${quiz.id}/result""
                                                                    class="btn btn-outline-success btn-sm">
                                                                     <i class="fas fa-eye me-1"></i>Xem kết quả
                                                                 </a>
                                                                 <c:if test="${quiz.allowRetake}">
-                                                                    <a href="//student/quiz/${quiz.id}""
+                                                                    <a href="${pageContext.request.contextPath}/student/quiz/${quiz.id}""
                                                                        class="btn btn-warning btn-sm">
                                                                         <i class="fas fa-redo me-1"></i>Làm lại
                                                                     </a>
@@ -374,7 +374,7 @@
                                                     </c:when>
                                                     <c:otherwise>
                                                         <div class="text-center">
-                                                            <a href="//student/quiz/${quiz.id}""
+                                                            <a href="${pageContext.request.contextPath}/student/quiz/${quiz.id}""
                                                                class="btn btn-warning">
                                                                 <i class="fas fa-play me-2"></i>Bắt đầu làm bài
                                                             </a>
@@ -653,7 +653,7 @@
                                 <i class="fas fa-certificate fa-3x text-success mb-3"></i>
                                 <h6>Chúc mừng!</h6>
                                 <p class="mb-3">Bạn đã hoàn thành khóa học</p>
-                                <a href="//student/courses/${course.id}/certificate""
+                                <a href="${pageContext.request.contextPath}/student/courses/${course.id}/certificate""
                                    class="btn btn-success">
                                     <i class="fas fa-download me-2"></i>Tải chứng chỉ
                                 </a>

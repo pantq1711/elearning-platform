@@ -18,7 +18,7 @@
     <!-- DataTables CSS -->
     <link href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" rel="stylesheet">
     <!-- Custom CSS -->
-    <link href="//css/instructor.css"" rel="stylesheet">
+    <link href="${pageContext.request.contextPath}/css/instructor.css"" rel="stylesheet">
 
     <style>
         .quiz-stats-card {
@@ -77,12 +77,12 @@
                             <nav aria-label="breadcrumb">
                                 <ol class="breadcrumb">
                                     <li class="breadcrumb-item">
-                                        <a href="//instructor/dashboard"">
+                                        <a href="${pageContext.request.contextPath}/instructor/dashboard"">
                                             <i class="fas fa-home"></i> Dashboard
                                         </a>
                                     </li>
                                     <li class="breadcrumb-item">
-                                        <a href="//instructor/courses"">Khóa học</a>
+                                        <a href="${pageContext.request.contextPath}/instructor/courses"">Khóa học</a>
                                     </li>
                                     <li class="breadcrumb-item active">Quiz</li>
                                 </ol>
@@ -96,7 +96,7 @@
                         <div class="col-auto">
                             <!-- Nút tạo quiz mới -->
                             <div class="btn-group">
-                                <a href="//instructor/quizzes/create""
+                                <a href="${pageContext.request.contextPath}/instructor/quizzes/create""
                                    class="btn btn-warning">
                                     <i class="fas fa-plus me-2"></i>Tạo Quiz
                                 </a>
@@ -106,17 +106,17 @@
                                 </button>
                                 <ul class="dropdown-menu">
                                     <li>
-                                        <a class="dropdown-item" href="//instructor/quizzes/create?type=PRACTICE"">
+                                        <a class="dropdown-item" href="${pageContext.request.contextPath}/instructor/quizzes/create?type=PRACTICE"">
                                             <i class="fas fa-dumbbell me-2"></i>Quiz luyện tập
                                         </a>
                                     </li>
                                     <li>
-                                        <a class="dropdown-item" href="//instructor/quizzes/create?type=EXAM"">
+                                        <a class="dropdown-item" href="${pageContext.request.contextPath}/instructor/quizzes/create?type=EXAM"">
                                             <i class="fas fa-graduation-cap me-2"></i>Bài kiểm tra
                                         </a>
                                     </li>
                                     <li>
-                                        <a class="dropdown-item" href="//instructor/quizzes/create?type=SURVEY"">
+                                        <a class="dropdown-item" href="${pageContext.request.contextPath}/instructor/quizzes/create?type=SURVEY"">
                                             <i class="fas fa-poll me-2"></i>Khảo sát
                                         </a>
                                     </li>
@@ -429,22 +429,22 @@
                                                 <td>
                                                     <div class="quiz-actions">
                                                         <!-- Xem chi tiết -->
-                                                        <a href="//instructor/quizzes/${quiz.id}""
+                                                        <a href="${pageContext.request.contextPath}/instructor/quizzes/${quiz.id}""
                                                            class="btn btn-sm btn-outline-info" title="Xem chi tiết">
                                                             <i class="fas fa-eye"></i>
                                                         </a>
                                                         <!-- Chỉnh sửa -->
-                                                        <a href="//instructor/quizzes/${quiz.id}/edit""
+                                                        <a href="${pageContext.request.contextPath}/instructor/quizzes/${quiz.id}/edit""
                                                            class="btn btn-sm btn-outline-primary" title="Chỉnh sửa">
                                                             <i class="fas fa-edit"></i>
                                                         </a>
                                                         <!-- Xem kết quả -->
-                                                        <a href="//instructor/quizzes/${quiz.id}/results""
+                                                        <a href="${pageContext.request.contextPath}/instructor/quizzes/${quiz.id}/results""
                                                            class="btn btn-sm btn-outline-success" title="Xem kết quả">
                                                             <i class="fas fa-chart-bar"></i>
                                                         </a>
                                                         <!-- Preview -->
-                                                        <a href="//instructor/quizzes/${quiz.id}/preview""
+                                                        <a href="${pageContext.request.contextPath}/instructor/quizzes/${quiz.id}/preview""
                                                            class="btn btn-sm btn-outline-warning" title="Xem trước" target="_blank">
                                                             <i class="fas fa-play"></i>
                                                         </a>
@@ -476,7 +476,7 @@
                                         <p class="text-muted mb-4">
                                             Tạo quiz đầu tiên để kiểm tra kiến thức của học viên.
                                         </p>
-                                        <a href="//instructor/quizzes/create""
+                                        <a href="${pageContext.request.contextPath}/instructor/quizzes/create""
                                            class="btn btn-warning">
                                             <i class="fas fa-plus me-2"></i>Tạo Quiz Đầu Tiên
                                         </a>

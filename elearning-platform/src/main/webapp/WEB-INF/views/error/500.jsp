@@ -589,12 +589,12 @@
                     Thử lại ngay
                 </button>
 
-                <a href="//"" class="btn-primary-custom">
+                <a href="${pageContext.request.contextPath}/" class="btn-primary-custom">
                     <i class="fas fa-home"></i>
                     Về trang chủ
                 </a>
 
-                <a href="//contact"" class="btn-secondary-custom">
+                <a href="${pageContext.request.contextPath}/contact" class="btn-secondary-custom">
                     <i class="fas fa-envelope"></i>
                     Báo lỗi
                 </a>
@@ -605,7 +605,7 @@
                 <p class="text-muted">
                     <small>
                         Lỗi 500 - Lỗi máy chủ nội bộ |
-                        <a href="//contact"" class="text-primary">Báo lỗi</a> |
+                        <a href="${pageContext.request.contextPath}/contact"" class="text-primary">Báo lỗi</a> |
                         <a href="javascript:checkServerStatus()" class="text-primary">Kiểm tra trạng thái</a>
                     </small>
                 </p>

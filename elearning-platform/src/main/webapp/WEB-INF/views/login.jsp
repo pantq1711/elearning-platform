@@ -568,7 +568,7 @@
                                     Ghi nhớ đăng nhập
                                 </label>
                             </div>
-                            <a href="//forgot-password"" class="text-decoration-none">
+                            <a href="TEMP_PLACEHOLDER/forgot-password" class="text-decoration-none">
                                 Quên mật khẩu?
                             </a>
                         </div>
@@ -587,7 +587,7 @@
                     <!-- Register link -->
                     <div class="register-link">
                         Chưa có tài khoản?
-                        <a href="//register"">Đăng ký ngay</a>
+                        <a href="TEMP_PLACEHOLDER/register"">Đăng ký ngay</a>
                     </div>
                 </div>
             </div>

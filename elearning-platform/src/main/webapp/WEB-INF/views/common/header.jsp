@@ -13,7 +13,7 @@
 <header class="navbar navbar-expand-lg navbar-dark bg-primary sticky-top shadow">
     <div class="container">
         <!-- Logo và tên website -->
-        <a class="navbar-brand fw-bold" href="//"">
+        <a class="navbar-brand fw-bold" href="${pageContext.request.contextPath}/">
             <i class="fas fa-graduation-cap me-2"></i>
             EduLearn Platform
         </a>
@@ -28,22 +28,22 @@
             <!-- Menu bên trái -->
             <ul class="navbar-nav me-auto">
                 <li class="nav-item">
-                    <a class="nav-link" href="//"">
+                    <a class="nav-link" href="${pageContext.request.contextPath}/">
                         <i class="fas fa-home me-1"></i>Trang Chủ
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="//courses"">
+                    <a class="nav-link" href="${pageContext.request.contextPath}/courses"">
                         <i class="fas fa-book me-1"></i>Khóa Học
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="//about"">
+                    <a class="nav-link" href="${pageContext.request.contextPath}/about"">
                         <i class="fas fa-info-circle me-1"></i>Giới Thiệu
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="//contact"">
+                    <a class="nav-link" href="${pageContext.request.contextPath}/contact"">
                         <i class="fas fa-envelope me-1"></i>Liên Hệ
                     </a>
                 </li>
@@ -84,7 +84,7 @@
 
                             <sec:authorize access="hasRole('INSTRUCTOR')">
                                 <li>
-                                    <a class="dropdown-item" href="//instructor/dashboard"">
+                                    <a class="dropdown-item" href="${pageContext.request.contextPath}/instructor/dashboard"">
                                         <i class="fas fa-chalkboard-teacher me-2"></i>Dashboard Giảng Viên
                                     </a>
                                 </li>
@@ -92,12 +92,12 @@
 
                             <sec:authorize access="hasRole('STUDENT')">
                                 <li>
-                                    <a class="dropdown-item" href="//student/dashboard"">
+                                    <a class="dropdown-item" href="${pageContext.request.contextPath}/student/dashboard"">
                                         <i class="fas fa-user-graduate me-2"></i>Dashboard Học Viên
                                     </a>
                                 </li>
                                 <li>
-                                    <a class="dropdown-item" href="//student/my-courses"">
+                                    <a class="dropdown-item" href="${pageContext.request.contextPath}/student/my-courses"">
                                         <i class="fas fa-book-reader me-2"></i>Khóa Học Của Tôi
                                     </a>
                                 </li>
@@ -107,12 +107,12 @@
 
                             <!-- Profile và settings -->
                             <li>
-                                <a class="dropdown-item" href="//profile"">
+                                <a class="dropdown-item" href="${pageContext.request.contextPath}/profile"">
                                     <i class="fas fa-user-edit me-2"></i>Hồ Sơ Cá Nhân
                                 </a>
                             </li>
                             <li>
-                                <a class="dropdown-item" href="//change-password"">
+                                <a class="dropdown-item" href="${pageContext.request.contextPath}/change-password"">
                                     <i class="fas fa-key me-2"></i>Đổi Mật Khẩu
                                 </a>
                             </li>
@@ -135,12 +135,12 @@
                 <!-- Menu cho user chưa đăng nhập -->
                 <sec:authorize access="!isAuthenticated()">
                     <li class="nav-item">
-                        <a class="nav-link" href="//login"">
+                        <a class="nav-link" href="${pageContext.request.contextPath}/login"">
                             <i class="fas fa-sign-in-alt me-1"></i>Đăng Nhập
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link btn btn-outline-light ms-2 px-3" href="//register"">
+                        <a class="nav-link btn btn-outline-light ms-2 px-3" href="${pageContext.request.contextPath}/register"">
                             <i class="fas fa-user-plus me-1"></i>Đăng Ký
                         </a>
                     </li>

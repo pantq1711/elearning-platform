@@ -515,12 +515,12 @@
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb">
                     <li class="breadcrumb-item">
-                        <a href="//instructor/dashboard"">
+                        <a href="${pageContext.request.contextPath}/instructor/dashboard"">
                             <i class="fas fa-home me-1"></i>Dashboard
                         </a>
                     </li>
                     <li class="breadcrumb-item">
-                        <a href="//instructor/courses"">Khóa học</a>
+                        <a href="${pageContext.request.contextPath}/instructor/courses"">Khóa học</a>
                     </li>
                     <li class="breadcrumb-item active">
                         ${course != null ? 'Chỉnh sửa' : 'Tạo mới'}
@@ -869,7 +869,7 @@
 
                 <!-- Form Actions -->
                 <div class="form-actions">
-                    <a href="//instructor/courses"" class="btn-secondary-custom">
+                    <a href="${pageContext.request.contextPath}/instructor/courses"" class="btn-secondary-custom">
                         <i class="fas fa-times"></i>Hủy
                     </a>
 
@@ -903,7 +903,7 @@
                     Xem trước khóa học
                 </div>
                 <div class="preview-content">
-                    <a href="//courses/${course.id}""
+                    <a href="${pageContext.request.contextPath}/courses/${course.id}""
                        target="_blank"
                        class="btn-primary-custom">
                         <i class="fas fa-external-link-alt"></i>

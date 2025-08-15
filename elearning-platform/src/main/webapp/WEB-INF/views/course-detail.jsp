@@ -646,15 +646,15 @@
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb">
                 <li class="breadcrumb-item">
-                    <a href="//"">
+                    <a href="${pageContext.request.contextPath}/">
                         <i class="fas fa-home me-1"></i>Trang chủ
                     </a>
                 </li>
                 <li class="breadcrumb-item">
-                    <a href="//courses"">Khóa học</a>
+                    <a href="${pageContext.request.contextPath}/courses">Khóa học</a>
                 </li>
                 <li class="breadcrumb-item">
-                    <a href="//courses?category=${course.category.name}"">${course.category.name}</a>
+                    <a href="${pageContext.request.contextPath}/courses?category=${course.category.name}"">${course.category.name}</a>
                 </li>
                 <li class="breadcrumb-item active">${course.name}</li>
             </ol>
@@ -954,7 +954,7 @@
 
                             <!-- Enrollment Button -->
                             <sec:authorize access="!isAuthenticated()">
-                                <a href="//login"" class="btn btn-enroll enroll-btn">
+                                <a href="${pageContext.request.contextPath}/login"> class="btn btn-enroll enroll-btn">
                                     <i class="fas fa-sign-in-alt me-2"></i>Đăng nhập để đăng ký
                                 </a>
                             </sec:authorize>
@@ -962,7 +962,7 @@
                             <sec:authorize access="isAuthenticated()">
                                 <c:choose>
                                     <c:when test="${isEnrolled}">
-                                        <a href="//student/courses/${course.id}""
+                                        <a href="${pageContext.request.contextPath}/student/courses/${course.id}""
                                            class="btn btn-enrolled enroll-btn">
                                             <i class="fas fa-play me-2"></i>Tiếp tục học
                                         </a>
@@ -1021,7 +1021,7 @@
                                          onerror="this.src='/images/course-default.jpg"'">
                                     <div class="course-info-small">
                                         <div class="course-title-small">
-                                            <a href="//courses/${relatedCourse.id}"">
+                                            <a href="${pageContext.request.contextPath}/courses/${relatedCourse.id}"">
                                                     ${relatedCourse.name}
                                             </a>
                                         </div>

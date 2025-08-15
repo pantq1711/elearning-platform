@@ -497,7 +497,7 @@
                 <nav aria-label="breadcrumb">
                     <ol class="breadcrumb">
                         <li class="breadcrumb-item">
-                            <a href="//"">
+                            <a href="${pageContext.request.contextPath}/">
                                 <i class="fas fa-home me-1"></i>Trang chủ
                             </a>
                         </li>
@@ -782,7 +782,7 @@
 
                                                     <!-- Course Title -->
                                                     <h5 class="course-title">
-                                                        <a href="//courses/${course.id}"">
+                                                        <a href="${pageContext.request.contextPath}/courses/${course.id}"">
                                                                 ${course.name}
                                                         </a>
                                                     </h5>
@@ -862,7 +862,7 @@
                                     <!-- Previous Page -->
                                     <c:if test="${coursePage.hasPrevious()}">
                                         <li class="page-item">
-                                            <a class="page-link" href="//courses?page=${coursePage.number - 1}&${queryString}"">
+                                            <a class="page-link" href="${pageContext.request.contextPath}/courses?page=${coursePage.number - 1}&${queryString}"">
                                                 <i class="fas fa-chevron-left"></i>
                                             </a>
                                         </li>
@@ -872,7 +872,7 @@
                                     <c:forEach begin="0" end="${coursePage.totalPages - 1}" var="pageNum">
                                         <c:if test="${pageNum >= coursePage.number - 2 && pageNum <= coursePage.number + 2}">
                                             <li class="page-item ${pageNum == coursePage.number ? 'active' : ''}">
-                                                <a class="page-link" href="//courses?page=${pageNum}&${queryString}"">
+                                                <a class="page-link" href="${pageContext.request.contextPath}/courses?page=${pageNum}&${queryString}"">
                                                         ${pageNum + 1}
                                                 </a>
                                             </li>
@@ -882,7 +882,7 @@
                                     <!-- Next Page -->
                                     <c:if test="${coursePage.hasNext()}">
                                         <li class="page-item">
-                                            <a class="page-link" href="//courses?page=${coursePage.number + 1}&${queryString}"">
+                                            <a class="page-link" href="${pageContext.request.contextPath}/courses?page=${coursePage.number + 1}&${queryString}"">
                                                 <i class="fas fa-chevron-right"></i>
                                             </a>
                                         </li>

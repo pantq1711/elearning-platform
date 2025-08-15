@@ -717,7 +717,7 @@
                     <i class="fas fa-chart-pie"></i>
                     Tổng quan tiến độ học tập
                 </h2>
-                <a href="//student/progress"" class="section-action">
+                <a href="${pageContext.request.contextPath}/student/progress"" class="section-action">
                     Chi tiết <i class="fas fa-arrow-right ms-1"></i>
                 </a>
             </div>
@@ -738,7 +738,7 @@
 
         <!-- Quick Actions -->
         <div class="quick-actions">
-            <a href="//courses"" class="action-card">
+            <a href="${pageContext.request.contextPath}/courses"" class="action-card">
                 <div class="action-icon">
                     <i class="fas fa-search"></i>
                 </div>
@@ -746,7 +746,7 @@
                 <div class="action-description">Tìm khóa học mới phù hợp với bạn</div>
             </a>
 
-            <a href="//student/my-courses"" class="action-card">
+            <a href="${pageContext.request.contextPath}/student/my-courses"" class="action-card">
                 <div class="action-icon">
                     <i class="fas fa-book-reader"></i>
                 </div>
@@ -754,7 +754,7 @@
                 <div class="action-description">Quay lại khóa học đang học</div>
             </a>
 
-            <a href="//student/certificates"" class="action-card">
+            <a href="${pageContext.request.contextPath}/student/certificates"" class="action-card">
                 <div class="action-icon">
                     <i class="fas fa-certificate"></i>
                 </div>
@@ -762,7 +762,7 @@
                 <div class="action-description">Xem các chứng chỉ đã đạt được</div>
             </a>
 
-            <a href="//student/achievements"" class="action-card">
+            <a href="${pageContext.request.contextPath}/student/achievements"" class="action-card">
                 <div class="action-icon">
                     <i class="fas fa-trophy"></i>
                 </div>
@@ -780,7 +780,7 @@
                         <i class="fas fa-play-circle"></i>
                         Khóa học đang học
                     </h3>
-                    <a href="//student/my-courses"" class="section-action">
+                    <a href="${pageContext.request.contextPath}/student/my-courses"" class="section-action">
                         Xem tất cả <i class="fas fa-arrow-right ms-1"></i>
                     </a>
                 </div>
@@ -822,12 +822,12 @@
                             <div class="course-actions">
                                 <c:choose>
                                     <c:when test="${course.progressPercentage >= 100}">
-                                        <a href="//student/certificates/${course.id}"" class="btn-certificate">
+                                        <a href="${pageContext.request.contextPath}/student/certificates/${course.id}"" class="btn-certificate">
                                             <i class="fas fa-certificate me-1"></i>Nhận chứng chỉ
                                         </a>
                                     </c:when>
                                     <c:otherwise>
-                                        <a href="//student/course/${course.id}"" class="btn-continue">
+                                        <a href="${pageContext.request.contextPath}/student/course/${course.id}"" class="btn-continue">
                                             <i class="fas fa-play me-1"></i>Tiếp tục học
                                         </a>
                                     </c:otherwise>
@@ -840,7 +840,7 @@
                         <div class="text-center py-4">
                             <i class="fas fa-book-open fa-3x text-muted mb-3"></i>
                             <p class="text-muted">Bạn chưa đăng ký khóa học nào.</p>
-                            <a href="//courses"" class="btn btn-primary">
+                            <a href="${pageContext.request.contextPath}/courses"" class="btn btn-primary">
                                 <i class="fas fa-search me-2"></i>Khám phá khóa học
                             </a>
                         </div>
@@ -857,7 +857,7 @@
                             <i class="fas fa-target"></i>
                             Mục tiêu học tập
                         </h3>
-                        <a href="//student/goals"" class="section-action">
+                        <a href="${pageContext.request.contextPath}/student/goals"" class="section-action">
                             Quản lý <i class="fas fa-cog ms-1"></i>
                         </a>
                     </div>
@@ -883,7 +883,7 @@
                             <div class="text-center py-3">
                                 <i class="fas fa-target fa-2x text-muted mb-2"></i>
                                 <p class="text-muted">Chưa có mục tiêu nào.</p>
-                                <a href="//student/goals/new"" class="btn btn-sm btn-primary">
+                                <a href="${pageContext.request.contextPath}/student/goals/new"" class="btn btn-sm btn-primary">
                                     Tạo mục tiêu
                                 </a>
                             </div>
@@ -898,7 +898,7 @@
                             <i class="fas fa-trophy"></i>
                             Thành tích
                         </h3>
-                        <a href="//student/achievements"" class="section-action">
+                        <a href="${pageContext.request.contextPath}/student/achievements"" class="section-action">
                             Xem tất cả <i class="fas fa-arrow-right ms-1"></i>
                         </a>
                     </div>
@@ -972,7 +972,7 @@
                     <i class="fas fa-lightbulb"></i>
                     Khóa học được đề xuất
                 </h3>
-                <a href="//courses?recommended=true"" class="section-action">
+                <a href="${pageContext.request.contextPath}/courses?recommended=true"" class="section-action">
                     Xem thêm <i class="fas fa-arrow-right ms-1"></i>
                 </a>
             </div>
@@ -1005,7 +1005,7 @@
                             </div>
                         </div>
 
-                        <a href="//courses/${course.id}"" class="btn-enroll">
+                        <a href="${pageContext.request.contextPath}/courses/${course.id}"" class="btn-enroll">
                             <i class="fas fa-plus me-1"></i>Đăng ký
                         </a>
                     </div>
@@ -1015,7 +1015,7 @@
                     <div class="text-center py-4">
                         <i class="fas fa-lightbulb fa-3x text-muted mb-3"></i>
                         <p class="text-muted">Chưa có khóa học được đề xuất.</p>
-                        <a href="//courses"" class="btn btn-primary">
+                        <a href="${pageContext.request.contextPath}/courses"" class="btn btn-primary">
                             <i class="fas fa-search me-2"></i>Tìm khóa học
                         </a>
                     </div>

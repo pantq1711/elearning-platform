@@ -521,7 +521,7 @@
                     </p>
                 </div>
                 <div class="page-actions">
-                    <a href="//instructor/courses/new"" class="btn-primary-custom">
+                    <a href="${pageContext.request.contextPath}/instructor/courses/new"" class="btn-primary-custom">
                         <i class="fas fa-plus"></i>
                         Tạo khóa học mới
                     </a>
@@ -734,19 +734,19 @@
                                 <!-- Actions -->
                                 <div class="course-actions">
                                     <!-- Edit Course -->
-                                    <a href="//instructor/courses/${course.id}/edit""
+                                    <a href="${pageContext.request.contextPath}/instructor/courses/${course.id}/edit""
                                        class="btn-sm-custom btn-primary-sm">
                                         <i class="fas fa-edit"></i>Chỉnh sửa
                                     </a>
 
                                     <!-- Manage Lessons -->
-                                    <a href="//instructor/courses/${course.id}/lessons""
+                                    <a href="${pageContext.request.contextPath}/instructor/courses/${course.id}/lessons""
                                        class="btn-sm-custom btn-success-sm">
                                         <i class="fas fa-play-circle"></i>Bài giảng
                                     </a>
 
                                     <!-- View Course -->
-                                    <a href="//courses/${course.id}""
+                                    <a href="${pageContext.request.contextPath}/courses/${course.id}""
                                        class="btn-sm-custom btn-outline-sm"
                                        target="_blank">
                                         <i class="fas fa-eye"></i>Xem
@@ -800,7 +800,7 @@
                         Bạn chưa tạo khóa học nào. Hãy bắt đầu tạo khóa học đầu tiên
                         để chia sẻ kiến thức của mình với học viên.
                     </p>
-                    <a href="//instructor/courses/new"" class="btn-primary-custom">
+                    <a href="${pageContext.request.contextPath}/instructor/courses/new"" class="btn-primary-custom">
                         <i class="fas fa-plus me-2"></i>Tạo khóa học đầu tiên
                     </a>
                 </div>

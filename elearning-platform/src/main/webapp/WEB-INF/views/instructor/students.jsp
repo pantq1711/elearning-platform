@@ -18,7 +18,7 @@
     <!-- DataTables CSS -->
     <link href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" rel="stylesheet">
     <!-- Custom CSS -->
-    <link href="//css/instructor.css"" rel="stylesheet">
+    <link href="${pageContext.request.contextPath}/css/instructor.css"" rel="stylesheet">
 
     <style>
         .student-avatar {
@@ -108,7 +108,7 @@
                             <nav aria-label="breadcrumb">
                                 <ol class="breadcrumb">
                                     <li class="breadcrumb-item">
-                                        <a href="//instructor/dashboard"">
+                                        <a href="${pageContext.request.contextPath}/instructor/dashboard"">
                                             <i class="fas fa-home"></i> Dashboard
                                         </a>
                                     </li>
@@ -130,17 +130,17 @@
                                 </button>
                                 <ul class="dropdown-menu">
                                     <li>
-                                        <a class="dropdown-item" href="//instructor/students/export?format=excel"">
+                                        <a class="dropdown-item" href="${pageContext.request.contextPath}/instructor/students/export?format=excel"">
                                             <i class="fas fa-file-excel me-2 text-success"></i>Excel (.xlsx)
                                         </a>
                                     </li>
                                     <li>
-                                        <a class="dropdown-item" href="//instructor/students/export?format=csv"">
+                                        <a class="dropdown-item" href="${pageContext.request.contextPath}/instructor/students/export?format=csv"">
                                             <i class="fas fa-file-csv me-2 text-info"></i>CSV
                                         </a>
                                     </li>
                                     <li>
-                                        <a class="dropdown-item" href="//instructor/students/export?format=pdf"">
+                                        <a class="dropdown-item" href="${pageContext.request.contextPath}/instructor/students/export?format=pdf"">
                                             <i class="fas fa-file-pdf me-2 text-danger"></i>PDF
                                         </a>
                                     </li>
@@ -328,13 +328,13 @@
                                                         <ul class="dropdown-menu">
                                                             <li>
                                                                 <a class="dropdown-item"
-                                                                   href="//instructor/students/${enrollment.student.id}/profile"">
+                                                                   href="${pageContext.request.contextPath}/instructor/students/${enrollment.student.id}/profile"">
                                                                     <i class="fas fa-user me-2"></i>Xem hồ sơ
                                                                 </a>
                                                             </li>
                                                             <li>
                                                                 <a class="dropdown-item"
-                                                                   href="//instructor/students/${enrollment.student.id}/progress"">
+                                                                   href="${pageContext.request.contextPath}/instructor/students/${enrollment.student.id}/progress"">
                                                                     <i class="fas fa-chart-line me-2"></i>Tiến độ học tập
                                                                 </a>
                                                             </li>
@@ -486,11 +486,11 @@
                                                     </td>
                                                     <td>
                                                         <div class="btn-group" role="group">
-                                                            <a href="//instructor/students/${enrollment.student.id}/profile""
+                                                            <a href="${pageContext.request.contextPath}/instructor/students/${enrollment.student.id}/profile""
                                                                class="btn btn-sm btn-outline-info" title="Xem hồ sơ">
                                                                 <i class="fas fa-user"></i>
                                                             </a>
-                                                            <a href="//instructor/students/${enrollment.student.id}/progress""
+                                                            <a href="${pageContext.request.contextPath}/instructor/students/${enrollment.student.id}/progress""
                                                                class="btn btn-sm btn-outline-primary" title="Tiến độ">
                                                                 <i class="fas fa-chart-line"></i>
                                                             </a>
@@ -519,7 +519,7 @@
                                 <p class="text-muted mb-4">
                                     Khi có học viên đăng ký khóa học của bạn, họ sẽ xuất hiện ở đây.
                                 </p>
-                                <a href="//instructor/courses"" class="btn btn-primary">
+                                <a href="${pageContext.request.contextPath}/instructor/courses"" class="btn btn-primary">
                                     <i class="fas fa-plus me-2"></i>Quản lý khóa học
                                 </a>
                             </div>

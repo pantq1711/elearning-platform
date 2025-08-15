@@ -18,7 +18,7 @@
     <!-- Chart.js CSS -->
     <link href="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.min.css" rel="stylesheet">
     <!-- Custom CSS -->
-    <link href="//css/instructor.css"" rel="stylesheet">
+    <link href="${pageContext.request.contextPath}/css/instructor.css"" rel="stylesheet">
 
     <style>
         .stats-card {
@@ -101,7 +101,7 @@
                             <nav aria-label="breadcrumb">
                                 <ol class="breadcrumb">
                                     <li class="breadcrumb-item">
-                                        <a href="//instructor/dashboard"">
+                                        <a href="${pageContext.request.contextPath}/instructor/dashboard"">
                                             <i class="fas fa-home"></i> Dashboard
                                         </a>
                                     </li>

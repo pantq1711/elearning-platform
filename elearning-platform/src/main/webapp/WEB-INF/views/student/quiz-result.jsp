@@ -473,7 +473,7 @@
                     <p class="text-muted mb-3">
                         Bạn đã đạt được ${quizResult.score}/${quiz.maxScore} điểm trong bài kiểm tra "${quiz.title}"
                     </p>
-                    <a href="//student/quiz/${quiz.id}/certificate""
+                    <a href="${pageContext.request.contextPath}/student/quiz/${quiz.id}/certificate""
                        class="btn btn-warning">
                         <i class="fas fa-download me-2"></i>Tải Chứng Nhận
                     </a>
@@ -623,7 +623,7 @@
                     <p class="mb-2">Xem lại các bài học liên quan:</p>
                     <div class="d-flex gap-2">
                         <c:forEach items="${relatedLessons}" var="lesson" varStatus="status">
-                            <a href="//student/lessons/${lesson.id}""
+                            <a href="${pageContext.request.contextPath}/student/lessons/${lesson.id}""
                                class="btn btn-sm btn-outline-primary">
                                     ${lesson.title}
                             </a>
@@ -652,14 +652,14 @@
         <div class="action-buttons">
             <div class="d-flex justify-content-center gap-3 flex-wrap">
                 <!-- Back to Course -->
-                <a href="//student/courses/${quiz.course.id}""
+                <a href="${pageContext.request.contextPath}/student/courses/${quiz.course.id}""
                    class="btn btn-outline-primary">
                     <i class="fas fa-arrow-left me-2"></i>Quay lại khóa học
                 </a>
 
                 <!-- Retake Quiz -->
                 <c:if test="${quiz.allowRetake && quizResult.attemptCount < quiz.maxAttempts}">
-                    <a href="//student/quiz/${quiz.id}""
+                    <a href="${pageContext.request.contextPath}/student/quiz/${quiz.id}""
                        class="btn btn-warning">
                         <i class="fas fa-redo me-2"></i>Làm lại bài kiểm tra
                     </a>
@@ -676,7 +676,7 @@
                 </button>
 
                 <!-- Download PDF -->
-                <a href="//student/quiz/${quiz.id}/result/pdf""
+                <a href="${pageContext.request.contextPath}/student/quiz/${quiz.id}/result/pdf""
                    class="btn btn-outline-secondary">
                     <i class="fas fa-file-pdf me-2"></i>Tải PDF
                 </a>
