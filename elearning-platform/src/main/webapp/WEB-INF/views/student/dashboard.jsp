@@ -791,7 +791,7 @@
                             <div class="course-header">
                                 <c:choose>
                                     <c:when test="${course.thumbnailPath != null}">
-                                        <img src="${pageContext.request.contextPath}/images/courses/${course.thumbnailPath}""
+                                        <img src="${pageContext.request.contextPath}/images/courses/${course.thumbnailPath}"
                                              alt="${course.name}" class="course-thumbnail">
                                     </c:when>
                                     <c:otherwise>
@@ -822,12 +822,12 @@
                             <div class="course-actions">
                                 <c:choose>
                                     <c:when test="${course.progressPercentage >= 100}">
-                                        <a href="${pageContext.request.contextPath}/student/certificates/${course.id}"" class="btn-certificate">
+                                        <a href="${pageContext.request.contextPath}/student/certificates/${course.id}" class="btn-certificate">
                                             <i class="fas fa-certificate me-1"></i>Nhận chứng chỉ
                                         </a>
                                     </c:when>
                                     <c:otherwise>
-                                        <a href="${pageContext.request.contextPath}/student/course/${course.id}"" class="btn-continue">
+                                        <a href="${pageContext.request.contextPath}/student/course/${course.id}" class="btn-continue">
                                             <i class="fas fa-play me-1"></i>Tiếp tục học
                                         </a>
                                     </c:otherwise>
@@ -982,7 +982,7 @@
                     <div class="recommendation-item">
                         <c:choose>
                             <c:when test="${course.thumbnailPath != null}">
-                                <img src="${pageContext.request.contextPath}/images/courses/${course.thumbnailPath}""
+                                <img src="${pageContext.request.contextPath}/images/courses/${course.thumbnailPath}"
                                      alt="${course.name}" class="recommendation-thumbnail">
                             </c:when>
                             <c:otherwise>
@@ -1005,7 +1005,7 @@
                             </div>
                         </div>
 
-                        <a href="${pageContext.request.contextPath}/courses/${course.id}"" class="btn-enroll">
+                        <a href="${pageContext.request.contextPath}/courses/${course.id}" class="btn-enroll">
                             <i class="fas fa-plus me-1"></i>Đăng ký
                         </a>
                     </div>

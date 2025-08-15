@@ -109,7 +109,7 @@
                     <div class="card-body">
                         <div class="row align-items-center">
                             <div class="col-auto">
-                                <img src="${pageContext.request.contextPath}/images/courses/${course.imageUrl}""
+                                <img src="${pageContext.request.contextPath}/images/courses/${course.imageUrl}"
                                      alt="${course.name}"
                                      class="course-thumbnail"
                                      style="width: 60px; height: 45px; object-fit: cover; border-radius: 6px;"
@@ -429,7 +429,7 @@
                                         </c:if>
 
                                         <!-- Cancel Button -->
-                                        <a href="${pageContext.request.contextPath}/instructor/lessons?courseId=${course.id}""
+                                        <a href="${pageContext.request.contextPath}/instructor/lessons?courseId=${course.id}"
                                            class="btn btn-outline-secondary">
                                             <i class="fas fa-times me-2"></i>
                                             Hủy

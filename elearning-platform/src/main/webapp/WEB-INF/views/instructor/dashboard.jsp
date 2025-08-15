@@ -670,7 +670,7 @@
                         <div class="course-item">
                             <c:choose>
                                 <c:when test="${course.thumbnailPath != null}">
-                                    <img src="${pageContext.request.contextPath}/images/courses/${course.thumbnailPath}""
+                                    <img src="${pageContext.request.contextPath}/images/courses/${course.thumbnailPath}"
                                          alt="${course.name}" class="course-thumbnail">
                                 </c:when>
                                 <c:otherwise>

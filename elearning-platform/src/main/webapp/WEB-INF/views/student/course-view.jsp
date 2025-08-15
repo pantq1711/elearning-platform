@@ -272,7 +272,7 @@
                             <!-- Navigation -->
                             <div class="lesson-navigation d-flex justify-content-between">
                                 <c:if test="${not empty previousLesson}">
-                                    <a href="${pageContext.request.contextPath}/student/courses/${course.id}/lessons/${previousLesson.id}""
+                                    <a href="${pageContext.request.contextPath}/student/courses/${course.id}/lessons/${previousLesson.id}"
                                        class="btn btn-outline-secondary">
                                         <i class="fas fa-chevron-left me-2"></i>Bài trước
                                     </a>
@@ -281,7 +281,7 @@
                                 <div class="flex-grow-1"></div>
 
                                 <c:if test="${not empty nextLesson}">
-                                    <a href="${pageContext.request.contextPath}/student/courses/${course.id}/lessons/${nextLesson.id}""
+                                    <a href="${pageContext.request.contextPath}/student/courses/${course.id}/lessons/${nextLesson.id}"
                                        class="btn btn-primary">
                                         Bài tiếp theo<i class="fas fa-chevron-right ms-2"></i>
                                     </a>
@@ -356,7 +356,7 @@
                                                                     <i class="fas fa-eye me-1"></i>Xem kết quả
                                                                 </a>
                                                                 <c:if test="${quiz.allowRetake}">
-                                                                    <a href="${pageContext.request.contextPath}/student/quiz/${quiz.id}""
+                                                                    <a href="${pageContext.request.contextPath}/student/quiz/${quiz.id}"
                                                                        class="btn btn-warning btn-sm">
                                                                         <i class="fas fa-redo me-1"></i>Làm lại
                                                                     </a>
@@ -374,7 +374,7 @@
                                                     </c:when>
                                                     <c:otherwise>
                                                         <div class="text-center">
-                                                            <a href="${pageContext.request.contextPath}/student/quiz/${quiz.id}""
+                                                            <a href="${pageContext.request.contextPath}/student/quiz/${quiz.id}"
                                                                class="btn btn-warning">
                                                                 <i class="fas fa-play me-2"></i>Bắt đầu làm bài
                                                             </a>
@@ -431,7 +431,7 @@
                                     <div class="discussion-card card">
                                         <div class="card-body">
                                             <div class="d-flex align-items-start">
-                                                <img src="${pageContext.request.contextPath}/images/avatars/${discussion.author.avatar}""
+                                                <img src="${pageContext.request.contextPath}/images/avatars/${discussion.author.avatar}"
                                                      alt="${discussion.author.fullName}"
                                                      class="rounded-circle me-3"
                                                      style="width: 40px; height: 40px; object-fit: cover;"
@@ -491,7 +491,7 @@
                                                             <c:forEach items="${discussion.replies}" var="reply">
                                                                 <div class="reply-item mb-2">
                                                                     <div class="d-flex align-items-start">
-                                                                        <img src="${pageContext.request.contextPath}/images/avatars/${reply.author.avatar}""
+                                                                        <img src="${pageContext.request.contextPath}/images/avatars/${reply.author.avatar}"
                                                                              alt="${reply.author.fullName}"
                                                                              class="rounded-circle me-2"
                                                                              style="width: 24px; height: 24px; object-fit: cover;">
@@ -668,7 +668,7 @@
                         <i class="fas fa-chalkboard-teacher me-2"></i>Giảng viên
                     </h6>
                     <div class="d-flex align-items-center">
-                        <img src="${pageContext.request.contextPath}/images/avatars/${course.instructor.avatar}""
+                        <img src="${pageContext.request.contextPath}/images/avatars/${course.instructor.avatar}"
                              alt="${course.instructor.fullName}"
                              class="rounded-circle me-3"
                              style="width: 50px; height: 50px; object-fit: cover;"

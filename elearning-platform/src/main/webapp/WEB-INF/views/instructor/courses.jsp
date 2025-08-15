@@ -667,7 +667,7 @@
                             <div class="course-thumbnail">
                                 <c:choose>
                                     <c:when test="${course.thumbnailPath != null}">
-                                        <img src="${pageContext.request.contextPath}/images/courses/${course.thumbnailPath}""
+                                        <img src="${pageContext.request.contextPath}/images/courses/${course.thumbnailPath}"
                                              alt="${course.name}"
                                              class="course-thumbnail">
                                     </c:when>
@@ -746,7 +746,7 @@
                                     </a>
 
                                     <!-- View Course -->
-                                    <a href="${pageContext.request.contextPath}/courses/${course.id}""
+                                    <a href="${pageContext.request.contextPath}/courses/${course.id}"
                                        class="btn-sm-custom btn-outline-sm"
                                        target="_blank">
                                         <i class="fas fa-eye"></i>Xem

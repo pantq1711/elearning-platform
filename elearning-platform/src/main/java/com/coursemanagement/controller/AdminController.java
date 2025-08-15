@@ -1,5 +1,8 @@
 package com.coursemanagement.controller;
-
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.ValidationException;
 import com.coursemanagement.entity.*;
 import com.coursemanagement.service.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,7 +34,7 @@ import java.util.Optional;
 @PreAuthorize("hasRole('ADMIN')")
 public class    AdminController {
 
-    @Autowired
+    @Autowired  
     private UserService userService;
 
     @Autowired
@@ -53,6 +56,10 @@ public class    AdminController {
      * Dashboard chính của admin
      * Hiển thị thống kê tổng quan và các chỉ số quan trọng
      */
+    /**
+     * Dashboard chính của admin
+     * Hiển thị thống kê tổng quan và các chỉ số quan trọng
+     */
     @GetMapping("/dashboard")
     public String dashboard(Model model, Authentication authentication) {
         try {
@@ -70,42 +77,158 @@ public class    AdminController {
             model.addAttribute("totalEnrollments", totalEnrollments);
             model.addAttribute("totalActiveUsers", totalActiveUsers);
 
-            // Thống kê theo role
+            // Thống kê user theo role
             model.addAttribute("totalStudents", userService.countUsersByRole(User.Role.STUDENT));
             model.addAttribute("totalInstructors", userService.countUsersByRole(User.Role.INSTRUCTOR));
             model.addAttribute("totalAdmins", userService.countUsersByRole(User.Role.ADMIN));
 
-            // Thống kê khóa học
-            model.addAttribute("activeCourses", courseService.countActiveCourses());
-            model.addAttribute("featuredCourses", courseService.countFeaturedCourses());
-            model.addAttribute("completedCourses", enrollmentService.countCompletedEnrollments());
-
-            // Đăng ký gần đây
+            // Thống kê enrollment gần đây
             List<Enrollment> recentEnrollments = enrollmentService.findRecentEnrollments(10);
             model.addAttribute("recentEnrollments", recentEnrollments);
 
-            // Khóa học phổ biến
+            // Thống kê khóa học phổ biến
             List<Course> popularCourses = courseService.findMostPopularCourses(5);
             model.addAttribute("popularCourses", popularCourses);
 
-            // Giảng viên hoạt động
-            List<User> activeInstructors = userService.findActiveInstructors();
-            model.addAttribute("activeInstructors", activeInstructors);
 
-            // Thống kê theo tháng (cho biểu đồ)
-            Map<String, Object> monthlyEnrollments = enrollmentService.getEnrollmentStatisticsByMonth();
-            model.addAttribute("monthlyEnrollments", monthlyEnrollments);
-
-            // Thống kê completion rate
-            Double averageCompletionRate = enrollmentService.getAverageCompletionRate();
-            model.addAttribute("averageCompletionRate", averageCompletionRate);
+            // Average completion rate
+            try {
+                Double averageCompletionRate = enrollmentService.getAverageCompletionRate();
+                model.addAttribute("averageCompletionRate", averageCompletionRate != null ? averageCompletionRate : 0.0);
+            } catch (Exception e) {
+                model.addAttribute("averageCompletionRate", 0.0);
+            }
 
             return "admin/dashboard";
 
         } catch (Exception e) {
             model.addAttribute("error", "Có lỗi xảy ra khi tải dashboard: " + e.getMessage());
+            // Đảm bảo có currentUser trong model ngay cả khi có lỗi
+            if (authentication != null && authentication.getPrincipal() instanceof User) {
+                model.addAttribute("currentUser", (User) authentication.getPrincipal());
+            }
             return "admin/dashboard";
         }
+    }
+    /**
+     * Exception handler cho các lỗi parameter binding
+     */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public String handleTypeMismatch(MethodArgumentTypeMismatchException e,
+                                     Model model,
+                                     Authentication authentication,
+                                     HttpServletRequest request) {
+
+        System.err.println("Parameter type mismatch: " + e.getMessage());
+        System.err.println("Request URL: " + request.getRequestURL());
+        System.err.println("Parameter name: " + e.getName());
+        System.err.println("Parameter value: " + e.getValue());
+
+        if (authentication != null) {
+            model.addAttribute("currentUser", (User) authentication.getPrincipal());
+        }
+
+        // Nếu lỗi xảy ra trong user endpoint, redirect về users list
+        if (request.getRequestURI().contains("/admin/users")) {
+            return "redirect:/admin/users?error=invalid_parameter";
+        }
+
+        model.addAttribute("error", "Tham số không hợp lệ. Vui lòng thử lại.");
+        return "error/400";
+    }
+
+    /**
+     * Exception handler cho các lỗi validation
+     */
+    @ExceptionHandler(ValidationException.class)
+    public String handleValidation(ValidationException e,
+                                   Model model,
+                                   Authentication authentication) {
+
+        System.err.println("Validation error: " + e.getMessage());
+
+        if (authentication != null) {
+            model.addAttribute("currentUser", (User) authentication.getPrincipal());
+        }
+
+        model.addAttribute("error", "Dữ liệu không hợp lệ: " + e.getMessage());
+        return "error/400";
+    }
+
+    /**
+     * Exception handler cho lỗi resource not found
+     */
+    @ExceptionHandler(RuntimeException.class)
+    public String handleRuntimeException(RuntimeException e,
+                                         Model model,
+                                         Authentication authentication,
+                                         HttpServletRequest request) {
+
+        System.err.println("Runtime exception in AdminController: " + e.getMessage());
+        System.err.println("Request URL: " + request.getRequestURL());
+        e.printStackTrace();
+
+        if (authentication != null) {
+            model.addAttribute("currentUser", (User) authentication.getPrincipal());
+        }
+
+        // Specific handling for common errors
+        String errorMessage = e.getMessage();
+        if (errorMessage != null) {
+            if (errorMessage.contains("Không tìm thấy")) {
+                model.addAttribute("error", errorMessage);
+                return "error/404";
+            }
+            if (errorMessage.contains("Không có quyền")) {
+                model.addAttribute("error", errorMessage);
+                return "error/403";
+            }
+        }
+
+        model.addAttribute("error", "Có lỗi xảy ra: " + errorMessage);
+        return "error/500";
+    }
+
+    /**
+     * Exception handler chung cho tất cả các lỗi khác
+     */
+    @ExceptionHandler(Exception.class)
+    public String handleGenericException(Exception e,
+                                         Model model,
+                                         Authentication authentication,
+                                         HttpServletRequest request) {
+
+        System.err.println("Generic exception in AdminController: " + e.getMessage());
+        System.err.println("Request URL: " + request.getRequestURL());
+        System.err.println("Exception type: " + e.getClass().getName());
+        e.printStackTrace();
+
+        if (authentication != null) {
+            model.addAttribute("currentUser", (User) authentication.getPrincipal());
+        }
+
+        model.addAttribute("error", "Có lỗi hệ thống xảy ra. Vui lòng thử lại sau.");
+        model.addAttribute("errorDetails", e.getMessage());
+
+        return "error/500";
+    }
+
+    /**
+     * Helper method để log errors một cách có cấu trúc
+     */
+    private void logError(String operation, Exception e, HttpServletRequest request, Authentication auth) {
+        StringBuilder logBuilder = new StringBuilder();
+        logBuilder.append("\n========== ADMIN CONTROLLER ERROR ==========\n");
+        logBuilder.append("Operation: ").append(operation).append("\n");
+        logBuilder.append("URL: ").append(request.getRequestURL()).append("\n");
+        logBuilder.append("Method: ").append(request.getMethod()).append("\n");
+        logBuilder.append("User: ").append(auth != null ? ((User) auth.getPrincipal()).getUsername() : "Anonymous").append("\n");
+        logBuilder.append("Time: ").append(LocalDateTime.now()).append("\n");
+        logBuilder.append("Error: ").append(e.getMessage()).append("\n");
+        logBuilder.append("Exception: ").append(e.getClass().getName()).append("\n");
+        logBuilder.append("============================================\n");
+
+        System.err.println(logBuilder.toString());
     }
 
     /**

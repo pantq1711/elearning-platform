@@ -58,29 +58,6 @@ public class UserService implements UserDetailsService {
         return user;
     }
 
-    /**
-     * DEBUG: Test password matching
-     */
-    public void testPasswordMatching(String username, String rawPassword) {
-        try {
-            Optional<User> userOpt = findByUsername(username);
-            if (userOpt.isPresent()) {
-                User user = userOpt.get();
-                boolean matches = passwordEncoder.matches(rawPassword, user.getPassword());
-                System.out.println("🔍 Password test for user: " + username);
-                System.out.println("🔍 Raw password: " + rawPassword);
-                System.out.println("🔍 Encoded password: " + user.getPassword());
-                System.out.println("🔍 Password matches: " + matches);
-                System.out.println("🔍 User active: " + user.isActive());
-                System.out.println("🔍 User role: " + user.getRole());
-            } else {
-                System.out.println("❌ User not found: " + username);
-            }
-        } catch (Exception e) {
-            System.out.println("❌ Error testing password: " + e.getMessage());
-            e.printStackTrace();
-        }
-    }
     // ===== CÁC THAO TÁC CRUD CƠ BẢN =====
 
     public Optional<User> findById(Long id) {

@@ -751,7 +751,7 @@
                                             <div class="course-card">
                                                 <!-- Course Image -->
                                                 <div class="course-image">
-                                                    <img src="${pageContext.request.contextPath}/images/courses/${course.thumbnail}""
+                                                    <img src="${pageContext.request.contextPath}/images/courses/${course.thumbnail}"
                                                          alt="${course.name}"
                                                          onerror="this.src='/images/course-default.jpg"'">
 
@@ -794,7 +794,7 @@
 
                                                     <!-- Course Instructor -->
                                                     <div class="course-instructor">
-                                                        <img src="${pageContext.request.contextPath}/images/avatars/${course.instructor.avatar}""
+                                                        <img src="${pageContext.request.contextPath}/images/avatars/${course.instructor.avatar}"
                                                              alt="${course.instructor.fullName}"
                                                              class="instructor-avatar"
                                                              onerror="this.src='/images/avatar-default.png"'">

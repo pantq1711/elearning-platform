@@ -73,6 +73,13 @@ public class User implements UserDetails {
     /**
      * Enum cho các role trong hệ thống
      */
+    public String getAvatar() {
+        return this.profileImageUrl;
+    }
+
+    public String getAvatarPath() {
+        return this.profileImageUrl;
+    }
     public enum Role {
         ADMIN("Quản trị viên"),
         INSTRUCTOR("Giảng viên"),

@@ -577,9 +577,9 @@
                 <!-- User Dropdown -->
                 <div class="dropdown">
                     <a href="#" class="user-dropdown" data-bs-toggle="dropdown">
-                        <img src="${pageContext.request.contextPath}/images/avatars/${currentUser.avatar}""
+                        <img src="${currentUser.avatarUrl != null ? currentUser.avatarUrl : '/images/avatar-default.png'}"
                              alt="${currentUser.fullName}" class="user-avatar"
-                             onerror="this.src='/images/avatar-default.png"'">
+                             onerror="this.src='/images/avatar-default.png'">
                         <div>
                             <div class="fw-bold">${currentUser.fullName}</div>
                             <small class="text-muted">Quản trị viên</small>

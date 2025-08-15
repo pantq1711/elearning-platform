@@ -674,7 +674,7 @@
                             <div class="course-thumbnail">
                                 <c:choose>
                                     <c:when test="${enrollment.course.thumbnailPath != null}">
-                                        <img src="${pageContext.request.contextPath}/images/courses/${enrollment.course.thumbnailPath}""
+                                        <img src="${pageContext.request.contextPath}/images/courses/${enrollment.course.thumbnailPath}"
                                              alt="${enrollment.course.name}"
                                              class="course-thumbnail">
                                     </c:when>
@@ -758,7 +758,7 @@
                                     <c:choose>
                                         <c:when test="${enrollment.status == 'COMPLETED'}">
                                             <!-- Show certificate if completed -->
-                                            <a href="${pageContext.request.contextPath}/student/certificates/${enrollment.course.id}""
+                                            <a href="${pageContext.request.contextPath}/student/certificates/${enrollment.course.id}"
                                                class="btn-success-custom">
                                                 <i class="fas fa-certificate"></i>Xem chứng chỉ
                                             </a>

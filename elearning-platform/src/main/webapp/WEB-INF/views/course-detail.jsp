@@ -789,7 +789,7 @@
                     </h2>
 
                     <div class="instructor-card">
-                        <img src="${pageContext.request.contextPath}/images/avatars/${course.instructor.avatar}""
+                        <img src="${pageContext.request.contextPath}/images/avatars/${course.instructor.avatar}"
                              alt="${course.instructor.fullName}"
                              class="instructor-avatar"
                              onerror="this.src='/images/avatar-default.png"'">
@@ -885,7 +885,7 @@
                         <div class="review-card">
                             <div class="review-header">
                                 <div class="reviewer-info">
-                                    <img src="${pageContext.request.contextPath}/images/avatars/${review.student.avatar}""
+                                    <img src="${pageContext.request.contextPath}/images/avatars/${review.student.avatar}"
                                          alt="${review.student.fullName}"
                                          class="reviewer-avatar"
                                          onerror="this.src='/images/avatar-default.png"'">
@@ -916,7 +916,7 @@
                     <!-- Course Preview -->
                     <div class="course-preview">
                         <div class="preview-video" onclick="playPreview()">
-                            <img src="${pageContext.request.contextPath}/images/courses/${course.thumbnail}""
+                            <img src="${pageContext.request.contextPath}/images/courses/${course.thumbnail}"
                                  alt="${course.name}"
                                  onerror="this.src='/images/course-default.jpg"'">
                             <div class="play-button">
@@ -962,7 +962,7 @@
                             <sec:authorize access="isAuthenticated()">
                                 <c:choose>
                                     <c:when test="${isEnrolled}">
-                                        <a href="${pageContext.request.contextPath}/student/courses/${course.id}""
+                                        <a href="${pageContext.request.contextPath}/student/courses/${course.id}"
                                            class="btn btn-enrolled enroll-btn">
                                             <i class="fas fa-play me-2"></i>Tiếp tục học
                                         </a>
@@ -1016,7 +1016,7 @@
 
                             <c:forEach items="${relatedCourses}" var="relatedCourse">
                                 <div class="course-card-small">
-                                    <img src="${pageContext.request.contextPath}/images/courses/${relatedCourse.thumbnail}""
+                                    <img src="${pageContext.request.contextPath}/images/courses/${relatedCourse.thumbnail}"
                                          alt="${relatedCourse.name}" class="course-thumbnail"
                                          onerror="this.src='/images/course-default.jpg"'">
                                     <div class="course-info-small">

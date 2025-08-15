@@ -559,9 +559,9 @@
                                         </td>
                                         <td>
                                             <div class="user-info">
-                                                <img src="${pageContext.request.contextPath}/images/avatars/${user.avatar}""
+                                                <img src="${user.avatarUrl != null ? user.avatarUrl : '/images/avatar-default.png'}"
                                                      alt="${user.fullName}" class="user-avatar"
-                                                     onerror="this.src='/images/avatar-default.png"'">
+                                                     onerror="this.src='/images/avatar-default.png'">
                                                 <div class="user-details">
                                                     <h6>${user.fullName}</h6>
                                                     <small>${user.email}</small>

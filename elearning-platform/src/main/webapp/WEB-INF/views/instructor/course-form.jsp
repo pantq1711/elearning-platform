@@ -539,7 +539,7 @@
         <!-- Course Form -->
         <div class="form-container">
             <form method="POST"
-                  ${course != null ? "/instructor/courses/".concat(course.id).concat("/edit") : "/instructor/courses/new"}""
+                  ${course != null ? "/instructor/courses/".concat(course.id).concat("/edit") : "/instructor/courses/new"}"
                   enctype="multipart/form-data"
                   id="courseForm"
                   novalidate>
@@ -679,7 +679,7 @@
                         <c:if test="${course != null && course.thumbnailPath != null}">
                             <div class="mt-3">
                                 <div class="form-text">Ảnh hiện tại:</div>
-                                <img src="${pageContext.request.contextPath}/images/courses/${course.thumbnailPath}""
+                                <img src="${pageContext.request.contextPath}/images/courses/${course.thumbnailPath}"
                                      alt="${course.name}"
                                      class="img-thumbnail mt-2"
                                      style="max-width: 200px;">
@@ -903,7 +903,7 @@
                     Xem trước khóa học
                 </div>
                 <div class="preview-content">
-                    <a href="${pageContext.request.contextPath}/courses/${course.id}""
+                    <a href="${pageContext.request.contextPath}/courses/${course.id}"
                        target="_blank"
                        class="btn-primary-custom">
                         <i class="fas fa-external-link-alt"></i>

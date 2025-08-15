@@ -368,7 +368,7 @@
                                                 </td>
                                                 <td>
                                                     <div class="d-flex align-items-center">
-                                                        <img src="${pageContext.request.contextPath}/images/courses/${quiz.course.imageUrl}""
+                                                        <img src="${pageContext.request.contextPath}/images/courses/${quiz.course.imageUrl}"
                                                              alt="${quiz.course.name}"
                                                              class="me-2"
                                                              style="width: 32px; height: 24px; object-fit: cover; border-radius: 4px;"
@@ -428,7 +428,7 @@
                                                 <td>
                                                     <div class="quiz-actions">
                                                         <!-- Xem chi tiết -->
-                                                        <a href="${pageContext.request.contextPath}/instructor/quizzes/${quiz.id}""
+                                                        <a href="${pageContext.request.contextPath}/instructor/quizzes/${quiz.id}"
                                                            class="btn btn-sm btn-outline-info" title="Xem chi tiết">
                                                             <i class="fas fa-eye"></i>
                                                         </a>
