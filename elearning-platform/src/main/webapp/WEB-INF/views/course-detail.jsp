@@ -646,15 +646,15 @@
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb">
                 <li class="breadcrumb-item">
-                    <a href="<c:url value='/' />">
+                    <a href="//"">
                         <i class="fas fa-home me-1"></i>Trang chủ
                     </a>
                 </li>
                 <li class="breadcrumb-item">
-                    <a href="<c:url value='/courses' />">Khóa học</a>
+                    <a href="//courses"">Khóa học</a>
                 </li>
                 <li class="breadcrumb-item">
-                    <a href="<c:url value='/courses?category=${course.category.name}' />">${course.category.name}</a>
+                    <a href="//courses?category=${course.category.name}"">${course.category.name}</a>
                 </li>
                 <li class="breadcrumb-item active">${course.name}</li>
             </ol>
@@ -789,10 +789,10 @@
                     </h2>
 
                     <div class="instructor-card">
-                        <img src="<c:url value='/images/avatars/${course.instructor.avatar}' />"
+                        <img src="${pageContext.request.contextPath}/images/avatars/${course.instructor.avatar}""
                              alt="${course.instructor.fullName}"
                              class="instructor-avatar"
-                             onerror="this.src='<c:url value='/images/avatar-default.png' />'">
+                             onerror="this.src='/images/avatar-default.png"'">
                         <div class="instructor-info">
                             <h6>${course.instructor.fullName}</h6>
                             <div class="instructor-role">${course.instructor.title}</div>
@@ -885,10 +885,10 @@
                         <div class="review-card">
                             <div class="review-header">
                                 <div class="reviewer-info">
-                                    <img src="<c:url value='/images/avatars/${review.student.avatar}' />"
+                                    <img src="${pageContext.request.contextPath}/images/avatars/${review.student.avatar}""
                                          alt="${review.student.fullName}"
                                          class="reviewer-avatar"
-                                         onerror="this.src='<c:url value='/images/avatar-default.png' />'">
+                                         onerror="this.src='/images/avatar-default.png"'">
                                     <div>
                                         <div class="reviewer-name">${review.student.fullName}</div>
                                         <div class="review-date">
@@ -916,9 +916,9 @@
                     <!-- Course Preview -->
                     <div class="course-preview">
                         <div class="preview-video" onclick="playPreview()">
-                            <img src="<c:url value='/images/courses/${course.thumbnail}' />"
+                            <img src="${pageContext.request.contextPath}/images/courses/${course.thumbnail}""
                                  alt="${course.name}"
-                                 onerror="this.src='<c:url value='/images/course-default.jpg' />'">
+                                 onerror="this.src='/images/course-default.jpg"'">
                             <div class="play-button">
                                 <i class="fas fa-play"></i>
                             </div>
@@ -954,7 +954,7 @@
 
                             <!-- Enrollment Button -->
                             <sec:authorize access="!isAuthenticated()">
-                                <a href="<c:url value='/login' />" class="btn btn-enroll enroll-btn">
+                                <a href="//login"" class="btn btn-enroll enroll-btn">
                                     <i class="fas fa-sign-in-alt me-2"></i>Đăng nhập để đăng ký
                                 </a>
                             </sec:authorize>
@@ -962,7 +962,7 @@
                             <sec:authorize access="isAuthenticated()">
                                 <c:choose>
                                     <c:when test="${isEnrolled}">
-                                        <a href="<c:url value='/student/courses/${course.id}' />"
+                                        <a href="//student/courses/${course.id}""
                                            class="btn btn-enrolled enroll-btn">
                                             <i class="fas fa-play me-2"></i>Tiếp tục học
                                         </a>
@@ -1016,12 +1016,12 @@
 
                             <c:forEach items="${relatedCourses}" var="relatedCourse">
                                 <div class="course-card-small">
-                                    <img src="<c:url value='/images/courses/${relatedCourse.thumbnail}' />"
+                                    <img src="${pageContext.request.contextPath}/images/courses/${relatedCourse.thumbnail}""
                                          alt="${relatedCourse.name}" class="course-thumbnail"
-                                         onerror="this.src='<c:url value='/images/course-default.jpg' />'">
+                                         onerror="this.src='/images/course-default.jpg"'">
                                     <div class="course-info-small">
                                         <div class="course-title-small">
-                                            <a href="<c:url value='/courses/${relatedCourse.id}' />">
+                                            <a href="//courses/${relatedCourse.id}"">
                                                     ${relatedCourse.name}
                                             </a>
                                         </div>

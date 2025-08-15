@@ -497,7 +497,7 @@
                 <nav aria-label="breadcrumb">
                     <ol class="breadcrumb">
                         <li class="breadcrumb-item">
-                            <a href="<c:url value='/' />">
+                            <a href="//"">
                                 <i class="fas fa-home me-1"></i>Trang chủ
                             </a>
                         </li>
@@ -533,7 +533,7 @@
                         <i class="fas fa-sliders-h me-2"></i>Bộ Lọc
                     </h5>
 
-                    <form method="GET" action="<c:url value='/courses' />" id="filterForm">
+                    <form method="GET" action="//courses"" id="filterForm">
                         <!-- Search Input (Hidden, maintained from URL) -->
                         <input type="hidden" name="search" value="${param.search}">
 
@@ -751,9 +751,9 @@
                                             <div class="course-card">
                                                 <!-- Course Image -->
                                                 <div class="course-image">
-                                                    <img src="<c:url value='/images/courses/${course.thumbnail}' />"
+                                                    <img src="${pageContext.request.contextPath}/images/courses/${course.thumbnail}""
                                                          alt="${course.name}"
-                                                         onerror="this.src='<c:url value='/images/course-default.jpg' />'">
+                                                         onerror="this.src='/images/course-default.jpg"'">
 
                                                     <!-- Course Badges -->
                                                     <div class="course-badges">
@@ -782,7 +782,7 @@
 
                                                     <!-- Course Title -->
                                                     <h5 class="course-title">
-                                                        <a href="<c:url value='/courses/${course.id}' />">
+                                                        <a href="//courses/${course.id}"">
                                                                 ${course.name}
                                                         </a>
                                                     </h5>
@@ -794,10 +794,10 @@
 
                                                     <!-- Course Instructor -->
                                                     <div class="course-instructor">
-                                                        <img src="<c:url value='/images/avatars/${course.instructor.avatar}' />"
+                                                        <img src="${pageContext.request.contextPath}/images/avatars/${course.instructor.avatar}""
                                                              alt="${course.instructor.fullName}"
                                                              class="instructor-avatar"
-                                                             onerror="this.src='<c:url value='/images/avatar-default.png' />'">
+                                                             onerror="this.src='/images/avatar-default.png"'">
                                                         <span class="instructor-name">${course.instructor.fullName}</span>
                                                     </div>
 
@@ -862,7 +862,7 @@
                                     <!-- Previous Page -->
                                     <c:if test="${coursePage.hasPrevious()}">
                                         <li class="page-item">
-                                            <a class="page-link" href="<c:url value='/courses?page=${coursePage.number - 1}&${queryString}' />">
+                                            <a class="page-link" href="//courses?page=${coursePage.number - 1}&${queryString}"">
                                                 <i class="fas fa-chevron-left"></i>
                                             </a>
                                         </li>
@@ -872,7 +872,7 @@
                                     <c:forEach begin="0" end="${coursePage.totalPages - 1}" var="pageNum">
                                         <c:if test="${pageNum >= coursePage.number - 2 && pageNum <= coursePage.number + 2}">
                                             <li class="page-item ${pageNum == coursePage.number ? 'active' : ''}">
-                                                <a class="page-link" href="<c:url value='/courses?page=${pageNum}&${queryString}' />">
+                                                <a class="page-link" href="//courses?page=${pageNum}&${queryString}"">
                                                         ${pageNum + 1}
                                                 </a>
                                             </li>
@@ -882,7 +882,7 @@
                                     <!-- Next Page -->
                                     <c:if test="${coursePage.hasNext()}">
                                         <li class="page-item">
-                                            <a class="page-link" href="<c:url value='/courses?page=${coursePage.number + 1}&${queryString}' />">
+                                            <a class="page-link" href="//courses?page=${coursePage.number + 1}&${queryString}"">
                                                 <i class="fas fa-chevron-right"></i>
                                             </a>
                                         </li>

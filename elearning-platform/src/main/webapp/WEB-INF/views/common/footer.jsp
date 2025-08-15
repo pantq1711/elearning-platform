@@ -51,22 +51,22 @@
                 <h6 class="fw-bold text-primary">Liên Kết Nhanh</h6>
                 <ul class="list-unstyled">
                     <li class="mb-2">
-                        <a href="<c:url value='/' />" class="text-light text-decoration-none hover-primary">
+                        <a href="//"" class="text-light text-decoration-none hover-primary">
                             <i class="fas fa-home me-2"></i>Trang Chủ
                         </a>
                     </li>
                     <li class="mb-2">
-                        <a href="<c:url value='/courses' />" class="text-light text-decoration-none hover-primary">
+                        <a href="//courses"" class="text-light text-decoration-none hover-primary">
                             <i class="fas fa-book me-2"></i>Khóa Học
                         </a>
                     </li>
                     <li class="mb-2">
-                        <a href="<c:url value='/about' />" class="text-light text-decoration-none hover-primary">
+                        <a href="//about"" class="text-light text-decoration-none hover-primary">
                             <i class="fas fa-info-circle me-2"></i>Giới Thiệu
                         </a>
                     </li>
                     <li class="mb-2">
-                        <a href="<c:url value='/contact' />" class="text-light text-decoration-none hover-primary">
+                        <a href="//contact"" class="text-light text-decoration-none hover-primary">
                             <i class="fas fa-envelope me-2"></i>Liên Hệ
                         </a>
                     </li>
@@ -83,31 +83,31 @@
                 <h6 class="fw-bold text-primary">Danh Mục Phổ Biến</h6>
                 <ul class="list-unstyled">
                     <li class="mb-2">
-                        <a href="<c:url value='/courses?category=Programming' />"
+                        <a href="//courses?category=Programming""
                            class="text-light text-decoration-none hover-primary">
                             <i class="fas fa-code me-2"></i>Lập Trình
                         </a>
                     </li>
                     <li class="mb-2">
-                        <a href="<c:url value='/courses?category=Design' />"
+                        <a href="//courses?category=Design""
                            class="text-light text-decoration-none hover-primary">
                             <i class="fas fa-paint-brush me-2"></i>Thiết Kế
                         </a>
                     </li>
                     <li class="mb-2">
-                        <a href="<c:url value='/courses?category=Business' />"
+                        <a href="//courses?category=Business""
                            class="text-light text-decoration-none hover-primary">
                             <i class="fas fa-briefcase me-2"></i>Kinh Doanh
                         </a>
                     </li>
                     <li class="mb-2">
-                        <a href="<c:url value='/courses?category=Marketing' />"
+                        <a href="//courses?category=Marketing""
                            class="text-light text-decoration-none hover-primary">
                             <i class="fas fa-bullhorn me-2"></i>Marketing
                         </a>
                     </li>
                     <li class="mb-2">
-                        <a href="<c:url value='/courses?category=Language' />"
+                        <a href="//courses?category=Language""
                            class="text-light text-decoration-none hover-primary">
                             <i class="fas fa-language me-2"></i>Ngoại Ngữ
                         </a>
@@ -172,11 +172,11 @@
                 <h6 class="fw-bold text-primary">Tải Ứng Dụng</h6>
                 <div class="app-links mt-3">
                     <a href="#" class="me-2">
-                        <img src="<c:url value='/images/google-play.png' />"
+                        <img src="${pageContext.request.contextPath}/images/google-play.png"
                              alt="Google Play" style="height: 40px;">
                     </a>
                     <a href="#">
-                        <img src="<c:url value='/images/app-store.png' />"
+                        <img src="${pageContext.request.contextPath}/images/app-store.png"
                              alt="App Store" style="height: 40px;">
                     </a>
                 </div>

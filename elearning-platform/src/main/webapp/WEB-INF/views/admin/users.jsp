@@ -386,7 +386,7 @@
     <!-- Sidebar - include từ dashboard -->
     <aside class="admin-sidebar" id="adminSidebar">
         <div class="sidebar-header">
-            <a href="<c:url value='/admin/dashboard' />" class="sidebar-brand">
+            <a href="/admin/dashboard" class="sidebar-brand">
                 <i class="fas fa-graduation-cap"></i>
                 EduLearn Admin
             </a>
@@ -396,10 +396,10 @@
             <!-- Main Navigation -->
             <div class="menu-section">
                 <div class="menu-title">Tổng quan</div>
-                <a href="<c:url value='/admin/dashboard' />" class="menu-item">
+                <a href="/admin/dashboard" class="menu-item">
                     <i class="fas fa-tachometer-alt"></i>Dashboard
                 </a>
-                <a href="<c:url value='/admin/analytics' />" class="menu-item">
+                <a href="/admin/analytics"" class="menu-item">
                     <i class="fas fa-chart-line"></i>Thống kê & Báo cáo
                 </a>
             </div>
@@ -407,13 +407,13 @@
             <!-- User Management -->
             <div class="menu-section">
                 <div class="menu-title">Quản lý người dùng</div>
-                <a href="<c:url value='/admin/users' />" class="menu-item active">
+                <a href="/admin/users"" class="menu-item active">
                     <i class="fas fa-users"></i>Tất cả người dùng
                 </a>
-                <a href="<c:url value='/admin/users?role=INSTRUCTOR' />" class="menu-item">
+                <a href="/admin/users?role=INSTRUCTOR"" class="menu-item">
                     <i class="fas fa-chalkboard-teacher"></i>Giảng viên
                 </a>
-                <a href="<c:url value='/admin/users?role=STUDENT' />" class="menu-item">
+                <a href="/admin/users?role=STUDENT"" class="menu-item">
                     <i class="fas fa-user-graduate"></i>Học viên
                 </a>
             </div>
@@ -421,13 +421,13 @@
             <!-- Course Management -->
             <div class="menu-section">
                 <div class="menu-title">Quản lý khóa học</div>
-                <a href="<c:url value='/admin/courses' />" class="menu-item">
+                <a href="/admin/courses"" class="menu-item">
                     <i class="fas fa-book"></i>Tất cả khóa học
                 </a>
-                <a href="<c:url value='/admin/categories' />" class="menu-item">
+                <a href="/admin/categories"" class="menu-item">
                     <i class="fas fa-tags"></i>Danh mục
                 </a>
-                <a href="<c:url value='/admin/courses?status=pending' />" class="menu-item">
+                <a href="/admin/courses?status=pending"" class="menu-item">
                     <i class="fas fa-clock"></i>Chờ duyệt
                 </a>
             </div>
@@ -474,7 +474,7 @@
 
             <!-- Search and Filters -->
             <div class="search-filters">
-                <form method="GET" action="<c:url value='/admin/users' />" id="filterForm">
+                <form method="GET" action="/admin/users"" id="filterForm">
                     <div class="filter-row">
                         <div class="filter-group">
                             <label class="form-label">Tìm kiếm</label>
@@ -559,9 +559,9 @@
                                         </td>
                                         <td>
                                             <div class="user-info">
-                                                <img src="<c:url value='/images/avatars/${user.avatar}' />"
+                                                <img src="${pageContext.request.contextPath}/images/avatars/${user.avatar}""
                                                      alt="${user.fullName}" class="user-avatar"
-                                                     onerror="this.src='<c:url value='/images/avatar-default.png' />'">
+                                                     onerror="this.src='/images/avatar-default.png"'">
                                                 <div class="user-details">
                                                     <h6>${user.fullName}</h6>
                                                     <small>${user.email}</small>
@@ -661,7 +661,7 @@
                                 <!-- Previous Page -->
                                 <c:if test="${userPage.hasPrevious()}">
                                     <li class="page-item">
-                                        <a class="page-link" href="<c:url value='/admin/users?page=${userPage.number - 1}&${queryString}' />">
+                                        <a class="page-link" href="/admin/users?page=${userPage.number - 1}&${queryString}"">
                                             <i class="fas fa-chevron-left"></i>
                                         </a>
                                     </li>
@@ -671,7 +671,7 @@
                                 <c:forEach begin="0" end="${userPage.totalPages - 1}" var="pageNum">
                                     <c:if test="${pageNum >= userPage.number - 2 && pageNum <= userPage.number + 2}">
                                         <li class="page-item ${pageNum == userPage.number ? 'active' : ''}">
-                                            <a class="page-link" href="<c:url value='/admin/users?page=${pageNum}&${queryString}' />">
+                                            <a class="page-link" href="/admin/users?page=${pageNum}&${queryString}"">
                                                     ${pageNum + 1}
                                             </a>
                                         </li>
@@ -681,7 +681,7 @@
                                 <!-- Next Page -->
                                 <c:if test="${userPage.hasNext()}">
                                     <li class="page-item">
-                                        <a class="page-link" href="<c:url value='/admin/users?page=${userPage.number + 1}&${queryString}' />">
+                                        <a class="page-link" href="/admin/users?page=${userPage.number + 1}&${queryString}"">
                                             <i class="fas fa-chevron-right"></i>
                                         </a>
                                     </li>
@@ -721,7 +721,7 @@
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form action="<c:url value='/admin/users/create' />" method="POST" id="addUserForm">
+            <form action="/admin/users/create"" method="POST" id="addUserForm">
                 <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}"/>
 
                 <div class="modal-body">
@@ -883,7 +883,7 @@
                 document.getElementById('userDetailContent').innerHTML = `
                         <div class="row">
                             <div class="col-md-4 text-center">
-                                <img src="/images/avatars/${data.avatar || 'default.png'}"
+                                <img src="${pageContext.request.contextPath}/images/avatars/${data.avatar || 'default.png'}"
                                      class="img-fluid rounded-circle mb-3" style="max-width: 150px;">
                                 <h5>${data.fullName}</h5>
                                 <span class="badge bg-primary">${data.role}</span>

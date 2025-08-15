@@ -1,8 +1,6 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
-<%@ taglib prefix="sec" uri="http://www.springframework.org/security/tags" %>
-
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -444,7 +442,7 @@
     <!-- Sidebar -->
     <aside class="admin-sidebar" id="adminSidebar">
         <div class="sidebar-header">
-            <a href="<c:url value='/admin/dashboard' />" class="sidebar-brand">
+            <a href="/admin/dashboard" class="sidebar-brand">
                 <i class="fas fa-graduation-cap"></i>
                 EduLearn Admin
             </a>
@@ -454,10 +452,10 @@
             <!-- Main Navigation -->
             <div class="menu-section">
                 <div class="menu-title">Tổng quan</div>
-                <a href="<c:url value='/admin/dashboard' />" class="menu-item active">
+                <a href="/admin/dashboard" class="menu-item active">
                     <i class="fas fa-tachometer-alt"></i>Dashboard
                 </a>
-                <a href="<c:url value='/admin/analytics' />" class="menu-item">
+                <a href="/admin/analytics"" class="menu-item">
                     <i class="fas fa-chart-line"></i>Thống kê & Báo cáo
                 </a>
             </div>
@@ -465,15 +463,15 @@
             <!-- User Management -->
             <div class="menu-section">
                 <div class="menu-title">Quản lý người dùng</div>
-                <a href="<c:url value='/admin/users' />" class="menu-item">
+                <a href="/admin/users"" class="menu-item">
                     <i class="fas fa-users"></i>Tất cả người dùng
                     <span class="menu-badge">${totalUsers}</span>
                 </a>
-                <a href="<c:url value='/admin/users?role=INSTRUCTOR' />" class="menu-item">
+                <a href="/admin/users?role=INSTRUCTOR"" class="menu-item">
                     <i class="fas fa-chalkboard-teacher"></i>Giảng viên
                     <span class="menu-badge">${totalInstructors}</span>
                 </a>
-                <a href="<c:url value='/admin/users?role=STUDENT' />" class="menu-item">
+                <a href="/admin/users?role=STUDENT"" class="menu-item">
                     <i class="fas fa-user-graduate"></i>Học viên
                     <span class="menu-badge">${totalStudents}</span>
                 </a>
@@ -482,14 +480,14 @@
             <!-- Course Management -->
             <div class="menu-section">
                 <div class="menu-title">Quản lý khóa học</div>
-                <a href="<c:url value='/admin/courses' />" class="menu-item">
+                <a href="/admin/courses"" class="menu-item">
                     <i class="fas fa-book"></i>Tất cả khóa học
                     <span class="menu-badge">${totalCourses}</span>
                 </a>
-                <a href="<c:url value='/admin/categories' />" class="menu-item">
+                <a href="/admin/categories"" class="menu-item">
                     <i class="fas fa-tags"></i>Danh mục
                 </a>
-                <a href="<c:url value='/admin/courses?status=pending' />" class="menu-item">
+                <a href="/admin/courses?status=pending"" class="menu-item">
                     <i class="fas fa-clock"></i>Chờ duyệt
                     <c:if test="${pendingCourses > 0}">
                         <span class="menu-badge">${pendingCourses}</span>
@@ -500,13 +498,13 @@
             <!-- Content Management -->
             <div class="menu-section">
                 <div class="menu-title">Nội dung</div>
-                <a href="<c:url value='/admin/enrollments' />" class="menu-item">
+                <a href="/admin/enrollments"" class="menu-item">
                     <i class="fas fa-user-plus"></i>Đăng ký khóa học
                 </a>
-                <a href="<c:url value='/admin/reviews' />" class="menu-item">
+                <a href="/admin/reviews"" class="menu-item">
                     <i class="fas fa-star"></i>Đánh giá & Phản hồi
                 </a>
-                <a href="<c:url value='/admin/quizzes' />" class="menu-item">
+                <a href="/admin/quizzes"" class="menu-item">
                     <i class="fas fa-question-circle"></i>Bài kiểm tra
                 </a>
             </div>
@@ -514,13 +512,13 @@
             <!-- System Settings -->
             <div class="menu-section">
                 <div class="menu-title">Hệ thống</div>
-                <a href="<c:url value='/admin/settings' />" class="menu-item">
+                <a href="/admin/settings"" class="menu-item">
                     <i class="fas fa-cog"></i>Cài đặt
                 </a>
-                <a href="<c:url value='/admin/backups' />" class="menu-item">
+                <a href="/admin/backups"" class="menu-item">
                     <i class="fas fa-database"></i>Sao lưu dữ liệu
                 </a>
-                <a href="<c:url value='/admin/logs' />" class="menu-item">
+                <a href="/admin/logs"" class="menu-item">
                     <i class="fas fa-file-alt"></i>Nhật ký hệ thống
                 </a>
             </div>
@@ -570,7 +568,7 @@
                             </div>
                         </a>
                         <div class="dropdown-divider"></div>
-                        <a class="dropdown-item text-center" href="<c:url value='/admin/notifications' />">
+                        <a class="dropdown-item text-center" href="/admin/notifications"">
                             Xem tất cả thông báo
                         </a>
                     </div>
@@ -579,9 +577,9 @@
                 <!-- User Dropdown -->
                 <div class="dropdown">
                     <a href="#" class="user-dropdown" data-bs-toggle="dropdown">
-                        <img src="<c:url value='/images/avatars/${currentUser.avatar}' />"
+                        <img src="${pageContext.request.contextPath}/images/avatars/${currentUser.avatar}""
                              alt="${currentUser.fullName}" class="user-avatar"
-                             onerror="this.src='<c:url value='/images/avatar-default.png' />'">
+                             onerror="this.src='/images/avatar-default.png"'">
                         <div>
                             <div class="fw-bold">${currentUser.fullName}</div>
                             <small class="text-muted">Quản trị viên</small>
@@ -589,14 +587,14 @@
                         <i class="fas fa-chevron-down ms-2"></i>
                     </a>
                     <div class="dropdown-menu dropdown-menu-end">
-                        <a class="dropdown-item" href="<c:url value='/profile' />">
+                        <a class="dropdown-item" href="//profile"">
                             <i class="fas fa-user me-2"></i>Hồ sơ cá nhân
                         </a>
-                        <a class="dropdown-item" href="<c:url value='/admin/settings' />">
+                        <a class="dropdown-item" href="/admin/settings"">
                             <i class="fas fa-cog me-2"></i>Cài đặt
                         </a>
                         <div class="dropdown-divider"></div>
-                        <form method="POST" action="<c:url value='/logout' />" class="d-inline">
+                        <form method="POST" action="//logout"" class="d-inline">
                             <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}"/>
                             <button type="submit" class="dropdown-item text-danger">
                                 <i class="fas fa-sign-out-alt me-2"></i>Đăng xuất
@@ -622,7 +620,7 @@
 
             <!-- Quick Actions -->
             <div class="quick-actions">
-                <a href="<c:url value='/admin/users/new' />" class="action-btn">
+                <a href="/admin/users/new"" class="action-btn">
                     <div class="action-icon">
                         <i class="fas fa-user-plus"></i>
                     </div>
@@ -632,7 +630,7 @@
                     </div>
                 </a>
 
-                <a href="<c:url value='/admin/categories/new' />" class="action-btn">
+                <a href="/admin/categories/new"" class="action-btn">
                     <div class="action-icon">
                         <i class="fas fa-tags"></i>
                     </div>
@@ -642,7 +640,7 @@
                     </div>
                 </a>
 
-                <a href="<c:url value='/admin/courses?status=pending' />" class="action-btn">
+                <a href="/admin/courses?status=pending"" class="action-btn">
                     <div class="action-icon">
                         <i class="fas fa-clock"></i>
                     </div>
@@ -652,7 +650,7 @@
                     </div>
                 </a>
 
-                <a href="<c:url value='/admin/analytics' />" class="action-btn">
+                <a href="/admin/analytics"" class="action-btn">
                     <div class="action-icon">
                         <i class="fas fa-chart-bar"></i>
                     </div>

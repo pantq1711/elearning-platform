@@ -1,0 +1,109 @@
+/* File: src/main/resources/static/css/placeholder.css */
+
+/* Placeholder cho ảnh bị lỗi */
+.image-placeholder {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 2rem;
+    font-weight: bold;
+    border-radius: 8px;
+}
+
+/* Placeholder cho testimonial avatars */
+.testimonial-placeholder {
+    width: 80px;
+    height: 80px;
+    background: linear-gradient(135deg, #4f46e5, #7c3aed);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+/* Placeholder cho hero image */
+.hero-placeholder {
+    width: 100%;
+    height: 400px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    border-radius: 12px;
+}
+
+.hero-placeholder i {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    opacity: 0.8;
+}
+
+.hero-placeholder span {
+    font-size: 1.2rem;
+    font-weight: 500;
+}
+
+/* Placeholder cho course images */
+.course-placeholder {
+    width: 100%;
+    height: 200px;
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    border-radius: 8px;
+}
+
+.course-placeholder i {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+}
+
+/* App store badges placeholder */
+.app-badge-placeholder {
+    display: inline-block;
+    padding: 10px 20px;
+    background: #000;
+    color: white;
+    border-radius: 8px;
+    text-decoration: none;
+    font-size: 14px;
+    margin: 0 5px;
+    transition: all 0.3s ease;
+}
+
+.app-badge-placeholder:hover {
+    background: #333;
+    color: white;
+    text-decoration: none;
+}
+
+.app-badge-placeholder i {
+    margin-right: 8px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .hero-placeholder {
+        height: 300px;
+    }
+
+    .hero-placeholder i {
+        font-size: 3rem;
+    }
+
+    .testimonial-placeholder {
+        width: 60px;
+        height: 60px;
+        font-size: 1.2rem;
+    }
+}

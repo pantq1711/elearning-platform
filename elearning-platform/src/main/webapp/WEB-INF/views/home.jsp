@@ -31,14 +31,14 @@
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
 
     <!-- Custom CSS -->
-    <link href="<c:url value='/css/home.css' />" rel="stylesheet">
+    <link href="${pageContext.request.contextPath}/css/home.css" rel="stylesheet">
 </head>
 
 <body>
 <!-- Include Header -->
 <jsp:include page="/WEB-INF/views/common/header.jsp" />
 
-<!-- Hero Section - Banner chính -->
+<!-- Hero Section -->
 <section class="hero-section">
     <div class="hero-background">
         <div class="hero-overlay"></div>
@@ -59,38 +59,38 @@
                         <!-- CTA Buttons -->
                         <div class="hero-actions mt-4">
                             <sec:authorize access="!isAuthenticated()">
-                                <a href="<c:url value='/register' />" class="btn btn-primary btn-lg me-3">
+                                <a href="${pageContext.request.contextPath}/register" class="btn btn-primary btn-lg me-3">
                                     <i class="fas fa-rocket me-2"></i>Bắt Đầu Học Ngay
                                 </a>
-                                <a href="<c:url value='/courses' />" class="btn btn-outline-light btn-lg">
+                                <a href="${pageContext.request.contextPath}/courses" class="btn btn-outline-light btn-lg">
                                     <i class="fas fa-play me-2"></i>Khám Phá Khóa Học
                                 </a>
                             </sec:authorize>
 
                             <sec:authorize access="isAuthenticated()">
                                 <sec:authorize access="hasRole('STUDENT')">
-                                    <a href="<c:url value='/student/dashboard' />" class="btn btn-primary btn-lg me-3">
+                                    <a href="${pageContext.request.contextPath}/student/dashboard" class="btn btn-primary btn-lg me-3">
                                         <i class="fas fa-tachometer-alt me-2"></i>Vào Dashboard
                                     </a>
                                 </sec:authorize>
                                 <sec:authorize access="hasRole('INSTRUCTOR')">
-                                    <a href="<c:url value='/instructor/dashboard' />" class="btn btn-primary btn-lg me-3">
+                                    <a href="${pageContext.request.contextPath}/instructor/dashboard" class="btn btn-primary btn-lg me-3">
                                         <i class="fas fa-chalkboard-teacher me-2"></i>Dashboard Giảng Viên
                                     </a>
                                 </sec:authorize>
                                 <sec:authorize access="hasRole('ADMIN')">
-                                    <a href="<c:url value='/admin/dashboard' />" class="btn btn-primary btn-lg me-3">
+                                    <a href="${pageContext.request.contextPath}/admin/dashboard" class="btn btn-primary btn-lg me-3">
                                         <i class="fas fa-cogs me-2"></i>Quản Trị Hệ Thống
                                     </a>
                                 </sec:authorize>
 
-                                <a href="<c:url value='/courses' />" class="btn btn-outline-light btn-lg">
+                                <a href="${pageContext.request.contextPath}/courses" class="btn btn-outline-light btn-lg">
                                     <i class="fas fa-search me-2"></i>Tìm Khóa Học Mới
                                 </a>
                             </sec:authorize>
                         </div>
 
-                        <!-- Stats mini -->
+                        <!-- Stats -->
                         <div class="hero-stats mt-5">
                             <div class="row">
                                 <div class="col-4">
@@ -116,11 +116,11 @@
                     </div>
                 </div>
 
-                <!-- Hero Image/Video -->
+                <!-- Hero Image -->
                 <div class="col-lg-6" data-aos="fade-left">
                     <div class="hero-media">
                         <div class="hero-image-container">
-                            <img src="<c:url value='/images/hero-learning.jpg' />"
+                            <img src="${pageContext.request.contextPath}/images/hero-learning.jpg"
                                  alt="Học trực tuyến với EduLearn"
                                  class="img-fluid hero-image">
                             <div class="floating-card card-1" data-aos="fade-up" data-aos-delay="200">
@@ -142,6 +142,7 @@
         </div>
     </div>
 </section>
+
 
 <!-- Featured Categories Section -->
 <section class="py-5 bg-light">
@@ -165,7 +166,7 @@
                                 <span class="course-count">${category.courseCount} khóa học</span>
                             </div>
                         </div>
-                        <a href="<c:url value='/courses?category=${category.name}' />"
+                        <a href="${pageContext.request.contextPath}/courses?category=${category.name}"
                            class="stretched-link"></a>
                     </div>
                 </div>
@@ -187,7 +188,7 @@
                 <div class="col-lg-4 col-md-6 mb-4" data-aos="fade-up" data-aos-delay="${status.index * 100}">
                     <div class="course-card h-100">
                         <div class="course-image">
-                            <img src="<c:url value='/images/courses/${course.thumbnail}' />"
+                            <img src="${pageContext.request.contextPath}/images/courses/${course.thumbnail}"
                                  alt="${course.name}" class="img-fluid">
                             <div class="course-badge">
                                 <span class="badge bg-primary">Nổi bật</span>
@@ -207,7 +208,7 @@
                             </div>
 
                             <h5 class="course-title">
-                                <a href="<c:url value='/courses/${course.id}' />" class="text-decoration-none">
+                                <a href="${pageContext.request.contextPath}/courses/${course.id}" class="text-decoration-none">
                                         ${course.name}
                                 </a>
                             </h5>
@@ -215,7 +216,7 @@
                             <p class="course-description">${course.shortDescription}</p>
 
                             <div class="course-instructor">
-                                <img src="<c:url value='/images/avatars/${course.instructor.avatar}' />"
+                                <img src="${pageContext.request.contextPath}/images/avatars/${course.instructor.avatar}"
                                      alt="${course.instructor.fullName}" class="instructor-avatar">
                                 <span class="instructor-name">${course.instructor.fullName}</span>
                             </div>
@@ -251,7 +252,7 @@
         </div>
 
         <div class="text-center mt-4" data-aos="fade-up">
-            <a href="<c:url value='/courses' />" class="btn btn-outline-primary btn-lg">
+            <a href="${pageContext.request.contextPath}/courses" class="btn btn-outline-primary btn-lg">
                 <i class="fas fa-th-large me-2"></i>Xem Tất Cả Khóa Học
             </a>
         </div>
@@ -391,7 +392,7 @@
                         </p>
                     </div>
                     <div class="testimonial-author">
-                        <img src="<c:url value='/images/testimonials/student1.jpg' />"
+                        <img src="${pageContext.request.contextPath}/images/testimonials/student1.jpg"
                              alt="Nguyễn Văn A" class="author-avatar">
                         <div class="author-info">
                             <h6 class="author-name">Nguyễn Văn A</h6>
@@ -417,7 +418,7 @@
                         </p>
                     </div>
                     <div class="testimonial-author">
-                        <img src="<c:url value='/images/testimonials/student2.jpg' />"
+                        <img src="${pageContext.request.contextPath}/images/testimonials/student2.jpg"
                              alt="Trần Thị B" class="author-avatar">
                         <div class="author-info">
                             <h6 class="author-name">Trần Thị B</h6>
@@ -443,7 +444,7 @@
                         </p>
                     </div>
                     <div class="testimonial-author">
-                        <img src="<c:url value='/images/testimonials/student3.jpg' />"
+                        <img src="${pageContext.request.contextPath}/images/testimonials/student3.jpg"
                              alt="Lê Văn C" class="author-avatar">
                         <div class="author-info">
                             <h6 class="author-name">Lê Văn C</h6>
@@ -475,12 +476,12 @@
             </div>
             <div class="col-lg-4 text-lg-end" data-aos="fade-left">
                 <sec:authorize access="!isAuthenticated()">
-                    <a href="<c:url value='/register' />" class="btn btn-light btn-lg">
+                    <a href="${pageContext.request.contextPath}/register" class="btn btn-light btn-lg">
                         <i class="fas fa-rocket me-2"></i>Đăng Ký Ngay
                     </a>
                 </sec:authorize>
                 <sec:authorize access="isAuthenticated()">
-                    <a href="<c:url value='/courses' />" class="btn btn-light btn-lg">
+                    <a href="${pageContext.request.contextPath}/courses" class="btn btn-light btn-lg">
                         <i class="fas fa-search me-2"></i>Khám Phá Khóa Học
                     </a>
                 </sec:authorize>
@@ -499,14 +500,14 @@
 
 <!-- Custom JavaScript -->
 <script>
-    // Initialize AOS Animation
+    // Initialize AOS Animation - Khởi tạo hiệu ứng động AOS
     AOS.init({
         duration: 800,
         once: true,
         offset: 100
     });
 
-    // Counter animation for statistics
+    // Counter animation for statistics - Hiệu ứng đếm số cho thống kê
     function animateCounter(element, target) {
         let current = 0;
         const increment = target / 100;
@@ -520,7 +521,7 @@
         }, 20);
     }
 
-    // Trigger counter animation when section is visible
+    // Trigger counter animation when section is visible - Kích hoạt hiệu ứng đếm khi phần hiển thị
     const observerOptions = {
         threshold: 0.5,
         rootMargin: '0px 0px -100px 0px'
@@ -544,7 +545,7 @@
         observer.observe(statsSection);
     }
 
-    // Smooth scrolling for anchor links
+    // Smooth scrolling for anchor links - Cuộn mượt cho các liên kết neo
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         anchor.addEventListener('click', function (e) {
             e.preventDefault();
@@ -558,7 +559,7 @@
         });
     });
 
-    // Add loading animation for CTA buttons
+    // Add loading animation for CTA buttons - Thêm hiệu ứng loading cho các nút CTA
     document.querySelectorAll('.btn').forEach(button => {
         button.addEventListener('click', function(e) {
             if (this.href && !this.href.includes('#')) {
@@ -566,7 +567,7 @@
                 this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Đang tải...';
                 this.disabled = true;
 
-                // Reset after a short delay if page doesn't change
+                // Reset after a short delay if page doesn't change - Reset sau một khoảng thời gian ngắn nếu trang không thay đổi
                 setTimeout(() => {
                     this.innerHTML = originalText;
                     this.disabled = false;

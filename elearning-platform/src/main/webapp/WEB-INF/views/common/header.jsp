@@ -1,19 +1,19 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
-<%@ taglib prefix="sec" uri="http://www.springframework.org/security/tags" %>
-
 <%--
     Header Navigation Component - Component điều hướng chung
     Sử dụng cho tất cả các trang trong hệ thống
     Responsive navigation với Bootstrap 5
     Tích hợp Spring Security cho authentication/authorization
 --%>
-
+<!-- Custom CSS và JS -->
+<link href="${pageContext.request.contextPath}/css/placeholder.css" rel="stylesheet">
+<script src="${pageContext.request.contextPath}/js/image-placeholder.js"></script>
 <header class="navbar navbar-expand-lg navbar-dark bg-primary sticky-top shadow">
     <div class="container">
         <!-- Logo và tên website -->
-        <a class="navbar-brand fw-bold" href="<c:url value='/' />">
+        <a class="navbar-brand fw-bold" href="//"">
             <i class="fas fa-graduation-cap me-2"></i>
             EduLearn Platform
         </a>
@@ -28,22 +28,22 @@
             <!-- Menu bên trái -->
             <ul class="navbar-nav me-auto">
                 <li class="nav-item">
-                    <a class="nav-link" href="<c:url value='/' />">
+                    <a class="nav-link" href="//"">
                         <i class="fas fa-home me-1"></i>Trang Chủ
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="<c:url value='/courses' />">
+                    <a class="nav-link" href="//courses"">
                         <i class="fas fa-book me-1"></i>Khóa Học
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="<c:url value='/about' />">
+                    <a class="nav-link" href="//about"">
                         <i class="fas fa-info-circle me-1"></i>Giới Thiệu
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="<c:url value='/contact' />">
+                    <a class="nav-link" href="//contact"">
                         <i class="fas fa-envelope me-1"></i>Liên Hệ
                     </a>
                 </li>
@@ -51,7 +51,7 @@
 
             <!-- Search box (hiển thị trên trang courses) -->
             <c:if test="${pageContext.request.servletPath == '/courses'}">
-                <form class="d-flex me-3" method="GET" action="<c:url value='/courses' />">
+                <form class="d-flex me-3" method="GET" action="//courses"">
                     <div class="input-group">
                         <input type="text" class="form-control" name="search"
                                placeholder="Tìm kiếm khóa học..." value="${param.search}">
@@ -70,13 +70,13 @@
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
                             <i class="fas fa-user-circle me-1"></i>
-                            <sec:authentication property="principal.fullName" />
+                                ${currentUser.fullName}
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end">
                             <!-- Dashboard theo role -->
                             <sec:authorize access="hasRole('ADMIN')">
                                 <li>
-                                    <a class="dropdown-item" href="<c:url value='/admin/dashboard' />">
+                                    <a class="dropdown-item" href="/admin/dashboard">
                                         <i class="fas fa-tachometer-alt me-2"></i>Dashboard Admin
                                     </a>
                                 </li>
@@ -84,7 +84,7 @@
 
                             <sec:authorize access="hasRole('INSTRUCTOR')">
                                 <li>
-                                    <a class="dropdown-item" href="<c:url value='/instructor/dashboard' />">
+                                    <a class="dropdown-item" href="//instructor/dashboard"">
                                         <i class="fas fa-chalkboard-teacher me-2"></i>Dashboard Giảng Viên
                                     </a>
                                 </li>
@@ -92,12 +92,12 @@
 
                             <sec:authorize access="hasRole('STUDENT')">
                                 <li>
-                                    <a class="dropdown-item" href="<c:url value='/student/dashboard' />">
+                                    <a class="dropdown-item" href="//student/dashboard"">
                                         <i class="fas fa-user-graduate me-2"></i>Dashboard Học Viên
                                     </a>
                                 </li>
                                 <li>
-                                    <a class="dropdown-item" href="<c:url value='/student/my-courses' />">
+                                    <a class="dropdown-item" href="//student/my-courses"">
                                         <i class="fas fa-book-reader me-2"></i>Khóa Học Của Tôi
                                     </a>
                                 </li>
@@ -107,12 +107,12 @@
 
                             <!-- Profile và settings -->
                             <li>
-                                <a class="dropdown-item" href="<c:url value='/profile' />">
+                                <a class="dropdown-item" href="//profile"">
                                     <i class="fas fa-user-edit me-2"></i>Hồ Sơ Cá Nhân
                                 </a>
                             </li>
                             <li>
-                                <a class="dropdown-item" href="<c:url value='/change-password' />">
+                                <a class="dropdown-item" href="//change-password"">
                                     <i class="fas fa-key me-2"></i>Đổi Mật Khẩu
                                 </a>
                             </li>
@@ -121,7 +121,7 @@
 
                             <!-- Logout -->
                             <li>
-                                <form method="POST" action="<c:url value='/logout' />" class="d-inline">
+                                <form method="POST" action="//logout"" class="d-inline">
                                     <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}"/>
                                     <button type="submit" class="dropdown-item text-danger">
                                         <i class="fas fa-sign-out-alt me-2"></i>Đăng Xuất
@@ -135,12 +135,12 @@
                 <!-- Menu cho user chưa đăng nhập -->
                 <sec:authorize access="!isAuthenticated()">
                     <li class="nav-item">
-                        <a class="nav-link" href="<c:url value='/login' />">
+                        <a class="nav-link" href="//login"">
                             <i class="fas fa-sign-in-alt me-1"></i>Đăng Nhập
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link btn btn-outline-light ms-2 px-3" href="<c:url value='/register' />">
+                        <a class="nav-link btn btn-outline-light ms-2 px-3" href="//register"">
                             <i class="fas fa-user-plus me-1"></i>Đăng Ký
                         </a>
                     </li>

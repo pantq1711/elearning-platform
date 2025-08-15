@@ -541,7 +541,7 @@
                 </c:if>
 
                 <!-- Register Form -->
-                <form action="<c:url value='/register' />" method="POST" id="registerForm" novalidate>
+                <form action="/register" method="POST" id="registerForm" novalidate>
                     <!-- CSRF Token -->
                     <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}"/>
 
@@ -740,7 +740,7 @@
                 <!-- Login Link -->
                 <div class="login-link">
                     Đã có tài khoản?
-                    <a href="<c:url value='/login' />">Đăng nhập ngay</a>
+                    <a href="/login">Đăng nhập ngay</a>
                 </div>
             </div>
         </div>
@@ -752,6 +752,8 @@
 
 <!-- Custom JavaScript -->
 <script>
+    let hasInteracted = false; // Thêm flag này
+
     // Toggle password visibility
     function togglePassword(fieldId) {
         const passwordField = document.getElementById(fieldId);
@@ -828,9 +830,10 @@
         const password = document.getElementById('password');
         const confirmPassword = document.getElementById('confirmPassword');
         const fullName = document.getElementById('fullName');
-
+        username.addEventListener('focus', function() { hasInteracted = true; }); // Thêm dòng này
         // Username validation
         username.addEventListener('input', function() {
+            if (!hasInteracted) return; // Thêm check này
             const value = this.value.trim();
             const isValid = /^[a-zA-Z0-9_]{3,20}$/.test(value);
 
@@ -842,6 +845,7 @@
 
         // Email validation
         email.addEventListener('input', function() {
+            if (!hasInteracted) return;
             const value = this.value.trim();
             const isValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
@@ -853,6 +857,7 @@
 
         // Phone validation (optional)
         phone.addEventListener('input', function() {
+            if (!hasInteracted) return;
             const value = this.value.trim();
             if (value) {
                 const isValid = /^[0-9+\-\s()]{10,15}$/.test(value);
@@ -865,6 +870,7 @@
 
         // Password validation
         password.addEventListener('input', function() {
+            if (!hasInteracted) return;
             const isValid = checkPasswordStrength(this.value);
             this.classList.remove('is-valid', 'is-invalid');
             if (this.value) {
@@ -879,6 +885,7 @@
 
         // Confirm password validation
         function validateConfirmPassword() {
+            if (!hasInteracted) return;
             const isValid = confirmPassword.value === password.value && confirmPassword.value.length > 0;
             confirmPassword.classList.remove('is-valid', 'is-invalid');
             if (confirmPassword.value) {
@@ -891,6 +898,7 @@
 
         // Full name validation
         fullName.addEventListener('input', function() {
+            if (!hasInteracted) return;
             const value = this.value.trim();
             const isValid = value.length >= 2 && /^[a-zA-ZÀ-ỹ\s]+$/.test(value);
 
@@ -903,6 +911,7 @@
 
     // Form submission
     document.getElementById('registerForm').addEventListener('submit', function(e) {
+        if (!hasInteracted) return;
         const form = e.target;
         const registerBtn = document.getElementById('registerBtn');
         const agreeTerms = document.getElementById('agreeTerms');
