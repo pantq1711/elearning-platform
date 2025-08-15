@@ -5,47 +5,97 @@ import com.coursemanagement.entity.User;
 import com.coursemanagement.service.CategoryService;
 import com.coursemanagement.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.context.ApplicationContext;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.LocalDateTime;
+import java.util.TimeZone;
+
 
 /**
  * Main class để khởi động ứng dụng Course Management System
  * Tự động tạo dữ liệu mặc định khi khởi động
- * SỬA LỖI CIRCULAR DEPENDENCY: Sử dụng ApplicationContext thay vì direct injection
+ * SỬA LỖI CIRCULAR DEPENDENCY: Sử dụng @EventListener thay vì CommandLineRunner
  */
 @SpringBootApplication
-public class CourseManagementApplication implements CommandLineRunner {
+public class CourseManagementApplication {
 
-    // SỬA LỖI: Sử dụng ApplicationContext để tránh circular dependency
     @Autowired
-    private ApplicationContext applicationContext;
+    private UserService userService;
+
+    @Autowired
+    private CategoryService categoryService;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    // ✅ THÊM UserRepository để delete trực tiếp nếu cần
+    @Autowired
+    private com.coursemanagement.repository.UserRepository userRepository;
 
     public static void main(String[] args) {
         SpringApplication.run(CourseManagementApplication.class, args);
     }
 
     /**
-     * Chạy các initialization tasks sau khi application start
-     * @param args Command line arguments
-     * @throws Exception Nếu có lỗi initialization
+     * Cấu hình timezone cho ứng dụng
      */
-    @Override
-    public void run(String... args) throws Exception {
+
+    /**
+     * Chạy sau khi application đã khởi động hoàn toàn
+     * Sử dụng @EventListener để tránh circular dependency
+     */
+    @EventListener(ApplicationReadyEvent.class)
+    public void initializeDefaultData() {
         System.out.println("🚀 Course Management System đang khởi động...");
 
-        // ✅ Lấy beans từ ApplicationContext khi cần
-        createDefaultAdminIfNotExists();
-        createDefaultCategoriesIfNotExists();
+        try {
+            createDefaultAdminIfNotExists();
+            createDefaultCategoriesIfNotExists();
 
-        System.out.println("✅ Khởi tạo dữ liệu mặc định hoàn tất!");
-        System.out.println("📚 Hệ thống quản lý khóa học đã sẵn sàng!");
-        System.out.println("🌐 Truy cập: http://localhost:8080");
-        System.out.println("👤 Admin: admin / admin123");
+            // 🔍 DEBUG: Test password
+            testPasswordForDebug();
+
+            System.out.println("✅ Khởi tạo dữ liệu mặc định hoàn tất!");
+            System.out.println("📚 Hệ thống quản lý khóa học đã sẵn sàng!");
+            System.out.println("🌐 Truy cập: http://localhost:8080");
+            System.out.println("👤 Admin: admin / admin123");
+        } catch (Exception e) {
+            System.err.println("❌ Lỗi khi khởi tạo dữ liệu mặc định: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Debug method để test password matching
+     */
+    private void testPasswordForDebug() {
+        try {
+            System.out.println("🔍 Testing password matching...");
+
+            var userOpt = userService.findByUsername("admin");
+            if (userOpt.isPresent()) {
+                User user = userOpt.get();
+                boolean matches = passwordEncoder.matches("admin123", user.getPassword());
+
+                System.out.println("🔍 User found: " + user.getUsername());
+                System.out.println("🔍 User role: " + user.getRole());
+                System.out.println("🔍 User active: " + user.isActive());
+                System.out.println("🔍 Encoded password: " + user.getPassword());
+                System.out.println("🔍 Password matches 'admin123': " + matches);
+                System.out.println("🔍 User authorities: " + user.getAuthorities());
+                System.out.println("🔍 User account non-locked: " + user.isAccountNonLocked());
+                System.out.println("🔍 User enabled: " + user.isEnabled());
+            } else {
+                System.out.println("❌ Admin user not found!");
+            }
+        } catch (Exception e) {
+            System.err.println("❌ Error testing password: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -53,12 +103,25 @@ public class CourseManagementApplication implements CommandLineRunner {
      */
     private void createDefaultAdminIfNotExists() {
         try {
-            // ✅ Lấy UserService từ ApplicationContext
-            UserService userService = applicationContext.getBean(UserService.class);
-            PasswordEncoder passwordEncoder = applicationContext.getBean(PasswordEncoder.class);
+            System.out.println("Bắt đầu khởi tạo dữ liệu mẫu...");
 
-            // Kiểm tra xem đã có admin chưa
-            if (userService.findByUsername("admin").isEmpty()) {
+            // ✅ FORCE RECREATE ADMIN với password mới
+            var existingAdmin = userService.findByUsername("admin");
+            if (existingAdmin.isPresent()) {
+                System.out.println("🔄 Force updating admin password...");
+
+                // Cập nhật password với encoder hiện tại
+                User admin = existingAdmin.get();
+                String newEncodedPassword = passwordEncoder.encode("admin123");
+                admin.setPassword(newEncodedPassword);
+                admin.setUpdatedAt(LocalDateTime.now());
+
+                // Save directly to repository để bypass validation
+                userService.save(admin);
+
+                System.out.println("✅ Đã force update password cho admin");
+                System.out.println("🔍 New encoded password: " + newEncodedPassword);
+            } else {
                 System.out.println("📝 Tạo admin mặc định...");
 
                 User admin = new User();
@@ -73,8 +136,6 @@ public class CourseManagementApplication implements CommandLineRunner {
 
                 userService.createUser(admin);
                 System.out.println("✅ Đã tạo admin mặc định: admin / admin123");
-            } else {
-                System.out.println("ℹ️ Admin đã tồn tại, bỏ qua việc tạo mới");
             }
         } catch (Exception e) {
             System.err.println("❌ Lỗi khi tạo admin mặc định: " + e.getMessage());
@@ -87,9 +148,6 @@ public class CourseManagementApplication implements CommandLineRunner {
      */
     private void createDefaultCategoriesIfNotExists() {
         try {
-            // ✅ Lấy CategoryService từ ApplicationContext
-            CategoryService categoryService = applicationContext.getBean(CategoryService.class);
-
             // Kiểm tra xem đã có categories chưa
             if (categoryService.countAll() == 0) {
                 System.out.println("📝 Tạo categories mặc định...");

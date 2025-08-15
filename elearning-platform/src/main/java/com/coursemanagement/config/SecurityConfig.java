@@ -1,4 +1,5 @@
 package com.coursemanagement.config;
+
 import jakarta.servlet.DispatcherType;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -48,14 +49,15 @@ public class SecurityConfig {
     }
 
     /**
-     * ✅ PasswordEncoder static method
+     * ✅ PasswordEncoder static method - SỬA STRENGTH MATCH VỚI DB
      */
     @Bean
     public static PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder(12);
+        return new BCryptPasswordEncoder(10); // ✅ Đổi từ 12 về 10 để match DB
     }
+
     @Bean
-    public RememberMeServices rememberMeServices(UserService userService) {
+    public RememberMeServices rememberMeServices(@Lazy UserService userService) {
         // "uniqueKey" có thể đổi theo dự án của bạn
         TokenBasedRememberMeServices rememberMeServices =
                 new TokenBasedRememberMeServices("uniqueKey", userService);
@@ -85,9 +87,10 @@ public class SecurityConfig {
 
     /**
      * ✅ DaoAuthenticationProvider - CẦN CHO AUTHENTICATION
+     * SỬA LỖI: Sử dụng @Lazy để tránh circular dependency
      */
     @Bean
-    public DaoAuthenticationProvider authenticationProvider(UserService userService, PasswordEncoder passwordEncoder) {
+    public DaoAuthenticationProvider authenticationProvider(@Lazy UserService userService, PasswordEncoder passwordEncoder) {
         DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
         authProvider.setUserDetailsService(userService);
         authProvider.setPasswordEncoder(passwordEncoder);
@@ -130,20 +133,21 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http,
                                                    RememberMeServices rememberMeServices,
                                                    SessionRegistry sessionRegistry,
-                                                   AuthenticationSuccessHandler authenticationSuccessHandler) throws Exception {
+                                                   AuthenticationSuccessHandler authenticationSuccessHandler,
+                                                   DaoAuthenticationProvider authenticationProvider) throws Exception {
         http
                 // CSRF Configuration - Tắt CSRF cho development
                 .csrf(csrf -> csrf.disable())
 
                 // ✅ SỬA LỖI CHÍNH: SPRING SECURITY 6 FORWARD ISSUE
                 .authorizeHttpRequests(auth -> auth
-                        // ✅ QUAN TRỌNG: Cho phép tất cả FORWARD requests (JSP views)
-                        .dispatcherTypeMatchers(DispatcherType.FORWARD).permitAll()
+                        // ✅ QUAN TRỌNG: Cho phép tất cả FORWARD và INCLUDE requests (JSP views)
+                        .dispatcherTypeMatchers(DispatcherType.FORWARD, DispatcherType.INCLUDE).permitAll()
 
                         // Public pages - không cần login
                         .requestMatchers("/", "/home", "/login", "/register").permitAll()
-                        .requestMatchers("/css/**", "/js/**", "/images/**", "/favicon.ico").permitAll()
-                        .requestMatchers("/error").permitAll()
+                        .requestMatchers("/css/**", "/js/**", "/images/**", "/favicon.ico", "/webjars/**").permitAll()
+                        .requestMatchers("/error", "/WEB-INF/**").permitAll()
 
                         // ✅ TẤT CẢ TRANG KHÁC CẦN LOGIN
                         .anyRequest().authenticated()
@@ -180,6 +184,9 @@ public class SecurityConfig {
                         .invalidSessionUrl("/")               // Redirect về HOME khi session hết hạn
                 )
 
+                // ✅ AUTHENTICATION PROVIDER
+                .authenticationProvider(authenticationProvider)
+
                 // ✅ HEADERS CƠ BẢN
                 .headers(headers -> headers
                         .frameOptions().sameOrigin()
@@ -187,40 +194,4 @@ public class SecurityConfig {
 
         return http.build();
     }
-    /**
-     * ✅ BƯỚC 3: ROLE-BASED AUTHORIZATION (SỬ DỤNG KHI ĐÃ TEST OK BƯỚC 2)
-     */
-//    @Bean
-//    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-//        http
-//                .csrf(csrf -> csrf.disable())
-//
-//                .authorizeHttpRequests(auth -> auth
-//                        // Public pages
-//                        .requestMatchers("/", "/login", "/register", "/test-*").permitAll()
-//                        .requestMatchers("/css/**", "/js/**", "/images/**", "/webjars/**").permitAll()
-//
-//                        // Role-based authorization - CHỈ KHI ĐÃ TEST OK AUTHENTICATION CƠ BẢN
-//                        .requestMatchers("/admin/**").hasRole("ADMIN")
-//                        .requestMatchers("/instructor/**").hasRole("INSTRUCTOR")
-//                        .requestMatchers("/student/**").hasRole("STUDENT")
-//
-//                        // Default
-//                        .anyRequest().authenticated()
-//                )
-//
-//                .formLogin(login -> login
-//                        .loginPage("/login")
-//                        .defaultSuccessUrl("/")
-//                        .permitAll()
-//                )
-//
-//                .logout(logout -> logout
-//                        .logoutUrl("/logout")
-//                        .logoutSuccessUrl("/login?logout=true")
-//                        .permitAll()
-//                );
-//
-//        return http.build();
-//    }
 }
