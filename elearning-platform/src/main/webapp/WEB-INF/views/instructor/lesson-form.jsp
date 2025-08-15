@@ -18,8 +18,7 @@
     <!-- TinyMCE CSS -->
     <link href="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.css" rel="stylesheet">
     <!-- Custom CSS -->
-    <link href="${pageContext.request.contextPath}/css/intructor.css" rel="stylesheet">
-
+    <link href="${pageContext.request.contextPath}/css/instructor.css" rel="stylesheet">
     <style>
         .video-preview {
             max-width: 100%;

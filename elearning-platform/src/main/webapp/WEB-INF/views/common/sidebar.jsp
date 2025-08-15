@@ -25,7 +25,7 @@ Sử dụng cho các trang dashboard và quản lý
         <div class="user-avatar">
             <c:choose>
                 <c:when test="${currentUser.avatarPath != null}">
-                    <img src="${pageContext.request.contextPath}/images/avatars/${currentUser.avatarPath}""
+                    <img src="${pageContext.request.contextPath}/images/avatars/${currentUser.avatarPath}"
                          alt="${currentUser.fullName}" class="avatar-img">
                 </c:when>
                 <c:otherwise>
@@ -240,7 +240,7 @@ Sử dụng cho các trang dashboard và quản lý
                 <span class="nav-text">Cài đặt</span>
             </a>
 
-            <a href="${pageContext.request.contextPath}/notifications""
+            <a href="${pageContext.request.contextPath}/notifications"
                class="nav-item ${pageContext.request.requestURI.contains('/notifications') ? 'active' : ''}">
                 <i class="fas fa-bell nav-icon"></i>
                 <span class="nav-text">Thông báo</span>
@@ -252,12 +252,12 @@ Sử dụng cho các trang dashboard và quản lý
         <div class="nav-section">
             <div class="nav-section-title">Hỗ trợ</div>
 
-            <a href="${pageContext.request.contextPath}/help"" class="nav-item">
+            <a href="${pageContext.request.contextPath}/help" class="nav-item">
                 <i class="fas fa-question-circle nav-icon"></i>
                 <span class="nav-text">Trợ giúp</span>
             </a>
 
-            <a href="${pageContext.request.contextPath}/contact"" class="nav-item">
+            <a href="${pageContext.request.contextPath}/contact" class="nav-item">
                 <i class="fas fa-envelope nav-icon"></i>
                 <span class="nav-text">Liên hệ</span>
             </a>

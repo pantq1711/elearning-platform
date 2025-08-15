@@ -18,8 +18,7 @@
     <!-- DataTables CSS -->
     <link href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" rel="stylesheet">
     <!-- Custom CSS -->
-    <link href="${pageContext.request.contextPath}/css/instructor.css"" rel="stylesheet">
-
+    <link href="${pageContext.request.contextPath}/css/instructor.css" rel="stylesheet">
     <style>
         .quiz-stats-card {
             border-left: 4px solid #0d6efd;

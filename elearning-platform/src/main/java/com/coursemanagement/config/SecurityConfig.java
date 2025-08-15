@@ -1,4 +1,5 @@
 package com.coursemanagement.config;
+import jakarta.servlet.DispatcherType;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.core.session.SessionRegistry;
@@ -134,18 +135,21 @@ public class SecurityConfig {
                 // CSRF Configuration - Tắt CSRF cho development
                 .csrf(csrf -> csrf.disable())
 
-                // ✅ SỬA LỖI: AUTHORIZATION CƠ BẢN
+                // ✅ SỬA LỖI CHÍNH: SPRING SECURITY 6 FORWARD ISSUE
                 .authorizeHttpRequests(auth -> auth
+                        // ✅ QUAN TRỌNG: Cho phép tất cả FORWARD requests (JSP views)
+                        .dispatcherTypeMatchers(DispatcherType.FORWARD).permitAll()
+
                         // Public pages - không cần login
                         .requestMatchers("/", "/home", "/login", "/register").permitAll()
                         .requestMatchers("/css/**", "/js/**", "/images/**", "/favicon.ico").permitAll()
                         .requestMatchers("/error").permitAll()
 
-                        // ✅ TẤT CẢ TRANG KHÁC CẦN LOGIN NHƯNG CHƯA PHÂN QUYỀN ROLE
+                        // ✅ TẤT CẢ TRANG KHÁC CẦN LOGIN
                         .anyRequest().authenticated()
                 )
 
-                // ✅ SỬA LỖI: BẬT LẠI FORM LOGIN ĐÚNG CÁCH
+                // ✅ BẬT LẠI FORM LOGIN
                 .formLogin(login -> login
                         .loginPage("/login")                    // Custom login page
                         .loginProcessingUrl("/login")           // URL xử lý POST login
@@ -156,24 +160,24 @@ public class SecurityConfig {
                         .permitAll()                           // Cho phép truy cập login page
                 )
 
-                // ✅ SỬA LỖI: LOGOUT ĐÚNG CÁCH
+                // ✅ LOGOUT ĐÚNG CÁCH
                 .logout(logout -> logout
                         .logoutRequestMatcher(new AntPathRequestMatcher("/logout"))
-                        .logoutSuccessUrl("/")                 // ✅ SỬA: Redirect về HOME thay vì login
+                        .logoutSuccessUrl("/")                 // Redirect về HOME sau logout
                         .deleteCookies("JSESSIONID")
                         .invalidateHttpSession(true)
                         .clearAuthentication(true)
                         .permitAll()
                 )
 
-                // ✅ SESSION MANAGEMENT ĐƠNGIẢN
+                // ✅ SESSION MANAGEMENT ĐƠN GIẢN
                 .sessionManagement(session -> session
                         .maximumSessions(1)                    // Chỉ cho phép 1 session
                         .maxSessionsPreventsLogin(false)       // Không chặn login mới
                         .sessionRegistry(sessionRegistry)
                         .and()
                         .sessionFixation().migrateSession()
-                        .invalidSessionUrl("/")               // ✅ SỬA: Redirect về HOME khi session hết hạn
+                        .invalidSessionUrl("/")               // Redirect về HOME khi session hết hạn
                 )
 
                 // ✅ HEADERS CƠ BẢN
@@ -183,7 +187,6 @@ public class SecurityConfig {
 
         return http.build();
     }
-
     /**
      * ✅ BƯỚC 3: ROLE-BASED AUTHORIZATION (SỬ DỤNG KHI ĐÃ TEST OK BƯỚC 2)
      */
