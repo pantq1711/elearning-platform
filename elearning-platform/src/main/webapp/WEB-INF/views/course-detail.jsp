@@ -3,7 +3,11 @@
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 <%@ taglib prefix="sec" uri="http://www.springframework.org/security/tags" %>
+<%-- Utility functions để tránh NumberFormatException --%>
+<c:set var="safeParseInt" value="${param.value != null and param.value != '' ? param.value : '0'}" />
 
+<%-- Function để so sánh an toàn --%>
+<%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -830,8 +834,10 @@
                             <div class="overall-rating">${course.rating}</div>
                             <div class="rating-details">
                                 <div class="rating-stars">
-                                    <c:forEach begin="1" end="5" var="i">
-                                        <i class="fas fa-star ${i <= course.rating ? 'text-warning' : 'text-muted'}"></i>
+                                    <!-- SỬA: An toàn với null và kiểu dữ liệu -->
+                                    <c:forEach begin="1" end="5" var="star">
+                                        <c:set var="courseRating" value="${course.ratingAverage != null ? course.ratingAverage : 0}" />
+                                        <i class="fas fa-star ${star <= courseRating ? 'text-warning' : 'text-muted'}"></i>
                                     </c:forEach>
                                 </div>
                                 <div class="rating-text">
@@ -897,8 +903,10 @@
                                     </div>
                                 </div>
                                 <div class="review-rating">
-                                    <c:forEach begin="1" end="5" var="i">
-                                        <i class="fas fa-star ${i <= review.rating ? 'text-warning' : 'text-muted'}"></i>
+                                    <!-- SỬA: An toàn với null và kiểu dữ liệu -->
+                                    <c:forEach begin="1" end="5" var="star">
+                                        <c:set var="courseRating" value="${course.ratingAverage != null ? course.ratingAverage : 0}" />
+                                        <i class="fas fa-star ${star <= courseRating ? 'text-warning' : 'text-muted'}"></i>
                                     </c:forEach>
                                 </div>
                             </div>

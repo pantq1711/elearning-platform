@@ -617,8 +617,7 @@
                         <select class="form-select" name="category">
                             <option value="">Tất cả danh mục</option>
                             <c:forEach items="${categories}" var="category">
-                                <option value="${category.id}"
-                                    ${param.category == category.id ? 'selected' : ''}>
+                                <option value="${category.id}" ${param.category != null && param.category eq category.id.toString() ? 'selected' : ''}>
                                         ${category.name}
                                 </option>
                             </c:forEach>
@@ -787,7 +786,7 @@
                         <jsp:param name="size" value="${courses.size}" />
                         <jsp:param name="totalElements" value="${courses.totalElements}" />
                         <jsp:param name="baseUrl" value="/instructor/courses" />
-                        <jsp:param name="additionalParams" value="${param.search != null ? 'search='.concat(param.search) : ''}${param.status != null ? '&status='.concat(param.status) : ''}${param.category != null ? '&category='.concat(param.category) : ''}${param.sort != null ? '&sort='.concat(param.sort) : ''}" />
+                        <jsp:param name="additionalParams" value="${not empty param.search ? 'search='.concat(fn:escapeXml(param.search)) : ''}${not empty param.status ? '&status='.concat(fn:escapeXml(param.status)) : ''}${not empty param.category ? '&category='.concat(fn:escapeXml(param.category)) : ''}${not empty param.sort ? '&sort='.concat(fn:escapeXml(param.sort)) : ''}" />
                     </jsp:include>
                 </div>
             </c:when>

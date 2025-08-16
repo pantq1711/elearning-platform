@@ -512,6 +512,48 @@ public class Enrollment {
                 ", completed=" + completed +
                 '}';
     }
+    // Thêm vào class Enrollment.java
+
+    /**
+     * Lấy progress dưới dạng percentage (compatibility với JSP)
+     * @return Progress percentage
+     */
+    public Double getProgressPercentage() {
+        return this.progress;
+    }
+
+    /**
+     * Lấy số lessons đã hoàn thành (computed field)
+     * Tạm thời return 0, cần implement logic sau
+     */
+    public Integer getCompletedLessons() {
+        // TODO: Implement logic đếm lessons đã complete
+        // Có thể tính dựa trên progress và total lessons
+        if (course != null && course.getLessonCount() != 0) {
+            return (int) Math.round(progress / 100.0 * course.getLessonCount());
+        }
+        return 0;
+    }
+
+    /**
+     * Lấy tổng số lessons của course
+     */
+    public Integer getTotalLessons() {
+        return course != null ? course.getLessonCount() : 0;
+    }
+
+    /**
+     * Lấy status enum dựa trên progress
+     */
+    public String getStatus() {
+        if (completed) {
+            return "COMPLETED";
+        } else if (progress > 0) {
+            return "IN_PROGRESS";
+        } else {
+            return "NOT_STARTED";
+        }
+    }
 
     /**
      * Override equals và hashCode cho JPA

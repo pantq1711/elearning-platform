@@ -29,6 +29,19 @@ import java.util.stream.Collectors;
 @Service
 @Transactional
 public class EnrollmentService {
+    /**
+     * Count total students - THÊM MỚI
+     */
+    public long countTotalStudents() {
+        return enrollmentRepository.countDistinctStudents();
+    }
+
+    /**
+     * Count enrollments by course - THÊM MỚI
+     */
+    public long countEnrollmentsByCourse(Course course) {
+        return enrollmentRepository.countByCourse(course);
+    }
 
     @Autowired
     private EnrollmentRepository enrollmentRepository;

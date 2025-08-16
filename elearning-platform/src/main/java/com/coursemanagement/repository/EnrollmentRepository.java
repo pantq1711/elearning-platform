@@ -22,7 +22,15 @@ import java.util.Optional;
 @Repository
 public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
 
+    /**
+     * Count distinct students - THÊM MỚI
+     */
+    @Query("SELECT COUNT(DISTINCT e.student) FROM Enrollment e")
+    long countDistinctStudents();
 
+    /**
+     * Count enrollments by course - THÊM MỚI
+     */
     /**
      * Đếm enrollments theo category
      */

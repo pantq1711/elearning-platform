@@ -469,7 +469,7 @@ public class Course {
     }
 
     public Double getRatingAverage() {
-        return ratingAverage;
+        return ratingAverage != null ? ratingAverage : 0.0;
     }
 
     public void setRatingAverage(Double ratingAverage) {
@@ -477,8 +477,9 @@ public class Course {
     }
 
     public Integer getRatingCount() {
-        return ratingCount;
+        return ratingCount != null ? ratingCount : 0;
     }
+
 
     public void setRatingCount(Integer ratingCount) {
         this.ratingCount = ratingCount;

@@ -24,6 +24,25 @@ import java.util.Optional;
 public interface CourseRepository extends JpaRepository<Course, Long>, JpaSpecificationExecutor<Course>
 {
     /**
+     * Search by name with pagination - THÊM MỚI
+     */
+    Page<Course> findByNameContainingIgnoreCaseAndActiveTrue(String keyword, Pageable pageable);
+
+    /**
+     * Find active courses with pagination - THÊM MỚI
+     */
+    Page<Course> findByActiveTrueOrderByCreatedAtDesc(Pageable pageable);
+
+    /**
+     * Find featured active courses - THÊM MỚI
+     */
+    List<Course> findByFeaturedTrueAndActiveTrueOrderByCreatedAtDesc();
+
+    /**
+     * Count active courses - THÊM MỚI
+     */
+    long countByActiveTrue();
+    /**
      * Tìm courses theo category và active status
      */
     List<Course> findByCategoryAndActive(Category category, boolean active);

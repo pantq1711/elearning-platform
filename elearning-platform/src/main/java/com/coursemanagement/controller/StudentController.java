@@ -164,53 +164,45 @@ public class StudentController {
         }
     }
 
+    /// Thêm vào StudentController.java
+
     /**
-     * Chi tiết course cho student
+     * Chi tiết course cho student (URL compatibility)
+     * Redirect từ /student/courses/{id} sang /student/course/{id}
      */
-    @GetMapping("/course/{id}")
-    public String courseDetail(@PathVariable Long id,
-                               Model model,
-                               Authentication authentication) {
+    @GetMapping("/courses/{id}")
+    public String courseDetailRedirect(@PathVariable Long id) {
+        return "redirect:/student/course/" + id;
+    }
+
+    /**
+     * Trang học course (learn mode)
+     */
+    @GetMapping("/courses/{id}/learn")
+    public String learnCourse(@PathVariable Long id,
+                              Model model,
+                              Authentication authentication) {
         try {
             User currentUser = (User) authentication.getPrincipal();
             Course course = courseService.findById(id)
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học"));
 
+            // Kiểm tra đã đăng ký chưa
+            if (!enrollmentService.isStudentEnrolled(currentUser, course)) {
+                throw new RuntimeException("Bạn cần đăng ký khóa học này trước");
+            }
+
+            // Lấy enrollment info
+            Optional<Enrollment> enrollment = enrollmentService.findByStudentAndCourse(currentUser, course);
+            model.addAttribute("enrollment", enrollment.orElse(null));
             model.addAttribute("course", course);
             model.addAttribute("currentUser", currentUser);
 
-            // Kiểm tra đã đăng ký chưa
-            boolean isEnrolled = enrollmentService.isStudentEnrolled(currentUser, course);
-            model.addAttribute("isEnrolled", isEnrolled);
+            // Lấy lessons của course
+            List<Lesson> lessons = lessonService.findActiveLessonsByCourse(course);
+            model.addAttribute("lessons", lessons);
 
-            if (isEnrolled) {
-                // Lấy enrollment để hiển thị progress
-                Optional<Enrollment> enrollment = enrollmentService.findByStudentAndCourse(currentUser, course);
-                model.addAttribute("enrollment", enrollment.orElse(null));
-
-                // Lấy tất cả lessons
-                List<Lesson> lessons = lessonService.findActiveLessonsByCourse(course);
-                model.addAttribute("lessons", lessons);
-            } else {
-                // Chỉ hiển thị preview lessons
-                List<Lesson> previewLessons = lessonService.findActiveLessonsByCourse(course)
-                        .stream()
-                        .filter(Lesson::isPreview)
-                        .toList();
-                model.addAttribute("lessons", previewLessons);
-            }
-
-            // Quizzes của course
-            List<Quiz> quizzes = quizService.findActiveQuizzesByCourse(course);
-            model.addAttribute("quizzes", quizzes);
-
-            // Thống kê course
-            long totalLessons = lessonService.countActiveLessonsByCourse(course);
-            long totalQuizzes = quizService.countActiveQuizzesByCourse(course);
-            model.addAttribute("totalLessons", totalLessons);
-            model.addAttribute("totalQuizzes", totalQuizzes);
-
-            return "student/course-detail";
+            return "student/course-learn";
 
         } catch (Exception e) {
             model.addAttribute("error", e.getMessage());
@@ -218,6 +210,34 @@ public class StudentController {
         }
     }
 
+    /**
+     * Review course
+     */
+    @GetMapping("/courses/{id}/review")
+    public String reviewCourse(@PathVariable Long id,
+                               Model model,
+                               Authentication authentication) {
+        try {
+            User currentUser = (User) authentication.getPrincipal();
+            Course course = courseService.findById(id)
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học"));
+
+            // Kiểm tra đã hoàn thành chưa
+            Optional<Enrollment> enrollment = enrollmentService.findByStudentAndCourse(currentUser, course);
+            if (enrollment.isEmpty() || !enrollment.get().isCompleted()) {
+                throw new RuntimeException("Bạn cần hoàn thành khóa học để đánh giá");
+            }
+
+            model.addAttribute("course", course);
+            model.addAttribute("enrollment", enrollment.get());
+
+            return "student/course-review";
+
+        } catch (Exception e) {
+            model.addAttribute("error", e.getMessage());
+            return "error/404";
+        }
+    }
     /**
      * Đăng ký khóa học
      */

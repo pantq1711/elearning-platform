@@ -66,6 +66,19 @@ public class CourseService {
     public Page<Course> findAll(Pageable pageable) {
         return courseRepository.findAll(pageable);
     }
+    /**
+     * Search courses with pagination - THÊM MỚI
+     */
+
+
+    /**
+     * Find active courses with pagination - THÊM MỚI
+     */
+
+    /**
+     * Find featured courses - THÊM MỚI
+     */
+
 
     @Transactional(readOnly = true)
     public Page<Course> findAllWithPagination(Pageable pageable) {
@@ -184,10 +197,6 @@ public class CourseService {
     /**
      * Đếm tất cả courses active
      */
-    public Long countActiveCourses() {
-        return courseRepository.countByActive(true);
-    }
-
     /**
      * Đếm courses theo trạng thái active
      */
@@ -258,9 +267,7 @@ public class CourseService {
     /**
      * Tìm featured courses với limit
      */
-    public List<Course> findFeaturedCourses(int limit) {
-        return courseRepository.findFeaturedCourses(limit);
-    }
+
 
     /**
      * Tìm tất cả courses active
@@ -761,4 +768,88 @@ public class CourseService {
             throw new RuntimeException("Giá course không được âm");
         }
     }
+    /**
+     * Find active courses (simple list) - THÊM MỚI
+     */
+    public List<Course> findActiveCourses() {
+        try {
+            return courseRepository.findByActiveOrderByCreatedAtDesc(true);
+        } catch (Exception e) {
+            // Fallback: find all and filter
+            return courseRepository.findAll()
+                    .stream()
+                    .filter(Course::isActive)
+                    .sorted((a, b) -> b.getCreatedAt().compareTo(a.getCreatedAt()))
+                    .toList();
+        }
+    }
+
+    /**
+     * Count total courses - THÊM MỚI
+     */
+    public long countTotalCourses() {
+        return courseRepository.count();
+    }
+
+    /**
+     * Search courses with pagination - THÊM MỚI
+     */
+    public Page<Course> searchCoursesWithPagination(String keyword, Pageable pageable) {
+        if (keyword == null || keyword.trim().isEmpty()) {
+            return findAllWithPagination(pageable);
+        }
+        try {
+            return courseRepository.findByNameContainingIgnoreCaseAndActiveTrue(keyword, pageable);
+        } catch (Exception e) {
+            // Fallback: return all courses
+            return findAllWithPagination(pageable);
+        }
+    }
+
+    /**
+     * Find active courses with pagination - THÊM MỚI
+     */
+    public Page<Course> findActiveCoursesWithPagination(Pageable pageable) {
+        try {
+            return courseRepository.findByActiveTrueOrderByCreatedAtDesc(pageable);
+        } catch (Exception e) {
+            // Fallback: return all courses
+            return findAllWithPagination(pageable);
+        }
+    }
+
+    /**
+     * Find featured courses - THÊM MỚI
+     */
+    public List<Course> findFeaturedCourses(int limit) {
+        try {
+            return courseRepository.findByFeaturedTrueAndActiveTrueOrderByCreatedAtDesc()
+                    .stream()
+                    .limit(limit)
+                    .toList();
+        } catch (Exception e) {
+            // Fallback: return active courses
+            return findActiveCourses()
+                    .stream()
+                    .filter(course -> Boolean.TRUE.equals(course.isFeatured()))
+                    .limit(limit)
+                    .toList();
+        }
+    }
+
+    /**
+     * Count active courses - THÊM MỚI
+     */
+    public long countActiveCourses() {
+        try {
+            return courseRepository.countByActiveTrue();
+        } catch (Exception e) {
+            // Fallback: count manually
+            return courseRepository.findAll()
+                    .stream()
+                    .mapToLong(course -> course.isActive() ? 1L : 0L)
+                    .sum();
+        }
+    }
+
 }

@@ -224,27 +224,29 @@
                             <div class="course-footer">
                                 <div class="course-rating">
                                     <div class="stars">
-                                        <c:forEach begin="1" end="5" var="i">
-                                            <i class="fas fa-star ${i <= course.rating ? 'text-warning' : 'text-muted'}"></i>
+                                        <!-- SỬA: An toàn với null và kiểu dữ liệu -->
+                                        <c:forEach begin="1" end="5" var="star">
+                                            <c:set var="courseRating" value="${course.ratingAverage != null ? course.ratingAverage : 0}" />
+                                            <i class="fas fa-star ${star <= courseRating ? 'text-warning' : 'text-muted'}"></i>
                                         </c:forEach>
+                                        <span class="rating-number ms-2">
+            <fmt:formatNumber value="${course.ratingAverage != null ? course.ratingAverage : 0}"
+                              maxFractionDigits="1"/>
+        </span>
                                     </div>
-                                    <span class="rating-text">(${course.reviewCount} đánh giá)</span>
+                                    <div class="course-price">
+                                        <c:choose>
+                                            <c:when test="${course.price == 0}">
+                                                <span class="price-free">Miễn phí</span>
+                                            </c:when>
+                                            <c:otherwise>
+                <span class="price-amount">
+                    <fmt:formatNumber value="${course.price}" pattern="#,##0"/>đ
+                </span>
+                                            </c:otherwise>
+                                        </c:choose>
+                                    </div>
                                 </div>
-
-                                <div class="course-price">
-                                    <c:choose>
-                                        <c:when test="${course.price == 0}">
-                                            <span class="price-free">Miễn phí</span>
-                                        </c:when>
-                                        <c:otherwise>
-                                                <span class="price-current">
-                                                    <fmt:formatNumber value="${course.price}" type="currency"
-                                                                      currencySymbol="₫" groupingUsed="true"/>
-                                                </span>
-                                        </c:otherwise>
-                                    </c:choose>
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </div>

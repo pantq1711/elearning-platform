@@ -3,274 +3,988 @@
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 <%@ taglib prefix="sec" uri="http://www.springframework.org/security/tags" %>
-<%@ taglib prefix="form" uri="http://www.springframework.org/tags/form" %>
 
 <!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hồ Sơ Cá Nhân - EduLearn Platform</title>
+    <title>Hồ Sơ Cá Nhân - EduLearn</title>
 
-    <!-- Bootstrap 5 CSS -->
+    <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Custom CSS -->
-    <link href="${pageContext.request.contextPath}/css/student.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --success-color: #28a745;
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
+            --info-color: #17a2b8;
+            --light-bg: #f8f9fa;
+            --dark-bg: #343a40;
+            --border-color: #e9ecef;
+            --text-primary: #2c3e50;
+            --text-secondary: #6c757d;
+            --card-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+
+        body {
+            background: var(--light-bg);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        .dashboard-layout {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 0;
+            background: var(--light-bg);
+        }
+
+        /* Profile Header */
+        .profile-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            padding: 3rem 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .profile-header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -20%;
+            width: 300px;
+            height: 300px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+        }
+
+        .header-content {
+            position: relative;
+            z-index: 2;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        .profile-info {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+        }
+
+        .profile-avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            font-weight: 700;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .profile-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+        }
+
+        .avatar-upload {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 36px;
+            height: 36px;
+            background: var(--primary-color);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border: 3px solid white;
+            transition: all 0.3s ease;
+        }
+
+        .avatar-upload:hover {
+            background: var(--secondary-color);
+            transform: scale(1.1);
+        }
+
+        .profile-details h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .profile-role {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            margin-bottom: 1rem;
+        }
+
+        .profile-stats {
+            display: flex;
+            gap: 2rem;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 1.5rem;
+            font-weight: 700;
+            display: block;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        /* Profile Content */
+        .profile-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .content-tabs {
+            background: white;
+            border-radius: 1rem;
+            box-shadow: var(--card-shadow);
+            overflow: hidden;
+            margin-bottom: 2rem;
+        }
+
+        .nav-tabs {
+            border: none;
+            background: var(--light-bg);
+            padding: 0 2rem;
+        }
+
+        .nav-tabs .nav-link {
+            border: none;
+            background: none;
+            color: var(--text-secondary);
+            font-weight: 500;
+            padding: 1rem 2rem;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .nav-tabs .nav-link:hover {
+            background: white;
+            color: var(--text-primary);
+        }
+
+        .nav-tabs .nav-link.active {
+            background: white;
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+        }
+
+        .tab-content {
+            padding: 2rem;
+        }
+
+        /* Profile Form */
+        .profile-form {
+            max-width: 600px;
+        }
+
+        .form-group {
+            margin-bottom: 2rem;
+        }
+
+        .form-label {
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 0.75rem;
+            display: block;
+        }
+
+        .form-control {
+            border: 2px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 0.75rem 1rem;
+            transition: all 0.3s ease;
+            font-size: 0.95rem;
+        }
+
+        .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+
+        .form-control:disabled {
+            background: var(--light-bg);
+            color: var(--text-secondary);
+        }
+
+        .btn-save {
+            background: var(--primary-color);
+            border: none;
+            color: white;
+            padding: 0.75rem 2rem;
+            border-radius: 0.75rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .btn-save:hover {
+            background: var(--secondary-color);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .btn-edit {
+            background: var(--info-color);
+            border: none;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            margin-left: 1rem;
+        }
+
+        .btn-edit:hover {
+            background: #138496;
+            color: white;
+        }
+
+        /* Learning Progress */
+        .progress-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .progress-card {
+            background: white;
+            border-radius: 1rem;
+            padding: 2rem;
+            box-shadow: var(--card-shadow);
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .progress-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+        }
+
+        .progress-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            margin: 0 auto 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: white;
+        }
+
+        .progress-icon.courses {
+            background: var(--primary-color);
+        }
+
+        .progress-icon.certificates {
+            background: var(--success-color);
+        }
+
+        .progress-icon.hours {
+            background: var(--info-color);
+        }
+
+        .progress-icon.streak {
+            background: var(--warning-color);
+        }
+
+        .progress-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .progress-label {
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .progress-description {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 0.5rem;
+        }
+
+        /* Certificates Grid */
+        .certificates-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .certificate-card {
+            background: white;
+            border-radius: 1rem;
+            padding: 2rem;
+            box-shadow: var(--card-shadow);
+            text-align: center;
+            border: 2px solid var(--border-color);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .certificate-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+        }
+
+        .certificate-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.15);
+            border-color: var(--primary-color);
+        }
+
+        .certificate-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, var(--warning-color), #ffa000);
+            border-radius: 50%;
+            margin: 0 auto 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: white;
+        }
+
+        .certificate-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .certificate-course {
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+        }
+
+        .certificate-date {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 1.5rem;
+        }
+
+        .certificate-actions {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: center;
+        }
+
+        .btn-download {
+            background: var(--primary-color);
+            border: none;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.85rem;
+            transition: all 0.3s ease;
+        }
+
+        .btn-download:hover {
+            background: var(--secondary-color);
+            color: white;
+        }
+
+        .btn-share {
+            border: 2px solid var(--primary-color);
+            color: var(--primary-color);
+            background: transparent;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.85rem;
+            transition: all 0.3s ease;
+        }
+
+        .btn-share:hover {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        /* Recent Activity */
+        .activity-list {
+            background: white;
+            border-radius: 1rem;
+            box-shadow: var(--card-shadow);
+            overflow: hidden;
+        }
+
+        .activity-header {
+            background: var(--light-bg);
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .activity-title {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0;
+        }
+
+        .activity-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+
+        .activity-item:hover {
+            background: var(--light-bg);
+        }
+
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+
+        .activity-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .activity-icon.lesson {
+            background: var(--primary-color);
+        }
+
+        .activity-icon.certificate {
+            background: var(--success-color);
+        }
+
+        .activity-icon.quiz {
+            background: var(--info-color);
+        }
+
+        .activity-icon.course {
+            background: var(--warning-color);
+        }
+
+        .activity-content {
+            flex: 1;
+        }
+
+        .activity-action {
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .activity-details {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .activity-time {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: var(--text-secondary);
+        }
+
+        .empty-icon {
+            font-size: 4rem;
+            margin-bottom: 1.5rem;
+            opacity: 0.5;
+        }
+
+        .empty-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .empty-description {
+            margin-bottom: 2rem;
+            line-height: 1.6;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .profile-info {
+                flex-direction: column;
+                text-align: center;
+                gap: 1.5rem;
+            }
+
+            .profile-details h1 {
+                font-size: 2rem;
+            }
+
+            .profile-stats {
+                justify-content: center;
+            }
+
+            .profile-content {
+                padding: 1rem;
+            }
+
+            .tab-content {
+                padding: 1.5rem;
+            }
+
+            .progress-cards {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            .certificates-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .activity-item {
+                padding: 1rem;
+            }
+        }
+    </style>
 </head>
 
 <body>
-<!-- Include Header -->
-<jsp:include page="/WEB-INF/views/common/header.jsp" />
+<div class="dashboard-layout">
+    <!-- Include Sidebar -->
+    <jsp:include page="/WEB-INF/views/common/sidebar.jsp" />
 
-<div class="container-fluid">
-    <div class="row">
-        <!-- Include Sidebar -->
-        <div class="col-md-3 col-lg-2">
-            <jsp:include page="/WEB-INF/views/common/sidebar.jsp" />
-        </div>
-
-        <!-- Main Content -->
-        <div class="col-md-9 col-lg-10">
-            <div class="main-content p-4">
-
-                <!-- Page Header -->
-                <div class="page-header mb-4">
-                    <h2><i class="fas fa-user-circle me-2"></i>Hồ Sơ Cá Nhân</h2>
-                    <p class="text-muted">Quản lý thông tin cá nhân và theo dõi tiến độ học tập</p>
-                </div>
-
-                <!-- Profile Content -->
-                <div class="row">
-                    <!-- Left Column - Profile Info -->
-                    <div class="col-lg-4 mb-4">
-                        <!-- Profile Card -->
-                        <div class="card profile-card">
-                            <div class="card-body text-center">
-                                <!-- Avatar -->
-                                <div class="avatar-container mb-3">
-                                    <c:choose>
-                                        <c:when test="${currentUser.avatarPath != null}">
-                                            <img src="${pageContext.request.contextPath}/images/avatars/${currentUser.avatarPath}"
-                                                 alt="${currentUser.fullName}" class="profile-avatar" id="profileAvatar">
-                                        </c:when>
-                                        <c:otherwise>
-                                            <div class="avatar-placeholder" id="profileAvatar">
-                                                <i class="fas fa-user"></i>
-                                            </div>
-                                        </c:otherwise>
-                                    </c:choose>
-
-                                    <!-- Upload Button -->
-                                    <label for="avatarUpload" class="avatar-upload-btn">
-                                        <i class="fas fa-camera"></i>
-                                        <input type="file" id="avatarUpload" accept="image/*" onchange="uploadAvatar(this)" style="display: none;">
-                                    </label>
-                                </div>
-
-                                <!-- User Info -->
-                                <h4 class="profile-name">${currentUser.fullName}</h4>
-                                <p class="profile-email text-muted">${currentUser.email}</p>
-                                <span class="badge bg-primary profile-role">
-                                    <i class="fas fa-user-graduate me-1"></i>Học viên
-                                </span>
-
-                                <!-- Stats -->
-                                <div class="profile-stats mt-4">
-                                    <div class="row text-center">
-                                        <div class="col-4">
-                                            <div class="stat-item">
-                                                <h5 class="stat-number">${enrolledCourses}</h5>
-                                                <small class="stat-label">Khóa học</small>
-                                            </div>
-                                        </div>
-                                        <div class="col-4">
-                                            <div class="stat-item">
-                                                <h5 class="stat-number">${completedCourses}</h5>
-                                                <small class="stat-label">Hoàn thành</small>
-                                            </div>
-                                        </div>
-                                        <div class="col-4">
-                                            <div class="stat-item">
-                                                <h5 class="stat-number">${totalStudyHours}</h5>
-                                                <small class="stat-label">Giờ học</small>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Profile Header -->
+        <div class="profile-header">
+            <div class="header-content">
+                <div class="profile-info">
+                    <div class="profile-avatar">
+                        <c:choose>
+                            <c:when test="${currentUser.profileImageUrl != null}">
+                                <img src="${currentUser.profileImageUrl}" alt="Avatar">
+                            </c:when>
+                            <c:otherwise>
+                                <c:choose>
+                                    <c:when test="${currentUser.fullName != null}">
+                                        ${fn:substring(currentUser.fullName, 0, 1)}
+                                    </c:when>
+                                    <c:otherwise>U</c:otherwise>
+                                </c:choose>
+                            </c:otherwise>
+                        </c:choose>
+                        <div class="avatar-upload" onclick="uploadAvatar()">
+                            <i class="fas fa-camera"></i>
                         </div>
-
-                        <!-- Quick Actions -->
-                        <div class="card mt-4">
-                            <div class="card-header">
-                                <h6 class="mb-0"><i class="fas fa-bolt me-2"></i>Hành động nhanh</h6>
+                    </div>
+                    <div class="profile-details">
+                        <h1>
+                            <c:choose>
+                                <c:when test="${currentUser.fullName != null}">
+                                    ${currentUser.fullName}
+                                </c:when>
+                                <c:otherwise>Học viên EduLearn</c:otherwise>
+                            </c:choose>
+                        </h1>
+                        <div class="profile-role">
+                            <i class="fas fa-graduation-cap me-2"></i>
+                            Học viên
+                        </div>
+                        <div class="profile-stats">
+                            <div class="stat-item">
+                                <span class="stat-number">
+                                    <c:choose>
+                                        <c:when test="${stats != null && stats.totalEnrollments != null}">
+                                            ${stats.totalEnrollments}
+                                        </c:when>
+                                        <c:otherwise>0</c:otherwise>
+                                    </c:choose>
+                                </span>
+                                <div class="stat-label">Khóa học</div>
                             </div>
-                            <div class="card-body">
-                                <div class="d-grid gap-2">
-                                    <a href="${pageContext.request.contextPath}/student/courses" class="btn btn-outline-primary btn-sm">
-                                        <i class="fas fa-book me-2"></i>Khóa học của tôi
-                                    </a>
-                                    <a href="${pageContext.request.contextPath}/student/certificates" class="btn btn-outline-success btn-sm">
-                                        <i class="fas fa-certificate me-2"></i>Chứng chỉ
-                                    </a>
-                                    <button type="button" class="btn btn-outline-warning btn-sm" data-bs-toggle="modal" data-bs-target="#changePasswordModal">
-                                        <i class="fas fa-key me-2"></i>Đổi mật khẩu
-                                    </button>
-                                </div>
+                            <div class="stat-item">
+                                <span class="stat-number">
+                                    <c:choose>
+                                        <c:when test="${stats != null && stats.completedEnrollments != null}">
+                                            ${stats.completedEnrollments}
+                                        </c:when>
+                                        <c:otherwise>0</c:otherwise>
+                                    </c:choose>
+                                </span>
+                                <div class="stat-label">Hoàn thành</div>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-number">
+                                    <c:choose>
+                                        <c:when test="${stats != null && stats.completedEnrollments != null}">
+                                            ${stats.completedEnrollments}
+                                        </c:when>
+                                        <c:otherwise>0</c:otherwise>
+                                    </c:choose>
+                                </span>
+                                <div class="stat-label">Chứng chỉ</div>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-number">7</span>
+                                <div class="stat-label">Ngày streak</div>
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
 
-                    <!-- Right Column - Details & Progress -->
-                    <div class="col-lg-8">
+        <!-- Profile Content -->
+        <div class="profile-content">
+            <!-- Content Tabs -->
+            <div class="content-tabs">
+                <ul class="nav nav-tabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#overview" type="button">
+                            <i class="fas fa-chart-pie me-2"></i>Tổng quan
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#profile-edit" type="button">
+                            <i class="fas fa-user-edit me-2"></i>Chỉnh sửa hồ sơ
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#certificates" type="button">
+                            <i class="fas fa-certificate me-2"></i>Chứng chỉ
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#activity" type="button">
+                            <i class="fas fa-history me-2"></i>Hoạt động
+                        </button>
+                    </li>
+                </ul>
 
-                        <!-- Personal Information -->
-                        <div class="card mb-4">
-                            <div class="card-header d-flex justify-content-between align-items-center">
-                                <h6 class="mb-0"><i class="fas fa-user me-2"></i>Thông tin cá nhân</h6>
-                                <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editProfileModal">
-                                    <i class="fas fa-edit"></i> Chỉnh sửa
-                                </button>
-                            </div>
-                            <div class="card-body">
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="info-item mb-3">
-                                            <label class="info-label">Họ và tên:</label>
-                                            <p class="info-value">${currentUser.fullName}</p>
-                                        </div>
-                                        <div class="info-item mb-3">
-                                            <label class="info-label">Email:</label>
-                                            <p class="info-value">${currentUser.email}</p>
-                                        </div>
-                                        <div class="info-item mb-3">
-                                            <label class="info-label">Số điện thoại:</label>
-                                            <p class="info-value">${currentUser.phoneNumber != null ? currentUser.phoneNumber : 'Chưa cập nhật'}</p>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="info-item mb-3">
-                                            <label class="info-label">Ngày sinh:</label>
-                                            <p class="info-value">
-                                                <c:choose>
-                                                    <c:when test="${currentUser.dateOfBirth != null}">
-                                                        <fmt:formatDate value="${currentUser.dateOfBirth}" pattern="dd/MM/yyyy"/>
-                                                    </c:when>
-                                                    <c:otherwise>Chưa cập nhật</c:otherwise>
-                                                </c:choose>
-                                            </p>
-                                        </div>
-                                        <div class="info-item mb-3">
-                                            <label class="info-label">Địa chỉ:</label>
-                                            <p class="info-value">${currentUser.address != null ? currentUser.address : 'Chưa cập nhật'}</p>
-                                        </div>
-                                        <div class="info-item mb-3">
-                                            <label class="info-label">Ngày tham gia:</label>
-                                            <p class="info-value">
-                                                <fmt:formatDate value="${currentUser.createdAt}" pattern="dd/MM/yyyy"/>
-                                            </p>
-                                        </div>
-                                    </div>
+                <div class="tab-content">
+                    <!-- Overview Tab -->
+                    <div class="tab-pane fade show active" id="overview">
+                        <!-- Progress Cards -->
+                        <div class="progress-cards">
+                            <div class="progress-card">
+                                <div class="progress-icon courses">
+                                    <i class="fas fa-book"></i>
                                 </div>
+                                <div class="progress-number">
+                                    <c:choose>
+                                        <c:when test="${stats != null && stats.totalEnrollments != null}">
+                                            ${stats.totalEnrollments}
+                                        </c:when>
+                                        <c:otherwise>0</c:otherwise>
+                                    </c:choose>
+                                </div>
+                                <div class="progress-label">Khóa học đã đăng ký</div>
+                                <div class="progress-description">
+                                    <c:choose>
+                                        <c:when test="${stats != null && stats.activeEnrollments != null}">
+                                            ${stats.activeEnrollments} đang học
+                                        </c:when>
+                                        <c:otherwise>0 đang học</c:otherwise>
+                                    </c:choose>
+                                </div>
+                            </div>
+
+                            <div class="progress-card">
+                                <div class="progress-icon certificates">
+                                    <i class="fas fa-certificate"></i>
+                                </div>
+                                <div class="progress-number">
+                                    <c:choose>
+                                        <c:when test="${stats != null && stats.completedEnrollments != null}">
+                                            ${stats.completedEnrollments}
+                                        </c:when>
+                                        <c:otherwise>0</c:otherwise>
+                                    </c:choose>
+                                </div>
+                                <div class="progress-label">Chứng chỉ đạt được</div>
+                                <div class="progress-description">
+                                    <c:choose>
+                                        <c:when test="${stats != null && stats.completionRate != null}">
+                                            <fmt:formatNumber value="${stats.completionRate}" maxFractionDigits="1"/>% tỷ lệ hoàn thành
+                                        </c:when>
+                                        <c:otherwise>0% tỷ lệ hoàn thành</c:otherwise>
+                                    </c:choose>
+                                </div>
+                            </div>
+
+                            <div class="progress-card">
+                                <div class="progress-icon hours">
+                                    <i class="fas fa-clock"></i>
+                                </div>
+                                <div class="progress-number">48</div>
+                                <div class="progress-label">Giờ học tập</div>
+                                <div class="progress-description">Tuần này: 8 giờ</div>
+                            </div>
+
+                            <div class="progress-card">
+                                <div class="progress-icon streak">
+                                    <i class="fas fa-fire"></i>
+                                </div>
+                                <div class="progress-number">7</div>
+                                <div class="progress-label">Ngày học liên tiếp</div>
+                                <div class="progress-description">Kỷ lục: 15 ngày</div>
                             </div>
                         </div>
 
-                        <!-- Learning Progress Chart -->
-                        <div class="card mb-4">
-                            <div class="card-header">
-                                <h6 class="mb-0"><i class="fas fa-chart-line me-2"></i>Tiến độ học tập tuần này</h6>
+                        <!-- Recent Courses -->
+                        <div class="activity-list">
+                            <div class="activity-header">
+                                <h3 class="activity-title">Khóa học gần đây</h3>
                             </div>
-                            <div class="card-body">
-                                <div style="height: 300px;">
-                                    <canvas id="progressChart"></canvas>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Course Progress -->
-                        <div class="card">
-                            <div class="card-header d-flex justify-content-between align-items-center">
-                                <h6 class="mb-0"><i class="fas fa-graduation-cap me-2"></i>Tiến độ khóa học</h6>
-
-                                <!-- Filter -->
-                                <div class="btn-group btn-group-sm" role="group">
-                                    <input type="radio" class="btn-check" name="courseFilter" id="allCourses" checked>
-                                    <label class="btn btn-outline-primary" for="allCourses">Tất cả</label>
-
-                                    <input type="radio" class="btn-check" name="courseFilter" id="inProgress">
-                                    <label class="btn btn-outline-primary" for="inProgress">Đang học</label>
-
-                                    <input type="radio" class="btn-check" name="courseFilter" id="completed">
-                                    <label class="btn btn-outline-primary" for="completed">Hoàn thành</label>
-                                </div>
-                            </div>
-                            <div class="card-body">
-                                <c:choose>
-                                    <c:when test="${not empty enrollments}">
-                                        <c:forEach items="${enrollments}" var="enrollment">
-                                            <div class="course-progress-item mb-3" data-status="${enrollment.progress >= 100 ? 'completed' : 'in-progress'}">
-                                                <div class="d-flex align-items-center">
-                                                    <div class="course-thumbnail me-3">
-                                                        <c:choose>
-                                                            <c:when test="${enrollment.course.thumbnailPath != null}">
-                                                                <img src="${pageContext.request.contextPath}/images/courses/${enrollment.course.thumbnailPath}"
-                                                                     alt="${enrollment.course.name}" class="course-thumb">
-                                                            </c:when>
-                                                            <c:otherwise>
-                                                                <div class="course-thumb-placeholder">
-                                                                    <i class="fas fa-play"></i>
-                                                                </div>
-                                                            </c:otherwise>
-                                                        </c:choose>
-                                                    </div>
-
-                                                    <div class="flex-grow-1">
-                                                        <h6 class="course-title mb-1">
-                                                            <a href="${pageContext.request.contextPath}/courses/${enrollment.course.id}/learn">
-                                                                    ${enrollment.course.name}
-                                                            </a>
-                                                        </h6>
-                                                        <p class="course-instructor text-muted mb-2">
-                                                            <i class="fas fa-chalkboard-teacher me-1"></i>
-                                                                ${enrollment.course.instructor.fullName}
-                                                        </p>
-
-                                                        <!-- Progress Bar -->
-                                                        <div class="progress mb-2" style="height: 8px;">
-                                                            <div class="progress-bar bg-primary"
-                                                                 style="width: ${enrollment.progress}%"></div>
-                                                        </div>
-
-                                                        <div class="d-flex justify-content-between align-items-center">
-                                                            <small class="text-muted">
-                                                                <fmt:formatNumber value="${enrollment.progress}" maxFractionDigits="1"/>% hoàn thành
-                                                            </small>
-                                                            <c:if test="${enrollment.progress >= 100}">
-                                                                <span class="badge bg-success">
-                                                                    <i class="fas fa-check me-1"></i>Hoàn thành
-                                                                </span>
-                                                            </c:if>
-                                                        </div>
-                                                    </div>
+                            <c:choose>
+                                <c:when test="${recentEnrollments != null && fn:length(recentEnrollments) > 0}">
+                                    <c:forEach var="enrollment" items="${recentEnrollments}" varStatus="status">
+                                        <div class="activity-item">
+                                            <div class="activity-icon course">
+                                                <i class="fas fa-play"></i>
+                                            </div>
+                                            <div class="activity-content">
+                                                <div class="activity-action">${enrollment.course.name}</div>
+                                                <div class="activity-details">
+                                                    Tiến độ: <strong>
+                                                    <c:choose>
+                                                        <c:when test="${enrollment.progress != null}">
+                                                            <fmt:formatNumber value="${enrollment.progress}" maxFractionDigits="1"/>%
+                                                        </c:when>
+                                                        <c:otherwise>0%</c:otherwise>
+                                                    </c:choose>
+                                                </strong>
+                                                    - Giảng viên: ${enrollment.course.instructor.fullName}
                                                 </div>
                                             </div>
-                                        </c:forEach>
-                                    </c:when>
-                                    <c:otherwise>
-                                        <div class="text-center py-4">
-                                            <i class="fas fa-graduation-cap fa-3x text-muted mb-3"></i>
-                                            <h6 class="text-muted">Chưa đăng ký khóa học nào</h6>
-                                            <p class="text-muted">Hãy khám phá và đăng ký khóa học đầu tiên của bạn!</p>
-                                            <a href="${pageContext.request.contextPath}/courses" class="btn btn-primary">
-                                                <i class="fas fa-search me-2"></i>Tìm khóa học
-                                            </a>
+                                            <div class="activity-time">
+                                                <c:if test="${enrollment.enrollmentDate != null}">
+                                                    <fmt:formatDate value="${enrollment.enrollmentDate}" pattern="dd/MM/yyyy"/>
+                                                </c:if>
+                                            </div>
                                         </div>
-                                    </c:otherwise>
-                                </c:choose>
+                                    </c:forEach>
+                                </c:when>
+                                <c:otherwise>
+                                    <div class="activity-item">
+                                        <div class="text-center w-100 py-3">
+                                            <i class="fas fa-book-open fa-2x text-muted mb-2"></i>
+                                            <p class="text-muted mb-0">Chưa có khóa học nào.</p>
+                                        </div>
+                                    </div>
+                                </c:otherwise>
+                            </c:choose>
+                        </div>
+                    </div>
+
+                    <!-- Profile Edit Tab -->
+                    <div class="tab-pane fade" id="profile-edit">
+                        <form class="profile-form" action="${pageContext.request.contextPath}/student/profile/update" method="post">
+                            <div class="form-group">
+                                <label class="form-label">Họ và tên</label>
+                                <input type="text" class="form-control" name="fullName"
+                                       value="${currentUser.fullName}" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Email</label>
+                                <input type="email" class="form-control" name="email"
+                                       value="${currentUser.email}" disabled>
+                                <small class="text-muted">Email không thể thay đổi</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Username</label>
+                                <input type="text" class="form-control" name="username"
+                                       value="${currentUser.username}" disabled>
+                                <small class="text-muted">Username không thể thay đổi</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Số điện thoại</label>
+                                <input type="tel" class="form-control" name="phoneNumber"
+                                       value="${currentUser.phoneNumber}">
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Giới thiệu</label>
+                                <textarea class="form-control" name="bio" rows="4"
+                                          placeholder="Viết vài dòng giới thiệu về bản thân...">${currentUser.bio}</textarea>
+                            </div>
+
+                            <div class="form-group">
+                                <button type="submit" class="btn-save">
+                                    <i class="fas fa-save me-2"></i>Lưu thay đổi
+                                </button>
+                            </div>
+                        </form>
+
+                        <!-- Change Password Section -->
+                        <hr class="my-4">
+                        <h4>Đổi mật khẩu</h4>
+                        <form class="profile-form" action="${pageContext.request.contextPath}/student/profile/change-password" method="post">
+                            <div class="form-group">
+                                <label class="form-label">Mật khẩu hiện tại</label>
+                                <input type="password" class="form-control" name="currentPassword" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Mật khẩu mới</label>
+                                <input type="password" class="form-control" name="newPassword" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Xác nhận mật khẩu mới</label>
+                                <input type="password" class="form-control" name="confirmPassword" required>
+                            </div>
+
+                            <div class="form-group">
+                                <button type="submit" class="btn-save">
+                                    <i class="fas fa-key me-2"></i>Đổi mật khẩu
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Certificates Tab -->
+                    <div class="tab-pane fade" id="certificates">
+                        <c:choose>
+                            <c:when test="${certificates != null && fn:length(certificates) > 0}">
+                                <div class="certificates-grid">
+                                    <c:forEach var="certificate" items="${certificates}">
+                                        <div class="certificate-card">
+                                            <div class="certificate-icon">
+                                                <i class="fas fa-award"></i>
+                                            </div>
+                                            <div class="certificate-title">${certificate.course.name}</div>
+                                            <div class="certificate-course">
+                                                Giảng viên: ${certificate.course.instructor.fullName}
+                                            </div>
+                                            <div class="certificate-date">
+                                                Hoàn thành ngày:
+                                                <c:if test="${certificate.issuedDate != null}">
+                                                    <fmt:formatDate value="${certificate.issuedDate}" pattern="dd/MM/yyyy"/>
+                                                </c:if>
+                                            </div>
+                                            <div class="certificate-actions">
+                                                <a href="${pageContext.request.contextPath}/student/certificates/${certificate.id}/download"
+                                                   class="btn-download">
+                                                    <i class="fas fa-download me-1"></i>Tải về
+                                                </a>
+                                                <button class="btn-share" onclick="shareCertificate(${certificate.id})">
+                                                    <i class="fas fa-share me-1"></i>Chia sẻ
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </c:forEach>
+                                </div>
+                            </c:when>
+                            <c:otherwise>
+                                <div class="empty-state">
+                                    <i class="fas fa-certificate empty-icon"></i>
+                                    <h3 class="empty-title">Chưa có chứng chỉ</h3>
+                                    <p class="empty-description">
+                                        Hoàn thành các khóa học để nhận chứng chỉ từ EduLearn.
+                                        Chứng chỉ sẽ được cấp tự động khi bạn hoàn thành 100% khóa học.
+                                    </p>
+                                    <a href="${pageContext.request.contextPath}/student/browse" class="btn-save">
+                                        <i class="fas fa-search me-2"></i>Khám phá khóa học
+                                    </a>
+                                </div>
+                            </c:otherwise>
+                        </c:choose>
+                    </div>
+
+                    <!-- Activity Tab -->
+                    <div class="tab-pane fade" id="activity">
+                        <div class="activity-list">
+                            <div class="activity-header">
+                                <h3 class="activity-title">Hoạt động gần đây</h3>
+                            </div>
+
+                            <!-- Sample activities -->
+                            <div class="activity-item">
+                                <div class="activity-icon lesson">
+                                    <i class="fas fa-play"></i>
+                                </div>
+                                <div class="activity-content">
+                                    <div class="activity-action">Hoàn thành bài học "Giới thiệu về Java"</div>
+                                    <div class="activity-details">Khóa học: Lập trình Java cơ bản</div>
+                                </div>
+                                <div class="activity-time">2 giờ trước</div>
+                            </div>
+
+                            <div class="activity-item">
+                                <div class="activity-icon certificate">
+                                    <i class="fas fa-certificate"></i>
+                                </div>
+                                <div class="activity-content">
+                                    <div class="activity-action">Nhận chứng chỉ "HTML & CSS Fundamentals"</div>
+                                    <div class="activity-details">Điểm số: 95/100</div>
+                                </div>
+                                <div class="activity-time">1 ngày trước</div>
+                            </div>
+
+                            <div class="activity-item">
+                                <div class="activity-icon quiz">
+                                    <i class="fas fa-question-circle"></i>
+                                </div>
+                                <div class="activity-content">
+                                    <div class="activity-action">Hoàn thành bài kiểm tra</div>
+                                    <div class="activity-details">JavaScript Basics - Điểm: 87/100</div>
+                                </div>
+                                <div class="activity-time">2 ngày trước</div>
+                            </div>
+
+                            <div class="activity-item">
+                                <div class="activity-icon course">
+                                    <i class="fas fa-plus"></i>
+                                </div>
+                                <div class="activity-content">
+                                    <div class="activity-action">Đăng ký khóa học mới</div>
+                                    <div class="activity-details">React.js cho người mới bắt đầu</div>
+                                </div>
+                                <div class="activity-time">3 ngày trước</div>
                             </div>
                         </div>
                     </div>
@@ -280,310 +994,126 @@
     </div>
 </div>
 
-<!-- Edit Profile Modal -->
-<div class="modal fade" id="editProfileModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <form id="editProfileForm" method="POST" action="${pageContext.request.contextPath}/student/profile/update">
-                <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}"/>
-
-                <div class="modal-header">
-                    <h5 class="modal-title">
-                        <i class="fas fa-edit me-2"></i>Chỉnh sửa thông tin
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-
-                <div class="modal-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="fullName" class="form-label">Họ và tên *</label>
-                                <input type="text" class="form-control" id="fullName" name="fullName"
-                                       value="${currentUser.fullName}" required>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="phoneNumber" class="form-label">Số điện thoại</label>
-                                <input type="tel" class="form-control" id="phoneNumber" name="phoneNumber"
-                                       value="${currentUser.phoneNumber}">
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="dateOfBirth" class="form-label">Ngày sinh</label>
-                        <input type="date" class="form-control" id="dateOfBirth" name="dateOfBirth"
-                               value="<fmt:formatDate value='${currentUser.dateOfBirth}' pattern='yyyy-MM-dd'/>">
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="address" class="form-label">Địa chỉ</label>
-                        <textarea class="form-control" id="address" name="address" rows="3">${currentUser.address}</textarea>
-                    </div>
-                </div>
-
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-save me-2"></i>Lưu thay đổi
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- Change Password Modal -->
-<div class="modal fade" id="changePasswordModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <form id="changePasswordForm" method="POST" action="${pageContext.request.contextPath}/student/profile/change-password">
-                <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}"/>
-
-                <div class="modal-header">
-                    <h5 class="modal-title">
-                        <i class="fas fa-key me-2"></i>Đổi mật khẩu
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="currentPassword" class="form-label">Mật khẩu hiện tại *</label>
-                        <input type="password" class="form-control" id="currentPassword" name="currentPassword" required>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="newPassword" class="form-label">Mật khẩu mới *</label>
-                        <input type="password" class="form-control" id="newPassword" name="newPassword" required>
-                        <div class="form-text">Tối thiểu 8 ký tự, bao gồm chữ hoa, chữ thường và số</div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="confirmPassword" class="form-label">Xác nhận mật khẩu mới *</label>
-                        <input type="password" class="form-control" id="confirmPassword" name="confirmPassword" required>
-                    </div>
-                </div>
-
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-                    <button type="submit" class="btn btn-warning">
-                        <i class="fas fa-key me-2"></i>Đổi mật khẩu
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- Include Footer -->
-<jsp:include page="/WEB-INF/views/common/footer.jsp" />
-
-<!-- Scripts -->
+<!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
 
 <script>
-    $(document).ready(function() {
-        // Initialize progress chart
-        initProgressChart();
+    // Upload avatar
+    function uploadAvatar() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.onchange = function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const formData = new FormData();
+                formData.append('avatar', file);
 
-        // Setup course filter
-        setupCourseFilter();
-
-        // Setup form validation
-        setupFormValidation();
-
-        // Setup change password form
-        setupChangePasswordForm();
-    });
-
-    /**
-     * Khởi tạo biểu đồ tiến độ
-     */
-    function initProgressChart() {
-        const ctx = document.getElementById('progressChart');
-        if (!ctx) return;
-
-        // Dữ liệu mẫu - thực tế sẽ lấy từ server
-        const data = {
-            labels: ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'],
-            datasets: [{
-                label: 'Thời gian học (phút)',
-                data: [${weeklyProgress}], // Từ server
-                borderColor: '#0d6efd',
-                backgroundColor: 'rgba(13, 110, 253, 0.1)',
-                tension: 0.4,
-                fill: true
-            }]
-        };
-
-        new Chart(ctx, {
-            type: 'line',
-            data: data,
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            callback: function(value) {
-                                return value + 'p';
-                            }
+                fetch('${pageContext.request.contextPath}/student/profile/upload-avatar', {
+                    method: 'POST',
+                    body: formData
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            location.reload();
+                        } else {
+                            alert('Có lỗi xảy ra khi tải ảnh lên: ' + data.message);
                         }
-                    }
-                }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Có lỗi xảy ra khi tải ảnh lên.');
+                    });
             }
-        });
+        };
+        input.click();
     }
 
-    /**
-     * Setup course filter
-     */
-    function setupCourseFilter() {
-        $('input[name="courseFilter"]').change(function() {
-            const filter = $(this).attr('id');
+    // Share certificate
+    function shareCertificate(certificateId) {
+        const shareUrl = `${window.location.origin}${pageContext.request.contextPath}/certificates/${certificateId}/public`;
 
-            $('.course-progress-item').show();
-
-            if (filter === 'inProgress') {
-                $('.course-progress-item[data-status="completed"]').hide();
-            } else if (filter === 'completed') {
-                $('.course-progress-item[data-status="in-progress"]').hide();
-            }
-        });
-    }
-
-    /**
-     * Upload avatar
-     */
-    function uploadAvatar(input) {
-        if (input.files && input.files[0]) {
-            const file = input.files[0];
-
-            // Validate file type
-            if (!file.type.match('image.*')) {
-                alert('Vui lòng chọn file hình ảnh!');
-                return;
-            }
-
-            // Validate file size (max 5MB)
-            if (file.size > 5 * 1024 * 1024) {
-                alert('Kích thước file không được vượt quá 5MB!');
-                return;
-            }
-
-            // Show preview
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                $('#profileAvatar').attr('src', e.target.result);
-            };
-            reader.readAsDataURL(file);
-
-            // Upload file
-            const formData = new FormData();
-            formData.append('avatar', file);
-            formData.append('${_csrf.parameterName}', '${_csrf.token}');
-
-            $.ajax({
-                url: '${pageContext.request.contextPath}/student/profile/upload-avatar',
-                type: 'POST',
-                data: formData,
-                processData: false,
-                contentType: false,
-                success: function(response) {
-                    if (response.success) {
-                        // Update avatar in header if exists
-                        $('.navbar .avatar-img').attr('src', response.avatarUrl);
-
-                        // Show success message
-                        showNotification('Avatar đã được cập nhật thành công!', 'success');
-                    } else {
-                        showNotification('Có lỗi xảy ra khi upload avatar: ' + response.message, 'error');
-                    }
-                },
-                error: function() {
-                    showNotification('Có lỗi xảy ra khi upload avatar!', 'error');
-                }
+        if (navigator.share) {
+            navigator.share({
+                title: 'Chứng chỉ từ EduLearn',
+                text: 'Tôi vừa hoàn thành khóa học và nhận được chứng chỉ từ EduLearn!',
+                url: shareUrl
+            });
+        } else {
+            // Fallback - copy to clipboard
+            navigator.clipboard.writeText(shareUrl).then(() => {
+                alert('Đã sao chép link chứng chỉ vào clipboard!');
             });
         }
     }
 
-    /**
-     * Setup form validation
-     */
-    function setupFormValidation() {
-        $('#editProfileForm').on('submit', function(e) {
-            const fullName = $('#fullName').val().trim();
+    // Form validation
+    document.querySelectorAll('form').forEach(form => {
+        form.addEventListener('submit', function(e) {
+            const requiredFields = form.querySelectorAll('[required]');
+            let isValid = true;
 
-            if (fullName.length < 2) {
+            requiredFields.forEach(field => {
+                if (!field.value.trim()) {
+                    isValid = false;
+                    field.classList.add('is-invalid');
+                } else {
+                    field.classList.remove('is-invalid');
+                }
+            });
+
+            if (!isValid) {
                 e.preventDefault();
-                showNotification('Họ tên phải có ít nhất 2 ký tự!', 'error');
-                return false;
+                alert('Vui lòng điền đầy đủ thông tin bắt buộc.');
+            }
+        });
+    });
+
+    // Password confirmation validation
+    const changePasswordForm = document.querySelector('form[action*="change-password"]');
+    if (changePasswordForm) {
+        const newPassword = changePasswordForm.querySelector('input[name="newPassword"]');
+        const confirmPassword = changePasswordForm.querySelector('input[name="confirmPassword"]');
+
+        confirmPassword.addEventListener('input', function() {
+            if (newPassword.value !== confirmPassword.value) {
+                confirmPassword.setCustomValidity('Mật khẩu xác nhận không khớp');
+            } else {
+                confirmPassword.setCustomValidity('');
             }
         });
     }
 
-    /**
-     * Setup change password form
-     */
-    function setupChangePasswordForm() {
-        $('#changePasswordForm').on('submit', function(e) {
-            const currentPassword = $('#currentPassword').val();
-            const newPassword = $('#newPassword').val();
-            const confirmPassword = $('#confirmPassword').val();
+    // Card animations on load
+    document.addEventListener('DOMContentLoaded', function() {
+        const cards = document.querySelectorAll('.progress-card, .certificate-card');
+        cards.forEach((card, index) => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(20px)';
+            setTimeout(() => {
+                card.style.transition = 'all 0.6s ease';
+                card.style.opacity = '1';
+                card.style.transform = 'translateY(0)';
+            }, index * 100);
+        });
+    });
 
-            // Validate password strength
-            const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d@$!%*?&]{8,}$/;
+    // Tab change tracking
+    document.querySelectorAll('.nav-tabs .nav-link').forEach(tab => {
+        tab.addEventListener('shown.bs.tab', function(e) {
+            const tabId = e.target.getAttribute('data-bs-target');
+            console.log('Switched to tab:', tabId);
 
-            if (!passwordRegex.test(newPassword)) {
-                e.preventDefault();
-                showNotification('Mật khẩu mới phải có ít nhất 8 ký tự, bao gồm chữ hoa, chữ thường và số!', 'error');
-                return false;
-            }
-
-            if (newPassword !== confirmPassword) {
-                e.preventDefault();
-                showNotification('Mật khẩu xác nhận không khớp!', 'error');
-                return false;
-            }
-
-            if (currentPassword === newPassword) {
-                e.preventDefault();
-                showNotification('Mật khẩu mới phải khác mật khẩu hiện tại!', 'error');
-                return false;
+            // Track analytics if needed
+            if (typeof gtag !== 'undefined') {
+                gtag('event', 'page_view', {
+                    page_title: 'Profile - ' + tabId.replace('#', ''),
+                    page_location: window.location.href + tabId
+                });
             }
         });
-    }
-
-    /**
-     * Show notification
-     */
-    function showNotification(message, type) {
-        // Implementation for notification system
-        const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
-        const alert = `<div class="alert ${alertClass} alert-dismissible fade show" role="alert">
-            ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>`;
-
-        // Show at top of page
-        $('body').prepend(alert);
-
-        // Auto dismiss after 5 seconds
-        setTimeout(function() {
-            $('.alert').alert('close');
-        }, 5000);
-    }
+    });
 </script>
-
 </body>
 </html>

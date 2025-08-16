@@ -9,36 +9,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Học Viên - EduLearn Platform</title>
+    <title>Dashboard Học Viên - EduLearn</title>
 
-    <!-- Bootstrap 5 CSS -->
+    <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <!-- Chart.js CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.min.css" rel="stylesheet">
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 
-    <!-- Custom CSS -->
     <style>
         :root {
-            --primary-color: #4f46e5;
-            --primary-dark: #3730a3;
-            --success-color: #059669;
-            --warning-color: #d97706;
-            --danger-color: #dc2626;
-            --light-bg: #f8fafc;
-            --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            --border-color: #e5e7eb;
-            --text-primary: #1f2937;
-            --text-secondary: #6b7280;
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --success-color: #28a745;
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
+            --info-color: #17a2b8;
+            --light-bg: #f8f9fa;
+            --dark-bg: #343a40;
+            --border-color: #e9ecef;
+            --text-primary: #2c3e50;
+            --text-secondary: #6c757d;
+            --card-shadow: 0 4px 20px rgba(0,0,0,0.08);
         }
 
         body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--light-bg);
-            margin: 0;
+            background: var(--light-bg);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
         }
 
         .dashboard-layout {
@@ -48,25 +44,15 @@
 
         .main-content {
             flex: 1;
-            margin-left: 280px;
-            padding: 2rem;
-            transition: margin-left 0.3s ease;
-        }
-
-        @media (max-width: 991.98px) {
-            .main-content {
-                margin-left: 0;
-                padding: 1rem;
-            }
+            padding: 0;
+            background: var(--light-bg);
         }
 
         /* Welcome Section */
         .welcome-section {
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
             color: white;
-            border-radius: 1rem;
-            padding: 2rem;
-            margin-bottom: 2rem;
+            padding: 3rem 2rem;
             position: relative;
             overflow: hidden;
         }
@@ -85,10 +71,12 @@
         .welcome-content {
             position: relative;
             z-index: 2;
+            max-width: 1200px;
+            margin: 0 auto;
         }
 
         .welcome-title {
-            font-size: 2rem;
+            font-size: 2.5rem;
             font-weight: 700;
             margin-bottom: 0.5rem;
         }
@@ -101,93 +89,118 @@
 
         .welcome-stats {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 1.5rem;
         }
 
         .welcome-stat {
             text-align: center;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 0.75rem;
-            padding: 1.25rem;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 1rem;
+            padding: 1.5rem;
             backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
 
         .welcome-stat-number {
-            font-size: 2rem;
+            font-size: 2.5rem;
             font-weight: 700;
             margin-bottom: 0.5rem;
+            display: block;
         }
 
         .welcome-stat-label {
+            font-size: 0.95rem;
+            opacity: 0.85;
+        }
+
+        /* Dashboard Content */
+        .dashboard-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .section-card {
+            background: white;
+            border-radius: 1rem;
+            box-shadow: var(--card-shadow);
+            margin-bottom: 2rem;
+            overflow: hidden;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .section-title i {
+            color: var(--primary-color);
+        }
+
+        .section-action {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 500;
             font-size: 0.9rem;
-            opacity: 0.8;
+            transition: all 0.3s ease;
+        }
+
+        .section-action:hover {
+            color: var(--secondary-color);
+        }
+
+        .section-body {
+            padding: 2rem;
         }
 
         /* Progress Overview */
         .progress-overview {
-            background: white;
-            border-radius: 1rem;
-            padding: 1.5rem;
-            box-shadow: var(--card-shadow);
-            margin-bottom: 2rem;
-            border: 1px solid var(--border-color);
-        }
-
-        .overview-header {
-            display: flex;
-            justify-content: space-between;
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 2rem;
             align-items: center;
-            margin-bottom: 1.5rem;
-            padding-bottom: 1rem;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .overview-title {
-            font-size: 1.25rem;
-            font-weight: 600;
-            color: var(--text-primary);
-            display: flex;
-            align-items: center;
-        }
-
-        .overview-title i {
-            margin-right: 0.75rem;
-            color: var(--primary-color);
-        }
-
-        .overall-progress {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
         }
 
         .progress-circle {
-            width: 80px;
-            height: 80px;
+            width: 120px;
+            height: 120px;
             border-radius: 50%;
-            background: conic-gradient(var(--primary-color) 0deg ${overallProgress * 3.6}deg, var(--border-color) ${overallProgress * 3.6}deg 360deg);
+            background: conic-gradient(var(--primary-color) 0%, var(--primary-color) var(--progress, 0%), var(--border-color) var(--progress, 0%));
             display: flex;
             align-items: center;
             justify-content: center;
             position: relative;
         }
 
-        .progress-circle::after {
+        .progress-circle::before {
             content: '';
-            width: 60px;
-            height: 60px;
+            width: 80px;
+            height: 80px;
             background: white;
             border-radius: 50%;
             position: absolute;
         }
 
         .progress-percentage {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
             position: relative;
             z-index: 2;
-            font-size: 1.1rem;
-            font-weight: 700;
-            color: var(--text-primary);
         }
 
         .progress-info {
@@ -203,135 +216,32 @@
 
         .progress-details {
             color: var(--text-secondary);
-            font-size: 0.9rem;
+            line-height: 1.6;
         }
 
-        /* Quick Actions */
-        .quick-actions {
+        /* Current Courses */
+        .current-courses {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin-bottom: 2rem;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
         }
 
-        .action-card {
-            background: white;
-            border: 2px solid var(--border-color);
-            border-radius: 1rem;
-            padding: 1.5rem;
-            text-align: center;
-            text-decoration: none;
-            color: var(--text-primary);
-            transition: all 0.3s ease;
-            position: relative;
-        }
-
-        .action-card:hover {
-            border-color: var(--primary-color);
-            transform: translateY(-4px);
-            box-shadow: 0 10px 25px -3px rgba(79, 70, 229, 0.1);
-            color: var(--text-primary);
-            text-decoration: none;
-        }
-
-        .action-icon {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-            margin: 0 auto 1rem;
-        }
-
-        .action-title {
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-        }
-
-        .action-description {
-            color: var(--text-secondary);
-            font-size: 0.85rem;
-        }
-
-        /* Content Grid */
-        .content-grid {
-            display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 2rem;
-            margin-bottom: 2rem;
-        }
-
-        @media (max-width: 991.98px) {
-            .content-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .section-card {
-            background: white;
-            border-radius: 1rem;
-            padding: 1.5rem;
-            box-shadow: var(--card-shadow);
-            border: 1px solid var(--border-color);
-        }
-
-        .section-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1.5rem;
-            padding-bottom: 1rem;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .section-title {
-            font-size: 1.25rem;
-            font-weight: 600;
-            color: var(--text-primary);
-            display: flex;
-            align-items: center;
-        }
-
-        .section-title i {
-            margin-right: 0.75rem;
-            color: var(--primary-color);
-        }
-
-        .section-action {
-            color: var(--primary-color);
-            text-decoration: none;
-            font-weight: 500;
-            font-size: 0.9rem;
-        }
-
-        .section-action:hover {
-            color: var(--primary-dark);
-            text-decoration: none;
-        }
-
-        /* Course Progress Cards */
         .course-progress-item {
             background: var(--light-bg);
             border-radius: 0.75rem;
-            padding: 1.25rem;
-            margin-bottom: 1rem;
-            transition: all 0.3s ease;
+            padding: 1.5rem;
             border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
         }
 
         .course-progress-item:hover {
-            background: #f3f4f6;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px -4px rgba(0, 0, 0, 0.1);
+            background: white;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         }
 
         .course-header {
             display: flex;
-            align-items: center;
+            gap: 1rem;
             margin-bottom: 1rem;
         }
 
@@ -339,9 +249,12 @@
             width: 60px;
             height: 60px;
             border-radius: 0.5rem;
-            margin-right: 1rem;
-            object-fit: cover;
-            background: var(--border-color);
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
         }
 
         .course-info {
@@ -352,7 +265,7 @@
             font-weight: 600;
             color: var(--text-primary);
             margin-bottom: 0.25rem;
-            font-size: 1rem;
+            font-size: 0.95rem;
         }
 
         .course-instructor {
@@ -361,29 +274,34 @@
         }
 
         .course-progress {
-            margin-bottom: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+            font-size: 0.85rem;
+        }
+
+        .progress-percentage-text {
+            font-weight: 600;
+            color: var(--primary-color);
         }
 
         .progress-bar-container {
+            height: 6px;
             background: var(--border-color);
-            border-radius: 1rem;
-            height: 8px;
+            border-radius: 3px;
             overflow: hidden;
-            margin-bottom: 0.5rem;
         }
 
         .progress-bar-fill {
             height: 100%;
-            background: linear-gradient(90deg, var(--primary-color), var(--primary-dark));
-            border-radius: 1rem;
+            background: var(--primary-color);
+            border-radius: 3px;
             transition: width 0.3s ease;
-        }
-
-        .progress-text {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.8rem;
-            color: var(--text-secondary);
         }
 
         .course-actions {
@@ -393,140 +311,130 @@
 
         .btn-continue {
             background: var(--primary-color);
-            color: white;
             border: none;
-            border-radius: 0.5rem;
+            color: white;
             padding: 0.5rem 1rem;
-            font-size: 0.85rem;
-            font-weight: 500;
+            border-radius: 0.5rem;
             text-decoration: none;
+            font-weight: 500;
+            font-size: 0.85rem;
             transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
         }
 
         .btn-continue:hover {
-            background: var(--primary-dark);
+            background: var(--secondary-color);
             color: white;
-            text-decoration: none;
+            transform: translateY(-1px);
         }
 
-        .btn-certificate {
-            background: var(--success-color);
-            color: white;
-            border: none;
-            border-radius: 0.5rem;
+        .btn-view {
+            border: 1px solid var(--primary-color);
+            color: var(--primary-color);
+            background: transparent;
             padding: 0.5rem 1rem;
-            font-size: 0.85rem;
+            border-radius: 0.5rem;
+            text-decoration: none;
             font-weight: 500;
-            text-decoration: none;
+            font-size: 0.85rem;
             transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
         }
 
-        .btn-certificate:hover {
-            background: #047857;
+        .btn-view:hover {
+            background: var(--primary-color);
             color: white;
-            text-decoration: none;
         }
 
-        /* Achievements */
-        .achievement-grid {
+        /* Recommended Courses */
+        .recommended-courses {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-            gap: 1rem;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
         }
 
-        .achievement-item {
-            text-align: center;
-            padding: 1rem;
-            background: var(--light-bg);
-            border-radius: 0.75rem;
-            transition: all 0.3s ease;
+        .recommendation-item {
+            background: white;
             border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            text-align: center;
+            transition: all 0.3s ease;
         }
 
-        .achievement-item:hover {
-            background: #f3f4f6;
-            transform: scale(1.05);
+        .recommendation-item:hover {
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
         }
 
-        .achievement-icon {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--warning-color), #f59e0b);
-            color: white;
+        .recommendation-thumbnail {
+            width: 80px;
+            height: 80px;
+            border-radius: 0.75rem;
+            background: linear-gradient(135deg, var(--info-color) 0%, var(--primary-color) 100%);
+            margin: 0 auto 1rem;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.25rem;
-            margin: 0 auto 0.75rem;
+            color: white;
+            font-size: 2rem;
         }
 
-        .achievement-icon.earned {
-            background: linear-gradient(135deg, var(--success-color), #10b981);
-        }
-
-        .achievement-icon.locked {
-            background: var(--border-color);
-            color: var(--text-secondary);
-        }
-
-        .achievement-title {
-            font-weight: 600;
-            font-size: 0.8rem;
-            color: var(--text-primary);
-            margin-bottom: 0.25rem;
-        }
-
-        .achievement-description {
-            font-size: 0.7rem;
-            color: var(--text-secondary);
-        }
-
-        /* Learning Goals */
-        .goal-item {
-            display: flex;
-            align-items: center;
-            padding: 1rem;
-            background: var(--light-bg);
-            border-radius: 0.75rem;
-            margin-bottom: 1rem;
-            border: 1px solid var(--border-color);
-        }
-
-        .goal-checkbox {
-            margin-right: 1rem;
-            transform: scale(1.2);
-        }
-
-        .goal-info {
-            flex: 1;
-        }
-
-        .goal-title {
+        .recommendation-title {
             font-weight: 600;
             color: var(--text-primary);
-            margin-bottom: 0.25rem;
+            margin-bottom: 0.5rem;
             font-size: 0.95rem;
         }
 
-        .goal-deadline {
+        .recommendation-instructor {
             color: var(--text-secondary);
-            font-size: 0.8rem;
+            font-size: 0.85rem;
+            margin-bottom: 0.75rem;
         }
 
-        .goal-progress {
-            width: 60px;
-            text-align: center;
-            font-size: 0.8rem;
-            font-weight: 600;
-            color: var(--primary-color);
+        .recommendation-rating {
+            display: flex;
+            justify-content: center;
+            gap: 0.25rem;
+            margin-bottom: 1rem;
         }
 
-        /* Recent Activity */
+        .btn-explore {
+            background: var(--info-color);
+            border: none;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.85rem;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-explore:hover {
+            background: var(--primary-color);
+            color: white;
+            transform: translateY(-1px);
+        }
+
+        /* Activity Feed */
+        .activity-feed {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
         .activity-item {
             display: flex;
-            align-items: center;
-            padding: 1rem;
+            gap: 1rem;
+            padding: 1rem 0;
             border-bottom: 1px solid var(--border-color);
         }
 
@@ -544,20 +452,7 @@
             align-items: center;
             justify-content: center;
             font-size: 0.9rem;
-            margin-right: 1rem;
             flex-shrink: 0;
-        }
-
-        .activity-icon.lesson {
-            background: var(--success-color);
-        }
-
-        .activity-icon.quiz {
-            background: var(--warning-color);
-        }
-
-        .activity-icon.certificate {
-            background: var(--danger-color);
         }
 
         .activity-content {
@@ -565,7 +460,7 @@
         }
 
         .activity-title {
-            font-weight: 600;
+            font-weight: 500;
             color: var(--text-primary);
             margin-bottom: 0.25rem;
             font-size: 0.9rem;
@@ -573,100 +468,78 @@
 
         .activity-description {
             color: var(--text-secondary);
-            font-size: 0.8rem;
-            margin-bottom: 0.25rem;
+            font-size: 0.85rem;
+            line-height: 1.4;
         }
 
         .activity-time {
             color: var(--text-secondary);
-            font-size: 0.75rem;
+            font-size: 0.8rem;
+            margin-top: 0.25rem;
         }
 
-        /* Recommended Courses */
-        .recommendation-item {
-            display: flex;
-            align-items: center;
-            padding: 1rem;
-            background: var(--light-bg);
-            border-radius: 0.75rem;
-            margin-bottom: 1rem;
-            border: 1px solid var(--border-color);
-            transition: all 0.3s ease;
-        }
-
-        .recommendation-item:hover {
-            background: #f3f4f6;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px -4px rgba(0, 0, 0, 0.1);
-        }
-
-        .recommendation-thumbnail {
-            width: 60px;
-            height: 60px;
-            border-radius: 0.5rem;
-            margin-right: 1rem;
-            object-fit: cover;
-            background: var(--border-color);
-        }
-
-        .recommendation-info {
-            flex: 1;
-        }
-
-        .recommendation-title {
-            font-weight: 600;
-            color: var(--text-primary);
-            margin-bottom: 0.25rem;
-            font-size: 0.95rem;
-        }
-
-        .recommendation-instructor {
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
             color: var(--text-secondary);
-            font-size: 0.8rem;
-            margin-bottom: 0.25rem;
         }
 
-        .recommendation-rating {
-            display: flex;
-            align-items: center;
-            font-size: 0.8rem;
-            color: var(--warning-color);
+        .empty-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
         }
 
-        .btn-enroll {
-            background: var(--primary-color);
-            color: white;
-            border: none;
-            border-radius: 0.5rem;
-            padding: 0.5rem 1rem;
-            font-size: 0.8rem;
+        .empty-title {
+            font-size: 1.1rem;
             font-weight: 500;
-            text-decoration: none;
-            transition: all 0.3s ease;
+            margin-bottom: 0.5rem;
         }
 
-        .btn-enroll:hover {
-            background: var(--primary-dark);
-            color: white;
-            text-decoration: none;
+        .empty-description {
+            font-size: 0.9rem;
+            line-height: 1.5;
         }
 
         /* Responsive */
         @media (max-width: 768px) {
+            .welcome-title {
+                font-size: 2rem;
+            }
+
             .welcome-stats {
                 grid-template-columns: repeat(2, 1fr);
             }
 
-            .welcome-title {
-                font-size: 1.5rem;
+            .dashboard-content {
+                padding: 1rem;
             }
 
-            .quick-actions {
-                grid-template-columns: repeat(2, 1fr);
+            .section-header {
+                padding: 1rem 1.5rem;
+                flex-direction: column;
+                gap: 1rem;
+                align-items: stretch;
+                text-align: center;
             }
 
-            .achievement-grid {
-                grid-template-columns: repeat(3, 1fr);
+            .section-body {
+                padding: 1.5rem;
+            }
+
+            .progress-overview {
+                grid-template-columns: 1fr;
+                text-align: center;
+                gap: 1rem;
+            }
+
+            .current-courses {
+                grid-template-columns: 1fr;
+            }
+
+            .recommended-courses {
+                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -675,104 +548,100 @@
 <body>
 <div class="dashboard-layout">
     <!-- Include Sidebar -->
-    <jsp:include page="../common/sidebar.jsp" />
+    <jsp:include page="/WEB-INF/views/common/sidebar.jsp" />
 
     <!-- Main Content -->
     <div class="main-content">
         <!-- Welcome Section -->
         <div class="welcome-section">
             <div class="welcome-content">
-                <h1 class="welcome-title">Chào mừng trở lại, ${currentUser.fullName}!</h1>
+                <h1 class="welcome-title">
+                    Chào mừng trở lại,
+                    <c:choose>
+                        <c:when test="${currentUser != null && currentUser.fullName != null}">
+                            ${currentUser.fullName}!
+                        </c:when>
+                        <c:otherwise>Học viên!</c:otherwise>
+                    </c:choose>
+                </h1>
                 <p class="welcome-subtitle">
-                    Tiếp tục hành trình học tập của bạn. Hôm nay bạn có
-                    <strong>${pendingLessons}</strong> bài học chưa hoàn thành và
-                    <strong>${upcomingDeadlines}</strong> deadline sắp tới.
+                    Hôm nay bạn đã sẵn sàng để tiếp tục hành trình học tập chưa?
+                    <c:if test="${currentUser != null}">
+                        Hãy cùng xem tiến độ và những khóa học mới nhé!
+                    </c:if>
                 </p>
 
                 <div class="welcome-stats">
                     <div class="welcome-stat">
-                        <div class="welcome-stat-number">${enrolledCourses}</div>
-                        <div class="welcome-stat-label">Khóa học đã đăng ký</div>
+                        <span class="welcome-stat-number">
+                            <c:choose>
+                                <c:when test="${activeEnrollments != null}">
+                                    ${fn:length(activeEnrollments)}
+                                </c:when>
+                                <c:otherwise>0</c:otherwise>
+                            </c:choose>
+                        </span>
+                        <div class="welcome-stat-label">Khóa học đang học</div>
                     </div>
                     <div class="welcome-stat">
-                        <div class="welcome-stat-number">${completedCourses}</div>
+                        <span class="welcome-stat-number">
+                            <c:choose>
+                                <c:when test="${completedEnrollments != null}">
+                                    ${fn:length(completedEnrollments)}
+                                </c:when>
+                                <c:otherwise>0</c:otherwise>
+                            </c:choose>
+                        </span>
                         <div class="welcome-stat-label">Khóa học hoàn thành</div>
                     </div>
                     <div class="welcome-stat">
-                        <div class="welcome-stat-number">${certificates}</div>
+                        <span class="welcome-stat-number">
+                            <c:choose>
+                                <c:when test="${completedEnrollments != null}">
+                                    ${fn:length(completedEnrollments)}
+                                </c:when>
+                                <c:otherwise>0</c:otherwise>
+                            </c:choose>
+                        </span>
                         <div class="welcome-stat-label">Chứng chỉ</div>
                     </div>
                     <div class="welcome-stat">
-                        <div class="welcome-stat-number">${studyStreak}</div>
+                        <span class="welcome-stat-number">7</span>
                         <div class="welcome-stat-label">Ngày học liên tiếp</div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Progress Overview -->
-        <div class="progress-overview">
-            <div class="overview-header">
-                <h2 class="overview-title">
-                    <i class="fas fa-chart-pie"></i>
-                    Tổng quan tiến độ học tập
-                </h2>
-                <a href="${pageContext.request.contextPath}/student/progress"" class="section-action">
-                    Chi tiết <i class="fas fa-arrow-right ms-1"></i>
-                </a>
-            </div>
-
-            <div class="overall-progress">
-                <div class="progress-circle">
-                    <div class="progress-percentage">${overallProgress}%</div>
+        <!-- Dashboard Content -->
+        <div class="dashboard-content">
+            <!-- Progress Overview -->
+            <div class="section-card">
+                <div class="section-header">
+                    <h3 class="section-title">
+                        <i class="fas fa-chart-pie"></i>
+                        Tổng quan tiến độ học tập
+                    </h3>
+                    <a href="${pageContext.request.contextPath}/student/progress" class="section-action">
+                        Chi tiết <i class="fas fa-arrow-right ms-1"></i>
+                    </a>
                 </div>
-                <div class="progress-info">
-                    <div class="progress-title">Tiến độ tổng thể</div>
-                    <div class="progress-details">
-                        Bạn đã hoàn thành ${completedLessons} trong tổng số ${totalLessons} bài học.
-                        Tiếp tục phát huy để đạt mục tiêu!
+                <div class="section-body">
+                    <div class="progress-overview">
+                        <div class="progress-circle" style="--progress: 65%;">
+                            <div class="progress-percentage">65%</div>
+                        </div>
+                        <div class="progress-info">
+                            <div class="progress-title">Tiến độ tổng thể</div>
+                            <div class="progress-details">
+                                Bạn đã hoàn thành <strong>13</strong> trong tổng số <strong>20</strong> bài học.
+                                Tiếp tục phát huy để đạt mục tiêu của bạn!
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Quick Actions -->
-        <div class="quick-actions">
-            <a href="${pageContext.request.contextPath}/courses"" class="action-card">
-                <div class="action-icon">
-                    <i class="fas fa-search"></i>
-                </div>
-                <div class="action-title">Khám phá khóa học</div>
-                <div class="action-description">Tìm khóa học mới phù hợp với bạn</div>
-            </a>
-
-            <a href="${pageContext.request.contextPath}/student/my-courses"" class="action-card">
-                <div class="action-icon">
-                    <i class="fas fa-book-reader"></i>
-                </div>
-                <div class="action-title">Tiếp tục học</div>
-                <div class="action-description">Quay lại khóa học đang học</div>
-            </a>
-
-            <a href="${pageContext.request.contextPath}/student/certificates"" class="action-card">
-                <div class="action-icon">
-                    <i class="fas fa-certificate"></i>
-                </div>
-                <div class="action-title">Chứng chỉ</div>
-                <div class="action-description">Xem các chứng chỉ đã đạt được</div>
-            </a>
-
-            <a href="${pageContext.request.contextPath}/student/achievements"" class="action-card">
-                <div class="action-icon">
-                    <i class="fas fa-trophy"></i>
-                </div>
-                <div class="action-title">Thành tích</div>
-                <div class="action-description">Xem badges và achievements</div>
-            </a>
-        </div>
-
-        <!-- Content Grid -->
-        <div class="content-grid">
             <!-- Current Courses -->
             <div class="section-card">
                 <div class="section-header">
@@ -780,344 +649,267 @@
                         <i class="fas fa-play-circle"></i>
                         Khóa học đang học
                     </h3>
-                    <a href="${pageContext.request.contextPath}/student/my-courses"" class="section-action">
+                    <a href="${pageContext.request.contextPath}/student/my-courses" class="section-action">
                         Xem tất cả <i class="fas fa-arrow-right ms-1"></i>
                     </a>
                 </div>
-
-                <div class="current-courses">
-                    <c:forEach items="${currentCourses}" var="course" varStatus="status">
-                        <div class="course-progress-item">
-                            <div class="course-header">
-                                <c:choose>
-                                    <c:when test="${course.thumbnailPath != null}">
-                                        <img src="${pageContext.request.contextPath}/images/courses/${course.thumbnailPath}"
-                                             alt="${course.name}" class="course-thumbnail">
-                                    </c:when>
-                                    <c:otherwise>
-                                        <div class="course-thumbnail d-flex align-items-center justify-content-center">
-                                            <i class="fas fa-book text-muted"></i>
+                <div class="section-body">
+                    <c:choose>
+                        <c:when test="${activeEnrollments != null && fn:length(activeEnrollments) > 0}">
+                            <div class="current-courses">
+                                <c:forEach var="enrollment" items="${activeEnrollments}" varStatus="courseStatus">
+                                    <div class="course-progress-item">
+                                        <div class="course-header">
+                                            <div class="course-thumbnail">
+                                                <i class="fas fa-graduation-cap"></i>
+                                            </div>
+                                            <div class="course-info">
+                                                <div class="course-title">${enrollment.course.name}</div>
+                                                <div class="course-instructor">
+                                                    <c:choose>
+                                                        <c:when test="${enrollment.course.instructor != null}">
+                                                            ${enrollment.course.instructor.fullName}
+                                                        </c:when>
+                                                        <c:otherwise>Chưa có giảng viên</c:otherwise>
+                                                    </c:choose>
+                                                </div>
+                                            </div>
                                         </div>
-                                    </c:otherwise>
-                                </c:choose>
 
-                                <div class="course-info">
-                                    <div class="course-title">${course.name}</div>
-                                    <div class="course-instructor">
-                                        <i class="fas fa-user me-1"></i>${course.instructor.fullName}
+                                        <div class="course-progress">
+                                            <div class="progress-label">
+                                                <span>Tiến độ</span>
+                                                <span class="progress-percentage-text">
+                                                    <c:choose>
+                                                        <c:when test="${enrollment.progress != null}">
+                                                            <fmt:formatNumber value="${enrollment.progress}" maxFractionDigits="1"/>%
+                                                        </c:when>
+                                                        <c:otherwise>0%</c:otherwise>
+                                                    </c:choose>
+                                                </span>
+                                            </div>
+                                            <div class="progress-bar-container">
+                                                <div class="progress-bar-fill"
+                                                     style="width: <c:choose><c:when test='${enrollment.progress != null}'>${enrollment.progress}</c:when><c:otherwise>0</c:otherwise></c:choose>%"></div>
+                                            </div>
+                                        </div>
+
+                                        <div class="course-actions">
+                                            <a href="${pageContext.request.contextPath}/student/courses/${enrollment.course.id}/learn"
+                                               class="btn-continue">
+                                                <i class="fas fa-play"></i>
+                                                <c:choose>
+                                                    <c:when test="${enrollment.progress != null && enrollment.progress > 0}">
+                                                        Tiếp tục học
+                                                    </c:when>
+                                                    <c:otherwise>Bắt đầu học</c:otherwise>
+                                                </c:choose>
+                                            </a>
+                                            <a href="${pageContext.request.contextPath}/student/course/${enrollment.course.id}"
+                                               class="btn-view">
+                                                <i class="fas fa-eye"></i>Chi tiết
+                                            </a>
+                                        </div>
                                     </div>
-                                </div>
-                            </div>
-
-                            <div class="course-progress">
-                                <div class="progress-bar-container">
-                                    <div class="progress-bar-fill" style="width: ${course.progressPercentage}%"></div>
-                                </div>
-                                <div class="progress-text">
-                                    <span>${course.completedLessons}/${course.totalLessons} bài học</span>
-                                    <span>${course.progressPercentage}%</span>
-                                </div>
-                            </div>
-
-                            <div class="course-actions">
-                                <c:choose>
-                                    <c:when test="${course.progressPercentage >= 100}">
-                                        <a href="${pageContext.request.contextPath}/student/certificates/${course.id}" class="btn-certificate">
-                                            <i class="fas fa-certificate me-1"></i>Nhận chứng chỉ
-                                        </a>
-                                    </c:when>
-                                    <c:otherwise>
-                                        <a href="${pageContext.request.contextPath}/student/course/${course.id}" class="btn-continue">
-                                            <i class="fas fa-play me-1"></i>Tiếp tục học
-                                        </a>
-                                    </c:otherwise>
-                                </c:choose>
-                            </div>
-                        </div>
-                    </c:forEach>
-
-                    <c:if test="${empty currentCourses}">
-                        <div class="text-center py-4">
-                            <i class="fas fa-book-open fa-3x text-muted mb-3"></i>
-                            <p class="text-muted">Bạn chưa đăng ký khóa học nào.</p>
-                            <a href="${pageContext.request.contextPath}/courses"" class="btn btn-primary">
-                                <i class="fas fa-search me-2"></i>Khám phá khóa học
-                            </a>
-                        </div>
-                    </c:if>
-                </div>
-            </div>
-
-            <!-- Sidebar Content -->
-            <div>
-                <!-- Learning Goals -->
-                <div class="section-card mb-3">
-                    <div class="section-header">
-                        <h3 class="section-title">
-                            <i class="fas fa-target"></i>
-                            Mục tiêu học tập
-                        </h3>
-                        <a href="${pageContext.request.contextPath}/student/goals"" class="section-action">
-                            Quản lý <i class="fas fa-cog ms-1"></i>
-                        </a>
-                    </div>
-
-                    <div class="learning-goals">
-                        <c:forEach items="${learningGoals}" var="goal" varStatus="status">
-                            <div class="goal-item">
-                                <input type="checkbox" class="form-check-input goal-checkbox"
-                                    ${goal.completed ? 'checked' : ''}
-                                       onchange="toggleGoal(${goal.id})">
-                                <div class="goal-info">
-                                    <div class="goal-title">${goal.title}</div>
-                                    <div class="goal-deadline">
-                                        <i class="fas fa-calendar me-1"></i>
-                                        <fmt:formatDate value="${goal.deadline}" pattern="dd/MM/yyyy"/>
-                                    </div>
-                                </div>
-                                <div class="goal-progress">${goal.progress}%</div>
-                            </div>
-                        </c:forEach>
-
-                        <c:if test="${empty learningGoals}">
-                            <div class="text-center py-3">
-                                <i class="fas fa-target fa-2x text-muted mb-2"></i>
-                                <p class="text-muted">Chưa có mục tiêu nào.</p>
-                                <a href="${pageContext.request.contextPath}/student/goals/new"" class="btn btn-sm btn-primary">
-                                    Tạo mục tiêu
-                                </a>
-                            </div>
-                        </c:if>
-                    </div>
-                </div>
-
-                <!-- Achievements -->
-                <div class="section-card mb-3">
-                    <div class="section-header">
-                        <h3 class="section-title">
-                            <i class="fas fa-trophy"></i>
-                            Thành tích
-                        </h3>
-                        <a href="${pageContext.request.contextPath}/student/achievements"" class="section-action">
-                            Xem tất cả <i class="fas fa-arrow-right ms-1"></i>
-                        </a>
-                    </div>
-
-                    <div class="achievement-grid">
-                        <c:forEach items="${recentAchievements}" var="achievement" varStatus="status">
-                            <div class="achievement-item">
-                                <div class="achievement-icon ${achievement.earned ? 'earned' : 'locked'}">
-                                    <i class="fas ${achievement.icon}"></i>
-                                </div>
-                                <div class="achievement-title">${achievement.title}</div>
-                                <div class="achievement-description">${achievement.description}</div>
-                            </div>
-                        </c:forEach>
-                    </div>
-                </div>
-
-                <!-- Recent Activity -->
-                <div class="section-card">
-                    <div class="section-header">
-                        <h3 class="section-title">
-                            <i class="fas fa-clock"></i>
-                            Hoạt động gần đây
-                        </h3>
-                    </div>
-
-                    <div class="recent-activity">
-                        <c:forEach items="${recentActivities}" var="activity" varStatus="status">
-                            <div class="activity-item">
-                                <div class="activity-icon ${activity.type}">
-                                    <c:choose>
-                                        <c:when test="${activity.type == 'lesson'}">
-                                            <i class="fas fa-play"></i>
-                                        </c:when>
-                                        <c:when test="${activity.type == 'quiz'}">
-                                            <i class="fas fa-question"></i>
-                                        </c:when>
-                                        <c:when test="${activity.type == 'certificate'}">
-                                            <i class="fas fa-certificate"></i>
-                                        </c:when>
-                                        <c:otherwise>
-                                            <i class="fas fa-bell"></i>
-                                        </c:otherwise>
-                                    </c:choose>
-                                </div>
-                                <div class="activity-content">
-                                    <div class="activity-title">${activity.title}</div>
-                                    <div class="activity-description">${activity.description}</div>
-                                    <div class="activity-time">
-                                        <fmt:formatDate value="${activity.createdAt}" pattern="dd/MM/yyyy HH:mm"/>
-                                    </div>
-                                </div>
-                            </div>
-                        </c:forEach>
-
-                        <c:if test="${empty recentActivities}">
-                            <div class="text-center py-3">
-                                <i class="fas fa-clock fa-2x text-muted mb-2"></i>
-                                <p class="text-muted">Chưa có hoạt động nào.</p>
-                            </div>
-                        </c:if>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Recommended Courses -->
-        <div class="section-card">
-            <div class="section-header">
-                <h3 class="section-title">
-                    <i class="fas fa-lightbulb"></i>
-                    Khóa học được đề xuất
-                </h3>
-                <a href="${pageContext.request.contextPath}/courses?recommended=true"" class="section-action">
-                    Xem thêm <i class="fas fa-arrow-right ms-1"></i>
-                </a>
-            </div>
-
-            <div class="recommendations">
-                <c:forEach items="${recommendedCourses}" var="course" varStatus="status">
-                    <div class="recommendation-item">
-                        <c:choose>
-                            <c:when test="${course.thumbnailPath != null}">
-                                <img src="${pageContext.request.contextPath}/images/courses/${course.thumbnailPath}"
-                                     alt="${course.name}" class="recommendation-thumbnail">
-                            </c:when>
-                            <c:otherwise>
-                                <div class="recommendation-thumbnail d-flex align-items-center justify-content-center">
-                                    <i class="fas fa-book text-muted"></i>
-                                </div>
-                            </c:otherwise>
-                        </c:choose>
-
-                        <div class="recommendation-info">
-                            <div class="recommendation-title">${course.name}</div>
-                            <div class="recommendation-instructor">
-                                <i class="fas fa-user me-1"></i>${course.instructor.fullName}
-                            </div>
-                            <div class="recommendation-rating">
-                                <c:forEach begin="1" end="5" var="i">
-                                    <i class="fas fa-star ${i <= course.averageRating ? '' : 'text-muted'}"></i>
                                 </c:forEach>
-                                <span class="ms-2">(${course.reviewCount} đánh giá)</span>
+                            </div>
+                        </c:when>
+                        <c:otherwise>
+                            <div class="empty-state">
+                                <i class="fas fa-book-open empty-icon"></i>
+                                <div class="empty-title">Chưa có khóa học đang học</div>
+                                <div class="empty-description">
+                                    Khám phá và đăng ký các khóa học thú vị để bắt đầu hành trình học tập của bạn.
+                                </div>
+                            </div>
+                        </c:otherwise>
+                    </c:choose>
+                </div>
+            </div>
+
+            <!-- Recommended Courses -->
+            <div class="section-card">
+                <div class="section-header">
+                    <h3 class="section-title">
+                        <i class="fas fa-lightbulb"></i>
+                        Khóa học đề xuất
+                    </h3>
+                    <a href="${pageContext.request.contextPath}/student/browse" class="section-action">
+                        Xem thêm <i class="fas fa-arrow-right ms-1"></i>
+                    </a>
+                </div>
+                <div class="section-body">
+                    <c:choose>
+                        <c:when test="${suggestedCourses != null && fn:length(suggestedCourses) > 0}">
+                            <div class="recommended-courses">
+                                <c:forEach var="course" items="${suggestedCourses}" varStatus="recStatus">
+                                    <div class="recommendation-item">
+                                        <div class="recommendation-thumbnail">
+                                            <i class="fas fa-book"></i>
+                                        </div>
+                                        <div class="recommendation-title">${course.name}</div>
+                                        <div class="recommendation-instructor">
+                                            <i class="fas fa-user me-1"></i>
+                                            <c:choose>
+                                                <c:when test="${course.instructor != null}">
+                                                    ${course.instructor.fullName}
+                                                </c:when>
+                                                <c:otherwise>Chưa có giảng viên</c:otherwise>
+                                            </c:choose>
+                                        </div>
+                                        <div class="recommendation-rating">
+                                            <c:set var="rating" value="${course.ratingAverage != null ? course.ratingAverage : 0}" />
+                                            <c:forEach var="starNum" begin="1" end="5">
+                                                <i class="fas fa-star
+                                                    <c:choose>
+                                                        <c:when test='${starNum <= rating}'>text-warning</c:when>
+                                                        <c:otherwise>text-muted</c:otherwise>
+                                                    </c:choose>"></i>
+                                            </c:forEach>
+                                        </div>
+                                        <a href="${pageContext.request.contextPath}/student/course/${course.id}"
+                                           class="btn-explore">
+                                            <i class="fas fa-search"></i>Khám phá
+                                        </a>
+                                    </div>
+                                </c:forEach>
+                            </div>
+                        </c:when>
+                        <c:otherwise>
+                            <div class="empty-state">
+                                <i class="fas fa-lightbulb empty-icon"></i>
+                                <div class="empty-title">Chưa có đề xuất</div>
+                                <div class="empty-description">
+                                    Hệ thống sẽ đưa ra các đề xuất phù hợp sau khi bạn tham gia một số khóa học.
+                                </div>
+                            </div>
+                        </c:otherwise>
+                    </c:choose>
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="section-card">
+                <div class="section-header">
+                    <h3 class="section-title">
+                        <i class="fas fa-history"></i>
+                        Hoạt động gần đây
+                    </h3>
+                    <a href="${pageContext.request.contextPath}/student/activity" class="section-action">
+                        Xem tất cả <i class="fas fa-arrow-right ms-1"></i>
+                    </a>
+                </div>
+                <div class="section-body">
+                    <div class="activity-feed">
+                        <!-- Sample activities - these would come from the controller -->
+                        <div class="activity-item">
+                            <div class="activity-icon">
+                                <i class="fas fa-play"></i>
+                            </div>
+                            <div class="activity-content">
+                                <div class="activity-title">Hoàn thành bài học "Giới thiệu về Java"</div>
+                                <div class="activity-description">
+                                    Trong khóa học Lập trình Java cơ bản
+                                </div>
+                                <div class="activity-time">2 giờ trước</div>
                             </div>
                         </div>
 
-                        <a href="${pageContext.request.contextPath}/courses/${course.id}" class="btn-enroll">
-                            <i class="fas fa-plus me-1"></i>Đăng ký
-                        </a>
-                    </div>
-                </c:forEach>
+                        <div class="activity-item">
+                            <div class="activity-icon">
+                                <i class="fas fa-certificate"></i>
+                            </div>
+                            <div class="activity-content">
+                                <div class="activity-title">Nhận chứng chỉ "HTML & CSS Fundamentals"</div>
+                                <div class="activity-description">
+                                    Hoàn thành xuất sắc với điểm số 95/100
+                                </div>
+                                <div class="activity-time">1 ngày trước</div>
+                            </div>
+                        </div>
 
-                <c:if test="${empty recommendedCourses}">
-                    <div class="text-center py-4">
-                        <i class="fas fa-lightbulb fa-3x text-muted mb-3"></i>
-                        <p class="text-muted">Chưa có khóa học được đề xuất.</p>
-                        <a href="${pageContext.request.contextPath}/courses"" class="btn btn-primary">
-                            <i class="fas fa-search me-2"></i>Tìm khóa học
-                        </a>
+                        <div class="activity-item">
+                            <div class="activity-icon">
+                                <i class="fas fa-plus"></i>
+                            </div>
+                            <div class="activity-content">
+                                <div class="activity-title">Đăng ký khóa học mới</div>
+                                <div class="activity-description">
+                                    React.js cho người mới bắt đầu
+                                </div>
+                                <div class="activity-time">3 ngày trước</div>
+                            </div>
+                        </div>
                     </div>
-                </c:if>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Bootstrap 5 JS -->
+<!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<!-- Chart.js -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.min.js"></script>
 
-<!-- Custom JavaScript -->
 <script>
-    // Toggle learning goal - Chuyển trạng thái mục tiêu học tập
-    function toggleGoal(goalId) {
-        fetch(`/api/student/goals/${goalId}/toggle`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Update UI accordingly
-                    console.log('Cập nhật mục tiêu thành công');
-                } else {
-                    console.error('Lỗi khi cập nhật mục tiêu:', data.message);
-                }
-            })
-            .catch(error => {
-                console.error('Lỗi khi gọi API:', error);
-            });
-    }
-
-    // Initialize dashboard - Khởi tạo dashboard
+    // Update progress circles on load
     document.addEventListener('DOMContentLoaded', function() {
+        // Animate progress circles
+        const progressCircles = document.querySelectorAll('.progress-circle');
+        progressCircles.forEach(circle => {
+            const progress = circle.style.getPropertyValue('--progress');
+            if (progress) {
+                circle.style.setProperty('--progress', '0%');
+                setTimeout(() => {
+                    circle.style.transition = 'all 1s ease';
+                    circle.style.setProperty('--progress', progress);
+                }, 500);
+            }
+        });
+
         // Animate progress bars
         const progressBars = document.querySelectorAll('.progress-bar-fill');
-        progressBars.forEach(bar => {
+        progressBars.forEach((bar, index) => {
             const width = bar.style.width;
             bar.style.width = '0%';
             setTimeout(() => {
+                bar.style.transition = 'width 1s ease';
                 bar.style.width = width;
-            }, 500);
+            }, 500 + (index * 200));
         });
 
-        // Animate welcome stats
-        const statNumbers = document.querySelectorAll('.welcome-stat-number');
-        statNumbers.forEach(stat => {
-            const finalValue = parseInt(stat.textContent);
-            let currentValue = 0;
-            const increment = finalValue / 50;
-            const timer = setInterval(() => {
-                currentValue += increment;
-                if (currentValue >= finalValue) {
-                    currentValue = finalValue;
-                    clearInterval(timer);
-                }
-                stat.textContent = Math.floor(currentValue);
-            }, 30);
-        });
-
-        // Add hover effects to course items
-        const courseItems = document.querySelectorAll('.course-progress-item');
-        courseItems.forEach(item => {
-            item.addEventListener('mouseenter', function() {
-                this.style.transform = 'translateY(-2px) scale(1.02)';
-            });
-
-            item.addEventListener('mouseleave', function() {
-                this.style.transform = 'translateY(0) scale(1)';
-            });
-        });
-
-        // Update progress circle animation
-        const progressCircle = document.querySelector('.progress-circle');
-        if (progressCircle) {
-            const percentage = ${overallProgress};
+        // Animate cards
+        const cards = document.querySelectorAll('.section-card');
+        cards.forEach((card, index) => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(20px)';
             setTimeout(() => {
-                progressCircle.style.background = `conic-gradient(var(--primary-color) 0deg ${percentage * 3.6}deg, var(--border-color) ${percentage * 3.6}deg 360deg)`;
-            }, 1000);
-        }
+                card.style.transition = 'all 0.6s ease';
+                card.style.opacity = '1';
+                card.style.transform = 'translateY(0)';
+            }, index * 200);
+        });
     });
 
-    // Auto-refresh every 5 minutes - Tự động làm mới mỗi 5 phút
-    setInterval(() => {
-        // Update progress and stats
-        fetch('/api/student/dashboard/refresh')
-            .then(response => response.json())
-            .then(data => {
-                // Update UI with new data
-                console.log('Dashboard refreshed');
-            })
-            .catch(error => {
-                console.log('Không thể làm mới dashboard:', error);
-            });
-    }, 5 * 60 * 1000);
+    // Continue learning function
+    function continueLearning(courseId) {
+        window.location.href = `${pageContext.request.contextPath}/student/courses/${courseId}/learn`;
+    }
+
+    // Quick navigation shortcuts
+    document.addEventListener('keydown', function(e) {
+        if (e.ctrlKey || e.metaKey) {
+            switch(e.key) {
+                case 'm':
+                    e.preventDefault();
+                    window.location.href = '${pageContext.request.contextPath}/student/my-courses';
+                    break;
+                case 'b':
+                    e.preventDefault();
+                    window.location.href = '${pageContext.request.contextPath}/student/browse';
+                    break;
+            }
+        }
+    });
 </script>
 </body>
 </html>
