@@ -3,7 +3,7 @@
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 <%@ taglib prefix="sec" uri="http://www.springframework.org/security/tags" %>
-
+<%@ taglib uri="http://java.sun.com/jsp/jstl/functions" prefix="fn" %>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -751,13 +751,13 @@
 
                                     <!-- Conditional Actions -->
                                     <c:choose>
-                                        <c:when test="${course.status == 'DRAFT'}">
+                                        <c:when test="${course.active == 'DRAFT'}">
                                             <button onclick="publishCourse(${course.id})"
                                                     class="btn-sm-custom btn-success-sm">
                                                 <i class="fas fa-paper-plane"></i>Xuất bản
                                             </button>
                                         </c:when>
-                                        <c:when test="${course.status == 'PUBLISHED'}">
+                                        <c:when test="${course.active == 'PUBLISHED'}">
                                             <button onclick="unpublishCourse(${course.id})"
                                                     class="btn-sm-custom btn-warning-sm">
                                                 <i class="fas fa-pause"></i>Tạm dừng

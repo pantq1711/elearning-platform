@@ -3,6 +3,7 @@
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 <%@ taglib prefix="sec" uri="http://www.springframework.org/security/tags" %>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/functions" prefix="fn" %>
 <%-- Utility functions để tránh NumberFormatException --%>
 <c:set var="safeParseInt" value="${param.value != null and param.value != '' ? param.value : '0'}" />
 
@@ -22,7 +23,7 @@
     <!-- DataTables CSS -->
     <link href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" rel="stylesheet">
     <!-- Custom CSS -->
-    <link href="${pageContext.request.contextPath}/css/instructor.css"" rel="stylesheet">
+    <link href="${pageContext.request.contextPath}/css/instructor.css"rel="stylesheet">
 
     <style>
         .student-avatar {

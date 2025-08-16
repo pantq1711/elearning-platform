@@ -16,6 +16,7 @@ import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Controller xử lý các chức năng dành cho Instructor
@@ -473,6 +474,112 @@ public class InstructorController {
 
         } catch (Exception e) {
             model.addAttribute("error", "Có lỗi xảy ra khi tải thống kê: " + e.getMessage());
+            return "error/500";
+        }
+    }
+    @GetMapping("/lessons")
+    public String lessons(Model model, Authentication authentication,
+                          @RequestParam(required = false) String search) {
+        try {
+            User currentUser = (User) authentication.getPrincipal();
+            model.addAttribute("currentUser", currentUser);
+
+            List<Lesson> lessons;
+            if (search != null && !search.trim().isEmpty()) {
+                lessons = lessonService.findByInstructor(currentUser)
+                        .stream()
+                        .filter(lesson -> lesson.getTitle().toLowerCase().contains(search.toLowerCase()))
+                        .collect(Collectors.toList());
+                model.addAttribute("searchQuery", search);
+            } else {
+                lessons = lessonService.findByInstructor(currentUser);
+            }
+
+            model.addAttribute("lessons", lessons);
+            return "instructor/lessons";
+
+        } catch (Exception e) {
+            model.addAttribute("error", "Có lỗi xảy ra: " + e.getMessage());
+            return "error/500";
+        }
+    }
+
+    @GetMapping("/lessons/new")
+    public String newLessonStandalone(Model model, Authentication authentication) {
+        try {
+            User currentUser = (User) authentication.getPrincipal();
+            List<Course> courses = courseService.findByInstructorOrderByCreatedAtDesc(currentUser);
+
+            if (courses.isEmpty()) {
+                return "redirect:/instructor/courses/new";
+            }
+
+            model.addAttribute("lesson", new Lesson());
+            model.addAttribute("courses", courses);
+            return "instructor/lesson-form";
+
+        } catch (Exception e) {
+            return "error/500";
+        }
+    }
+
+    @GetMapping("/quizzes")
+    public String quizzes(Model model, Authentication authentication) {
+        try {
+            User currentUser = (User) authentication.getPrincipal();
+            List<Quiz> quizzes = quizService.findByInstructor(currentUser);
+
+            model.addAttribute("currentUser", currentUser);
+            model.addAttribute("quizzes", quizzes);
+            return "instructor/quizzes";
+
+        } catch (Exception e) {
+            model.addAttribute("error", "Có lỗi xảy ra: " + e.getMessage());
+            return "error/500";
+        }
+    }
+
+    @GetMapping("/quizzes/new")
+    public String newQuizStandalone(Model model, Authentication authentication) {
+        try {
+            User currentUser = (User) authentication.getPrincipal();
+            List<Course> courses = courseService.findByInstructorOrderByCreatedAtDesc(currentUser);
+
+            if (courses.isEmpty()) {
+                return "redirect:/instructor/courses/new";
+            }
+
+            model.addAttribute("quiz", new Quiz());
+            model.addAttribute("courses", courses);
+            return "instructor/quiz-form";
+
+        } catch (Exception e) {
+            return "error/500";
+        }
+    }
+
+    @GetMapping("/students")
+    public String students(Model model, Authentication authentication) {
+        try {
+            User currentUser = (User) authentication.getPrincipal();
+
+            // Lấy enrollments của instructor
+            List<Enrollment> enrollments = enrollmentService.findRecentEnrollmentsByInstructor(currentUser, 50);
+
+            model.addAttribute("currentUser", currentUser);
+            model.addAttribute("enrollments", enrollments);
+
+            // Thống kê cơ bản
+            Map<String, Object> stats = Map.of(
+                    "totalStudents", enrollmentService.countStudentsByInstructor(currentUser),
+                    "totalEnrollments", enrollments.size()
+            );
+            model.addAttribute("studentStats", stats);
+
+            return "instructor/students";
+
+        } catch (Exception e) {
+            model.addAttribute("error", "Có lỗi xảy ra: " + e.getMessage());
             return "error/500";
         }
     }

@@ -440,4 +440,42 @@ public class Lesson {
     public int hashCode() {
         return getClass().hashCode();
     }
+    // ===== JSP COMPATIBILITY - TYPE PROPERTY =====
+
+    public static enum LessonType {
+        VIDEO, DOCUMENT, TEXT;
+
+        public String getName() {
+            return this.toString();
+        }
+    }
+
+    /**
+     * Get lesson type dựa trên content có sẵn
+     */
+    public LessonType getType() {
+        if (hasVideo()) {
+            return LessonType.VIDEO;
+        } else if (hasDocument()) {
+            return LessonType.DOCUMENT;
+        } else {
+            return LessonType.TEXT;
+        }
+    }
+
+    public String getTypeString() {
+        return getType().name();
+    }
+
+    /**
+     * Helper methods
+     */
+
+    public String getTypeDisplayName() {
+        switch (getType()) {
+            case VIDEO: return "Video";
+            case DOCUMENT: return "Tài liệu";
+            default: return "Văn bản";
+        }
+    }
 }

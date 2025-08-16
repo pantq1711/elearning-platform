@@ -3,7 +3,7 @@
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 <%@ taglib prefix="sec" uri="http://www.springframework.org/security/tags" %>
-
+<%@ taglib uri="http://java.sun.com/jsp/jstl/functions" prefix="fn" %>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -164,14 +164,14 @@
                                                     <div class="d-flex align-items-center">
                                                         <div class="lesson-icon me-3">
                                                             <c:choose>
-                                                                <c:when test="${lesson.type == 'VIDEO'}">
+                                                                <c:when test="${lesson.hasVideo()}">
                                                                     <i class="fas fa-play-circle text-primary"></i>
                                                                 </c:when>
-                                                                <c:when test="${lesson.type == 'DOCUMENT'}">
-                                                                    <i class="fas fa-file-pdf text-danger"></i>
+                                                                <c:when test="${lesson.hasDocument()}">
+                                                                    <i class="fas fa-file-alt text-info"></i>
                                                                 </c:when>
                                                                 <c:otherwise>
-                                                                    <i class="fas fa-file-text text-info"></i>
+                                                                    <i class="fas fa-align-left text-secondary"></i>
                                                                 </c:otherwise>
                                                             </c:choose>
                                                         </div>

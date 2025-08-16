@@ -3,7 +3,7 @@
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <%@ taglib prefix="form" uri="http://www.springframework.org/tags/form" %>
 <%@ taglib prefix="sec" uri="http://www.springframework.org/security/tags" %>
-
+<%@ taglib uri="http://java.sun.com/jsp/jstl/functions" prefix="fn" %>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -505,7 +505,7 @@
         });
 
         // Khởi tạo lesson type từ server
-        const currentType = '${lesson.type}' || 'VIDEO';
+        const currentType = '${lesson.typeString}' || 'VIDEO';
         selectLessonType(currentType);
 
         // Setup file upload areas
@@ -522,7 +522,7 @@
     function selectLessonType(type) {
         // Cập nhật UI
         $('.lesson-type-card').removeClass('active');
-        $(`.lesson-type-card:has(h6:contains('${type === 'VIDEO' ? 'Video' : type === 'DOCUMENT' ? 'Tài liệu' : 'Văn bản'}'))`).addClass('active');
+        ${lesson.type == 'VIDEO' ? 'Video' : (lesson.type == 'DOCUMENT' ? 'Tài liệu' : 'Văn bản')}
 
         // Cập nhật hidden input
         $('#lessonType').val(type);

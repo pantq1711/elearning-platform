@@ -779,4 +779,59 @@ public class Course {
             return displayName;
         }
     }
+    /**
+     * Alias cho learningObjectives - để tương thích với JSP
+     */
+    public String getLearningOutcomes() {
+        return this.learningObjectives;
+    }
+
+    public void setLearningOutcomes(String learningOutcomes) {
+        this.learningObjectives = learningOutcomes;
+    }
+
+    /**
+     * Status enum để tương thích với JSP templates
+     */
+    public static enum Status {
+        PUBLISHED, DRAFT, PENDING, INACTIVE;
+
+        public String getName() {
+            return this.toString();
+        }
+
+        public String toLowerCase() {
+            return this.toString().toLowerCase();
+        }
+    }
+
+    /**
+     * Lấy status dựa trên field active
+     */
+    public Status getStatus() {
+        return this.active ? Status.PUBLISHED : Status.DRAFT;
+    }
+    // ===== JSP COMPATIBILITY - MISSING PROPERTIES =====
+
+    /**
+     * Tags getter - JSP compatibility
+     */
+    public String getTags() {
+        if (this.category != null) {
+            return this.category.getName();
+        }
+        return "";
+    }
+
+    public void setTags(String tags) {
+        // Ignore - Course không có tags field thực tế
+    }
+
+    public java.util.List<String> getTagsList() {
+        java.util.List<String> tags = new java.util.ArrayList<>();
+        if (this.category != null) {
+            tags.add(this.category.getName());
+        }
+        return tags;
+    }
 }
