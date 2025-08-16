@@ -179,11 +179,42 @@ public class EnrollmentService {
     /**
      * Tạo enrollment với Long IDs
      */
+    /**
+     * Tạo enrollment với Long IDs - Cập nhật enrollment count
+     */
     @Transactional
     public Enrollment createEnrollment(Long studentId, Long courseId) {
-        return enrollStudent(studentId, courseId);
-    }
+        User student = userService.findByIdOrThrow(studentId);
+        Course course = courseService.findByIdOrThrow(courseId);
 
+        // Kiểm tra đã đăng ký chưa
+        if (enrollmentRepository.existsByStudentAndCourse(student, course)) {
+            throw new RuntimeException("Student đã đăng ký khóa học này rồi");
+        }
+
+        // Kiểm tra course có active không
+        if (!course.isActive()) {
+            throw new RuntimeException("Khóa học không còn hoạt động");
+        }
+
+        // Tạo enrollment mới
+        Enrollment enrollment = new Enrollment();
+        enrollment.setStudent(student);
+        enrollment.setCourse(course);
+        enrollment.setEnrollmentDate(LocalDateTime.now());
+        enrollment.setProgress(0.0);
+        enrollment.setCompleted(false);
+        enrollment.setScore(0.0);
+
+        Enrollment savedEnrollment = enrollmentRepository.save(enrollment);
+
+        // 🔥 THÊM: Cập nhật enrollment count trong course
+        int currentCount = course.getEnrollmentCount() != 0 ? course.getEnrollmentCount() : 0;
+        course.setEnrollmentCount(currentCount + 1);
+        courseService.updateCourse(course); // Lưu course với enrollment count mới
+
+        return savedEnrollment;
+    }
     /**
      * Tìm enrollment theo student và course IDs
      */

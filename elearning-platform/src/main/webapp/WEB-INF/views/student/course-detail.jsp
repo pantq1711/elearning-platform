@@ -1001,16 +1001,16 @@
                                                 <fmt:formatNumber value="${course.price}" type="currency"
                                                                   currencySymbol="₫" groupingUsed="true"/>
                                             </span>
-                                            <c:if test="${course.originalPrice > course.price}">
-                                                <span class="original-price">
-                                                    <fmt:formatNumber value="${course.originalPrice}" type="currency"
-                                                                      currencySymbol="₫" groupingUsed="true"/>
-                                                </span>
-                                                <span class="discount-badge">
-                                                    <fmt:formatNumber value="${(course.originalPrice - course.price) / course.originalPrice * 100}"
-                                                                      maxFractionDigits="0"/>% OFF
-                                                </span>
-                                            </c:if>
+<%--                                            <c:if test="${course.originalPrice > course.price}">--%>
+<%--                                                <span class="original-price">--%>
+<%--                                                    <fmt:formatNumber value="${course.originalPrice}" type="currency"--%>
+<%--                                                                      currencySymbol="₫" groupingUsed="true"/>--%>
+<%--                                                </span>--%>
+<%--                                                <span class="discount-badge">--%>
+<%--                                                    <fmt:formatNumber value="${(course.originalPrice - course.price) / course.originalPrice * 100}"--%>
+<%--                                                                      maxFractionDigits="0"/>% OFF--%>
+<%--                                                </span>--%>
+<%--                                            </c:if>--%>
                                         </div>
                                     </c:otherwise>
                                 </c:choose>

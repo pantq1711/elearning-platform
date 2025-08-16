@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
  * Cung cấp endpoints cho tất cả các chức năng chính
  */
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/v1")
 @CrossOrigin(origins = "*", maxAge = 3600)
 public class ApiController {
 
@@ -55,21 +55,48 @@ public class ApiController {
     /**
      * Tạo enrollment mới
      */
+    /**
+     * Tạo enrollment mới - Sửa để nhận JSON body
+     */
+    /**
+     * Tạo enrollment mới - Lấy studentId từ Authentication
+     */
     @PostMapping("/enrollments")
     @ResponseBody
     public ResponseEntity<?> createEnrollment(
-            @RequestParam Long studentId,
-            @RequestParam Long courseId) {
+            @RequestBody Map<String, Object> request,
+            Authentication authentication) {
         try {
+            // Kiểm tra đăng nhập
+            if (authentication == null) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Vui lòng đăng nhập để đăng ký khóa học");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+
+            // Lấy studentId từ user đang đăng nhập
+            User currentUser = (User) authentication.getPrincipal();
+            Long studentId = currentUser.getId();
+
+            // Lấy courseId từ request body
+            Long courseId = Long.valueOf(request.get("courseId").toString());
+
             Enrollment enrollment = enrollmentService.createEnrollment(studentId, courseId);
-            return ResponseEntity.ok(enrollment);
+
+            // Trả về format phù hợp với frontend
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "Đăng ký khóa học thành công!");
+            response.put("enrollmentId", enrollment.getId());
+
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", e.getMessage());
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("message", e.getMessage());
             return ResponseEntity.badRequest().body(error);
         }
     }
-
     @Autowired
     private CourseService courseService;
 
