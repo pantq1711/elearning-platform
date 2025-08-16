@@ -310,10 +310,10 @@
                                             <div class="card-body">
                                                 <!-- Student Header -->
                                                 <div class="d-flex align-items-center mb-3">
-                                                    <img src="${pageContext.request.contextPath}/images/avatars/${enrollment.student.avatar}"
-                                                         alt="${enrollment.student.fullName}"
-                                                         class="student-avatar me-3"
-                                                         onerror="this.src='/images/avatar-default.png'">
+<%--                                                    <img src="${pageContext.request.contextPath}/images/avatars/${enrollment.student.avatar}"--%>
+<%--                                                         alt="${enrollment.student.fullName}"--%>
+<%--                                                         class="student-avatar me-3"--%>
+<%--                                                         onerror="this.src='/images/avatar-default.png'">--%>
                                                     <div class="flex-grow-1">
                                                         <h6 class="mb-1">${enrollment.student.fullName}</h6>
                                                         <small class="text-muted">${enrollment.student.email}</small>
@@ -434,10 +434,10 @@
                                                 <tr>
                                                     <td>
                                                         <div class="d-flex align-items-center">
-                                                            <img src="${pageContext.request.contextPath}/images/avatars/${enrollment.student.avatar}"
-                                                                 alt="${enrollment.student.fullName}"
-                                                                 class="student-avatar me-3"
-                                                                 onerror="this.src='/images/avatar-default.png'">
+<%--                                                            <img src="${pageContext.request.contextPath}/images/avatars/${enrollment.student.avatar}"--%>
+<%--                                                                 alt="${enrollment.student.fullName}"--%>
+<%--                                                                 class="student-avatar me-3"--%>
+<%--                                                                 onerror="this.src='/images/avatar-default.png'">--%>
                                                             <div>
                                                                 <div class="fw-medium">${enrollment.student.fullName}</div>
                                                                 <small class="text-muted">${enrollment.student.email}</small>

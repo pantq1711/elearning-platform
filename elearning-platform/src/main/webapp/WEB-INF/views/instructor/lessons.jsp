@@ -219,7 +219,9 @@
                                                 </td>
                                                 <td>
                                                     <small class="text-muted">
-                                                        <fmt:formatDate value="${lesson.createdAt}" pattern="dd/MM/yyyy"/>
+                                                        <c:if test="${lesson.createdAt != null}">
+    ${lesson.createdAt.year}/${lesson.createdAt.monthValue}/${lesson.createdAt.dayOfMonth}
+</c:if>
                                                     </small>
                                                 </td>
                                                 <td>

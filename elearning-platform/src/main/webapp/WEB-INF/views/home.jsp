@@ -188,7 +188,10 @@
                 <div class="col-lg-4 col-md-6 mb-4" data-aos="fade-up" data-aos-delay="${status.index * 100}">
                     <div class="course-card h-100">
                         <div class="course-image">
-                            <img src="${pageContext.request.contextPath}/images/courses/${course.thumbnail}"
+                            <img src="${empty course.thumbnail ?
+    'https://via.placeholder.com/300x200/667eea/ffffff?text=Course' :
+    pageContext.request.contextPath}/images/courses/${course.thumbnail}"
+     onerror="this.src='https://via.placeholder.com/300x200/667eea/ffffff?text=Course'"
                                  alt="${course.name}" class="img-fluid">
                             <div class="course-badge">
                                 <span class="badge bg-primary">Nổi bật</span>
@@ -215,11 +218,11 @@
 
                             <p class="course-description">${course.shortDescription}</p>
 
-                            <div class="course-instructor">
-                                <img src="${pageContext.request.contextPath}/images/avatars/${course.instructor.avatar}"
-                                     alt="${course.instructor.fullName}" class="instructor-avatar">
-                                <span class="instructor-name">${course.instructor.fullName}</span>
-                            </div>
+<%--                            <div class="course-instructor">--%>
+<%--                                <img src="${pageContext.request.contextPath}/images/avatars/${course.instructor.avatar}"--%>
+<%--                                     alt="${course.instructor.fullName}" class="instructor-avatar">--%>
+<%--                                <span class="instructor-name">${course.instructor.fullName}</span>--%>
+<%--                            </div>--%>
 
                             <div class="course-footer">
                                 <div class="course-rating">

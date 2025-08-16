@@ -174,6 +174,50 @@ public class StudentController {
     public String courseDetailRedirect(@PathVariable Long id) {
         return "redirect:/student/course/" + id;
     }
+    /**
+     * Chi tiết khóa học cho student - View thông tin khóa học trước khi đăng ký hoặc sau khi đăng ký
+     */
+    @GetMapping("/course/{id}")
+    public String courseDetail(@PathVariable Long id,
+                               Model model,
+                               Authentication authentication) {
+        try {
+            User currentUser = (User) authentication.getPrincipal();
+            Course course = courseService.findById(id)
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học"));
+
+            model.addAttribute("currentUser", currentUser);
+            model.addAttribute("course", course);
+
+            // Kiểm tra đã đăng ký chưa
+            boolean isEnrolled = enrollmentService.isStudentEnrolled(currentUser, course);
+            model.addAttribute("isEnrolled", isEnrolled);
+
+            if (isEnrolled) {
+                // Nếu đã đăng ký, lấy thông tin enrollment và progress
+                Optional<Enrollment> enrollment = enrollmentService.findByStudentAndCourse(currentUser, course);
+                model.addAttribute("enrollment", enrollment.orElse(null));
+            }
+
+            // Lấy lessons của course (preview hoặc tất cả nếu đã đăng ký)
+            List<Lesson> lessons = isEnrolled ?
+                    lessonService.findActiveLessonsByCourse(course) :
+                    lessonService.findPreviewLessonsByCourse(course);
+            model.addAttribute("lessons", lessons);
+
+            // Lấy quizzes nếu đã đăng ký
+            if (isEnrolled) {
+                List<Quiz> quizzes = quizService.findActiveQuizzesByCourse(course);
+                model.addAttribute("quizzes", quizzes);
+            }
+
+            return "student/course-detail";
+
+        } catch (Exception e) {
+            model.addAttribute("error", e.getMessage());
+            return "error/404";
+        }
+    }
 
     /**
      * Trang học course (learn mode)

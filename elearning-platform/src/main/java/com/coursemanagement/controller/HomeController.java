@@ -250,6 +250,8 @@ public class HomeController {
             // Get course by slug
             Course course = courseService.findBySlug(slug)
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học"));
+            System.out.println("🎯 FOUND COURSE: " + course.getName());
+            System.out.println("🎯 RETURNING VIEW: courses/detail");
 
             model.addAttribute("course", course);
 
@@ -275,7 +277,7 @@ public class HomeController {
                 model.addAttribute("relatedCourses", List.of());
             }
 
-            return "courses/detail";
+            return "course-detail";
 
         } catch (Exception e) {
             System.err.println("Lỗi khi tải chi tiết course: " + e.getMessage());
@@ -283,7 +285,23 @@ public class HomeController {
             return "error/404";
         }
     }
+    /**
+     * Endpoint /browse - redirect đến /courses
+     * FIX LỖI: No endpoint GET /browse
+     */
+    @GetMapping("/browse")
+    public String browseRedirect() {
+        return "redirect:/courses";
+    }
 
+    /**
+     * Endpoint /student/browse cho students
+     * FIX LỖI: Có thể student cần endpoint riêng
+     */
+//    @GetMapping("/student/browse")
+//    public String studentBrowseRedirect() {
+//        return "redirect:/courses";
+//    }
     /**
      * Exception handler
      */

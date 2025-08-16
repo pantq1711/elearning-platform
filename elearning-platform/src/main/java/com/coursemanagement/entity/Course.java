@@ -2,6 +2,7 @@ package com.coursemanagement.entity;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -479,7 +480,29 @@ public class Course {
     public Integer getRatingCount() {
         return ratingCount != null ? ratingCount : 0;
     }
+    /**
+     * Helper methods để format date cho JSP
+     */
+    public String getFormattedUpdatedAt() {
+        if (updatedAt == null) {
+            return "N/A";
+        }
+        return updatedAt.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+    }
 
+    public String getFormattedCreatedAt() {
+        if (createdAt == null) {
+            return "N/A";
+        }
+        return createdAt.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+    }
+
+    public String getFormattedPublishedAt() {
+        if (publishedAt == null) {
+            return "Chưa xuất bản";
+        }
+        return publishedAt.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+    }
 
     public void setRatingCount(Integer ratingCount) {
         this.ratingCount = ratingCount;

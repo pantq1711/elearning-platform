@@ -2,6 +2,7 @@ package com.coursemanagement.entity;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 /**
  * Entity đại diện cho việc đăng ký khóa học của học viên
@@ -533,6 +534,22 @@ public class Enrollment {
             return (int) Math.round(progress / 100.0 * course.getLessonCount());
         }
         return 0;
+    }
+    /**
+     * Helper methods để format date cho JSP
+     */
+    public String getFormattedReviewDate() {
+        if (reviewDate == null) {
+            return "N/A";
+        }
+        return reviewDate.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+    }
+
+    public String getFormattedEnrollmentDate() {
+        if (enrollmentDate == null) {
+            return "N/A";
+        }
+        return enrollmentDate.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
     }
 
     /**

@@ -817,7 +817,7 @@
                             <c:forEach var="lesson" items="${lessons}" varStatus="lessonStatus">
                                 <div class="lesson-item
                                     <c:if test='${currentLesson != null && lesson.id == currentLesson.id}'>active</c:if>
-                                    <c:if test='${lesson.completed}'>completed</c:if>"
+                                    <div class="lesson-item ${lesson.active ? 'active' : ''}">"
                                      onclick="loadLesson(${lesson.id})">
                                     <div class="lesson-number">${lessonStatus.index + 1}</div>
                                     <div class="lesson-content">
@@ -830,7 +830,7 @@
                                         </div>
                                     </div>
                                     <div class="lesson-status">
-                                        <c:if test="${lesson.completed}">
+                                        <c:if test="${lesson.active}">
                                             <i class="fas fa-check-circle"></i>
                                         </c:if>
                                     </div>

@@ -799,7 +799,9 @@
                                             </div>
                                             <div class="activity-time">
                                                 <c:if test="${enrollment.enrollmentDate != null}">
-                                                    <fmt:formatDate value="${enrollment.enrollmentDate}" pattern="dd/MM/yyyy"/>
+                                                    <c:if test="${enrollment.enrollmentDate != null}">
+    ${enrollment.enrollmentDate.year}/${enrollment.enrollmentDate.monthValue}/${enrollment.enrollmentDate.dayOfMonth}
+</c:if>
                                                 </c:if>
                                             </div>
                                         </div>

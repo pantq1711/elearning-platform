@@ -685,7 +685,9 @@
                                 <div class="course-meta">
                                     <span><i class="fas fa-users me-1"></i>${course.enrollmentCount} học viên</span>
                                     <span><i class="fas fa-clock me-1"></i>
-                                            <fmt:formatDate value="${course.createdAt}" pattern="dd/MM/yyyy"/>
+                                            <c:if test="${course.createdAt != null}">
+    ${course.createdAt.toString().substring(0, 10).replace('-', '/')}
+</c:if>
                                         </span>
                                 </div>
                             </div>

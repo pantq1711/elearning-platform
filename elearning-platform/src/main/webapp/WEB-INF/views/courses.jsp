@@ -751,7 +751,10 @@
                                             <div class="course-card">
                                                 <!-- Course Image -->
                                                 <div class="course-image">
-                                                    <img src="${pageContext.request.contextPath}/images/courses/${course.thumbnail}"
+                                                    <img src="${empty course.thumbnail ?
+    'https://via.placeholder.com/300x200/667eea/ffffff?text=Course' :
+    pageContext.request.contextPath}/images/courses/${course.thumbnail}"
+     onerror="this.src='https://via.placeholder.com/300x200/667eea/ffffff?text=Course'"
                                                          alt="${course.name}"
                                                          onerror="this.src='/images/course-default.jpg"'">
 
@@ -763,7 +766,7 @@
                                                         <c:if test="${course.price == 0}">
                                                             <span class="course-badge badge-free">Miễn phí</span>
                                                         </c:if>
-                                                        <c:if test="${course.bestSeller}">
+                                                        <c:if test="${course.enrollmentCount != null && course.enrollmentCount > 50}">
                                                             <span class="course-badge badge-bestseller">Bán chạy</span>
                                                         </c:if>
                                                     </div>
@@ -794,10 +797,10 @@
 
                                                     <!-- Course Instructor -->
                                                     <div class="course-instructor">
-                                                        <img src="${pageContext.request.contextPath}/images/avatars/${course.instructor.avatar}"
-                                                             alt="${course.instructor.fullName}"
-                                                             class="instructor-avatar"
-                                                             onerror="this.src='/images/avatar-default.png'">
+<%--                                                        <img src="${pageContext.request.contextPath}/images/avatars/${course.instructor.avatar}"--%>
+<%--                                                             alt="${course.instructor.fullName}"--%>
+<%--                                                             class="instructor-avatar"--%>
+<%--                                                             onerror="this.src='/images/avatar-default.png'">--%>
                                                         <span class="instructor-name">${course.instructor.fullName}</span>
                                                     </div>
 

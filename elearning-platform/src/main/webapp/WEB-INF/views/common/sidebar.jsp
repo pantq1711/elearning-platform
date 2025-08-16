@@ -21,19 +21,47 @@ Sử dụng cho các trang dashboard và quản lý
     </div>
 
     <!-- User Info Section -->
+<%--    <div class="user-section">--%>
+<%--        <div class="user-avatar">--%>
+<%--            <c:choose>--%>
+<%--&lt;%&ndash;                <c:when test="${currentUser.avatarPath != null}">&ndash;%&gt;--%>
+<%--&lt;%&ndash;                    <img src="${pageContext.request.contextPath}/images/avatars/${currentUser.avatarPath}"&ndash;%&gt;--%>
+<%--&lt;%&ndash;                         alt="${currentUser.fullName}" class="avatar-img">&ndash;%&gt;--%>
+<%--&lt;%&ndash;                </c:when>&ndash;%&gt;--%>
+<%--                <c:otherwise>--%>
+<%--                    <div class="avatar-placeholder">--%>
+<%--                        <i class="fas fa-user"></i>--%>
+<%--                    </div>--%>
+<%--                </c:otherwise>--%>
+<%--            </c:choose>--%>
+<%--        </div>--%>
+<%--        <div class="user-info">--%>
+<%--            <div class="user-name">${currentUser.fullName}</div>--%>
+<%--            <div class="user-role">--%>
+<%--                <sec:authorize access="hasRole('ADMIN')">--%>
+<%--                    <span class="role-badge role-admin">--%>
+<%--                        <i class="fas fa-crown me-1"></i>Quản trị viên--%>
+<%--                    </span>--%>
+<%--                </sec:authorize>--%>
+<%--                <sec:authorize access="hasRole('INSTRUCTOR')">--%>
+<%--                    <span class="role-badge role-instructor">--%>
+<%--                        <i class="fas fa-chalkboard-teacher me-1"></i>Giảng viên--%>
+<%--                    </span>--%>
+<%--                </sec:authorize>--%>
+<%--                <sec:authorize access="hasRole('STUDENT')">--%>
+<%--                    <span class="role-badge role-student">--%>
+<%--                        <i class="fas fa-user-graduate me-1"></i>Học viên--%>
+<%--                    </span>--%>
+<%--                </sec:authorize>--%>
+<%--            </div>--%>
+<%--        </div>--%>
+<%--    </div>--%>
     <div class="user-section">
         <div class="user-avatar">
-            <c:choose>
-                <c:when test="${currentUser.avatarPath != null}">
-                    <img src="${pageContext.request.contextPath}/images/avatars/${currentUser.avatarPath}"
-                         alt="${currentUser.fullName}" class="avatar-img">
-                </c:when>
-                <c:otherwise>
-                    <div class="avatar-placeholder">
-                        <i class="fas fa-user"></i>
-                    </div>
-                </c:otherwise>
-            </c:choose>
+            <!-- SỬA LỖI: Thay thế avatar bằng icon đơn giản -->
+            <div class="avatar-placeholder">
+                <i class="fas fa-user"></i>
+            </div>
         </div>
         <div class="user-info">
             <div class="user-name">${currentUser.fullName}</div>
@@ -56,7 +84,6 @@ Sử dụng cho các trang dashboard và quản lý
             </div>
         </div>
     </div>
-
     <!-- Navigation Menu -->
     <nav class="sidebar-nav">
         <!-- Admin Menu -->
@@ -608,6 +635,34 @@ Sử dụng cho các trang dashboard và quản lý
         50% {
             opacity: 0.5;
         }
+    }
+    /* THÊM VÀO CUỐI PHẦN <style> TRONG sidebar.jsp */
+
+    .avatar-placeholder {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        font-weight: 600;
+    }
+
+    .user-avatar {
+        width: 50px;
+        height: 50px;
+        margin-right: 1rem;
+        flex-shrink: 0;
+    }
+
+    .avatar-img {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        object-fit: cover;
     }
 </style>
 
