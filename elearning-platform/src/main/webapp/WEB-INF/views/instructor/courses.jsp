@@ -678,19 +678,17 @@
                                 </c:choose>
 
                                 <!-- Status Badge -->
-                                <div class="course-status-badge status-${course.status.name().toLowerCase()}">
+                                <div class="course-status-badge ${course.active ? 'status-published' : 'status-draft'}">
                                     <c:choose>
-                                        <c:when test="${course.status == 'PUBLISHED'}">
+                                        <c:when test="${course.active}">
                                             <i class="fas fa-check-circle me-1"></i>Đã xuất bản
                                         </c:when>
-                                        <c:when test="${course.status == 'DRAFT'}">
+                                        <c:otherwise>
                                             <i class="fas fa-edit me-1"></i>Bản nháp
-                                        </c:when>
-                                        <c:when test="${course.status == 'PENDING'}">
-                                            <i class="fas fa-clock me-1"></i>Chờ duyệt
-                                        </c:when>
+                                        </c:otherwise>
                                     </c:choose>
                                 </div>
+
                             </div>
 
                             <!-- Course Body -->
@@ -938,7 +936,7 @@
                 top: 2rem;
                 right: 2rem;
                 z-index: 9999;
-                background: ${type === 'success' ? 'var(--success-color)' : 'var(--danger-color)'};
+                background: ${type == 'success' ? 'var(--success-color)' : 'var(--danger-color)'};
                 color: white;
                 padding: 1rem 1.5rem;
                 border-radius: 0.75rem;

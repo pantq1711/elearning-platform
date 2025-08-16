@@ -543,7 +543,7 @@
                         <label for="fullName">
                             <i class="fas fa-user me-2"></i>Họ và tên *
                         </label>
-                        <div class="invalid-feedback">
+                        <div class="invalid-feedback" style="display: none;">
                             Vui lòng nhập họ và tên
                         </div>
                     </div>
@@ -560,7 +560,7 @@
                         <label for="email">
                             <i class="fas fa-envelope me-2"></i>Email *
                         </label>
-                        <div class="invalid-feedback">
+                        <div class="invalid-feedback" style="display: none;">
                             Vui lòng nhập email hợp lệ
                         </div>
                     </div>
@@ -592,7 +592,7 @@
                         <label for="subject">
                             <i class="fas fa-tag me-2"></i>Chủ đề *
                         </label>
-                        <div class="invalid-feedback">
+                        <div class="invalid-feedback" style="display: none;">
                             Vui lòng chọn chủ đề
                         </div>
                     </div>
@@ -608,7 +608,7 @@
                         <label for="message">
                             <i class="fas fa-comment me-2"></i>Tin nhắn *
                         </label>
-                        <div class="invalid-feedback">
+                        <div class="invalid-feedback" style="display: none;">
                             Vui lòng nhập tin nhắn
                         </div>
                     </div>

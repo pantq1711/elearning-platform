@@ -1,15 +1,22 @@
+<%--
+FILE: src/main/webapp/WEB-INF/views/common/header.jsp
+FIX: Thêm Spring Security taglib và fix logic hiển thị nút
+--%>
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
+<%-- ✅ FIX: THÊM SPRING SECURITY TAGLIB --%>
+<%@ taglib prefix="sec" uri="http://www.springframework.org/security/tags" %>
+
 <%--
     Header Navigation Component - Component điều hướng chung
-    Sử dụng cho tất cả các trang trong hệ thống
-    Responsive navigation với Bootstrap 5
-    Tích hợp Spring Security cho authentication/authorization
+    ✅ ĐÃ FIX: Thêm Spring Security taglib để ẩn/hiện nút đúng cách
 --%>
+
 <!-- Custom CSS và JS -->
 <link href="${pageContext.request.contextPath}/css/placeholder.css" rel="stylesheet">
 <script src="${pageContext.request.contextPath}/js/image-placeholder.js"></script>
+
 <header class="navbar navbar-expand-lg navbar-dark bg-primary sticky-top shadow">
     <div class="container">
         <!-- Logo và tên website -->
@@ -38,8 +45,8 @@
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="${pageContext.request.contextPath}/about">
-                        <i class="fas fa-info-circle me-1"></i>Giới Thiệu
+                    <a class="nav-link" href="${pageContext.request.contextPath}/categories">
+                        <i class="fas fa-list me-1"></i>Danh Mục
                     </a>
                 </li>
                 <li class="nav-item">
@@ -49,70 +56,92 @@
                 </li>
             </ul>
 
-            <!-- Search box (hiển thị trên trang courses) -->
-            <c:if test="${pageContext.request.servletPath == '/courses'}">
-                <form class="d-flex me-3" method="GET" action="/courses">
-                    <div class="input-group">
-                        <input type="text" class="form-control" name="search"
-                               placeholder="Tìm kiếm khóa học..." value="${param.search}">
-                        <button class="btn btn-outline-light" type="submit">
-                            <i class="fas fa-search"></i>
-                        </button>
-                    </div>
-                </form>
-            </c:if>
-
-            <!-- Menu bên phải - Authentication -->
+            <!-- Menu bên phải -->
             <ul class="navbar-nav">
-                <!-- Kiểm tra nếu user đã đăng nhập -->
+
+                <!-- ✅ MENU CHO USER ĐÃ ĐĂNG NHẬP -->
                 <sec:authorize access="isAuthenticated()">
-                    <!-- User dropdown menu -->
+
+                    <!-- Dashboard Links theo role -->
+                    <sec:authorize access="hasRole('ADMIN')">
+                        <li class="nav-item">
+                            <a class="nav-link" href="${pageContext.request.contextPath}/admin/dashboard">
+                                <i class="fas fa-tachometer-alt me-1"></i>Admin Dashboard
+                            </a>
+                        </li>
+                    </sec:authorize>
+
+                    <sec:authorize access="hasRole('INSTRUCTOR')">
+                        <li class="nav-item">
+                            <a class="nav-link" href="${pageContext.request.contextPath}/instructor/dashboard">
+                                <i class="fas fa-chalkboard-teacher me-1"></i>Giảng Viên
+                            </a>
+                        </li>
+                    </sec:authorize>
+
+                    <sec:authorize access="hasRole('STUDENT')">
+                        <li class="nav-item">
+                            <a class="nav-link" href="${pageContext.request.contextPath}/student/dashboard">
+                                <i class="fas fa-user-graduate me-1"></i>Học Tập
+                            </a>
+                        </li>
+                    </sec:authorize>
+
+                    <!-- User Profile Dropdown -->
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                            <i class="fas fa-user-circle me-1"></i>
-                                ${currentUser.fullName}
+                        <a class="nav-link dropdown-toggle d-flex align-items-center"
+                           href="#" id="userDropdown" role="button"
+                           data-bs-toggle="dropdown" aria-expanded="false">
+
+                            <!-- User Avatar -->
+                            <c:choose>
+                                <c:when test="${not empty currentUser.profileImageUrl}">
+                                    <img src="${currentUser.profileImageUrl}"
+                                         alt="Avatar"
+                                         class="rounded-circle me-2"
+                                         style="width: 32px; height: 32px; object-fit: cover;">
+                                </c:when>
+                                <c:otherwise>
+                                    <div class="bg-secondary rounded-circle me-2 d-flex align-items-center justify-content-center"
+                                         style="width: 32px; height: 32px;">
+                                        <i class="fas fa-user text-white"></i>
+                                    </div>
+                                </c:otherwise>
+                            </c:choose>
+
+                            <!-- User Name -->
+                            <span class="d-none d-lg-inline">
+                                <sec:authentication property="principal.fullName" var="fullName"/>
+                                <c:choose>
+                                    <c:when test="${not empty fullName and fullName != 'N/A'}">
+                                        ${fullName}
+                                    </c:when>
+                                    <c:otherwise>
+                                        <sec:authentication property="principal.username"/>
+                                    </c:otherwise>
+                                </c:choose>
+                            </span>
                         </a>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            <!-- Dashboard theo role -->
-                            <sec:authorize access="hasRole('ADMIN')">
-                                <li>
-                                    <a class="dropdown-item" href="/admin/dashboard">
-                                        <i class="fas fa-tachometer-alt me-2"></i>Dashboard Admin
-                                    </a>
-                                </li>
-                            </sec:authorize>
 
-                            <sec:authorize access="hasRole('INSTRUCTOR')">
-                                <li>
-                                    <a class="dropdown-item" href="${pageContext.request.contextPath}/instructor/dashboard">
-                                        <i class="fas fa-chalkboard-teacher me-2"></i>Dashboard Giảng Viên
-                                    </a>
-                                </li>
-                            </sec:authorize>
-
-                            <sec:authorize access="hasRole('STUDENT')">
-                                <li>
-                                    <a class="dropdown-item" href="${pageContext.request.contextPath}/student/dashboard">
-                                        <i class="fas fa-user-graduate me-2"></i>Dashboard Học Viên
-                                    </a>
-                                </li>
-                                <li>
-                                    <a class="dropdown-item" href="${pageContext.request.contextPath}/student/my-courses">
-                                        <i class="fas fa-book-reader me-2"></i>Khóa Học Của Tôi
-                                    </a>
-                                </li>
-                            </sec:authorize>
-
-                            <li><hr class="dropdown-divider"></li>
-
-                            <!-- Profile và settings -->
+                        <!-- Dropdown Menu -->
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                            <!-- Profile -->
                             <li>
                                 <a class="dropdown-item" href="${pageContext.request.contextPath}/profile">
-                                    <i class="fas fa-user-edit me-2"></i>Hồ Sơ Cá Nhân
+                                    <i class="fas fa-user me-2"></i>Hồ Sơ Cá Nhân
                                 </a>
                             </li>
+
+                            <!-- Settings -->
                             <li>
-                                <a class="dropdown-item" href="${pageContext.request.contextPath}/change-password">
+                                <a class="dropdown-item" href="${pageContext.request.contextPath}/profile/settings">
+                                    <i class="fas fa-cog me-2"></i>Cài Đặt
+                                </a>
+                            </li>
+
+                            <!-- Change Password -->
+                            <li>
+                                <a class="dropdown-item" href="${pageContext.request.contextPath}/profile/change-password">
                                     <i class="fas fa-key me-2"></i>Đổi Mật Khẩu
                                 </a>
                             </li>
@@ -121,7 +150,7 @@
 
                             <!-- Logout -->
                             <li>
-                                <form method="POST" action="logout" class="d-inline">
+                                <form method="POST" action="${pageContext.request.contextPath}/logout" class="d-inline">
                                     <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}"/>
                                     <button type="submit" class="dropdown-item text-danger">
                                         <i class="fas fa-sign-out-alt me-2"></i>Đăng Xuất
@@ -132,7 +161,7 @@
                     </li>
                 </sec:authorize>
 
-                <!-- Menu cho user chưa đăng nhập -->
+                <!-- ✅ MENU CHO USER CHƯA ĐĂNG NHẬP - CHỈ HIỂN THỊ KHI CHƯA LOGIN -->
                 <sec:authorize access="!isAuthenticated()">
                     <li class="nav-item">
                         <a class="nav-link" href="${pageContext.request.contextPath}/login">
@@ -140,7 +169,8 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link btn btn-outline-light ms-2 px-3" href="${pageContext.request.contextPath}/register">
+                        <a class="nav-link btn btn-outline-light ms-2 px-3"
+                           href="${pageContext.request.contextPath}/register">
                             <i class="fas fa-user-plus me-1"></i>Đăng Ký
                         </a>
                     </li>
@@ -150,79 +180,46 @@
     </div>
 </header>
 
-<!-- Notification/Alert bar (nếu có message) -->
+<!-- ✅ NOTIFICATION BAR (nếu có message) -->
 <c:if test="${not empty message}">
-    <div class="alert alert-success alert-dismissible fade show m-0" role="alert">
-        <i class="fas fa-check-circle me-2"></i>${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <div class="container">
+            <i class="fas fa-check-circle me-2"></i>
+                ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
     </div>
 </c:if>
 
 <c:if test="${not empty error}">
-    <div class="alert alert-danger alert-dismissible fade show m-0" role="alert">
-        <i class="fas fa-exclamation-triangle me-2"></i>${error}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <div class="container">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+                ${error}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
     </div>
 </c:if>
 
 <c:if test="${not empty warning}">
-    <div class="alert alert-warning alert-dismissible fade show m-0" role="alert">
-        <i class="fas fa-exclamation-circle me-2"></i>${warning}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+        <div class="container">
+            <i class="fas fa-exclamation-circle me-2"></i>
+                ${warning}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
     </div>
 </c:if>
 
-<%-- Custom CSS cho header --%>
-<style>
-    .navbar-brand {
-        font-size: 1.5rem;
-        font-weight: 700;
-    }
-
-    .navbar-nav .nav-link {
-        font-weight: 500;
-        transition: all 0.3s ease;
-    }
-
-    .navbar-nav .nav-link:hover {
-        background-color: rgba(255, 255, 255, 0.1);
-        border-radius: 0.375rem;
-    }
-
-    .dropdown-menu {
-        border: none;
-        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-        border-radius: 0.5rem;
-    }
-
-    .dropdown-item {
-        font-weight: 500;
-        transition: all 0.2s ease;
-    }
-
-    .dropdown-item:hover {
-        background-color: var(--bs-primary);
-        color: white;
-    }
-
-    .input-group .form-control:focus {
-        border-color: rgba(255, 255, 255, 0.5);
-        box-shadow: 0 0 0 0.2rem rgba(255, 255, 255, 0.25);
-    }
-
-    /* Animation cho alert */
-    .alert {
-        animation: slideDown 0.5s ease;
-    }
-
-    @keyframes slideDown {
-        from {
-            transform: translateY(-100%);
-            opacity: 0;
-        }
-        to {
-            transform: translateY(0);
-            opacity: 1;
-        }
-    }
-</style>
+<!-- ✅ DEBUGGING SCRIPT - Có thể xóa sau khi test xong -->
+<script>
+    console.log('🔐 Header loaded. Authentication status:');
+    <sec:authorize access="isAuthenticated()">
+    console.log('✅ User is authenticated');
+    console.log('👤 Username: <sec:authentication property="principal.username"/>');
+    console.log('🎭 Role: <sec:authentication property="principal.authorities"/>');
+    </sec:authorize>
+    <sec:authorize access="!isAuthenticated()">
+    console.log('❌ User is NOT authenticated');
+    </sec:authorize>
+</script>

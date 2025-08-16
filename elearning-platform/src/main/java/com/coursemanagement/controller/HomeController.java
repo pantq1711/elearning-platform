@@ -61,7 +61,7 @@ public class HomeController {
             // ✅ GIẢM TẢI QUERIES: Chỉ lấy thống kê cơ bản cho landing page
             try {
                 // Thống kê tổng quan cho trang chủ - cached hoặc optimized
-                Long totalCoursesLong = courseService.countActiveCourses();
+                Long totalCoursesLong = courseService.countAllCourses();
                 Long totalStudentsLong = userService.countByRole(User.Role.STUDENT);
                 Long totalInstructorsLong = userService.countByRole(User.Role.INSTRUCTOR);
 

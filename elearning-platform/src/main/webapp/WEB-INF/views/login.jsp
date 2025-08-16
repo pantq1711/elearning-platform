@@ -535,7 +535,7 @@
                         <label for="username">
                             <i class="fas fa-user me-2"></i>Tên đăng nhập hoặc Email
                         </label>
-                        <div class="invalid-feedback">
+                        <div class="invalid-feedback" style="display: none;">
                             Vui lòng nhập tên đăng nhập hoặc email
                         </div>
                     </div>
@@ -555,7 +555,7 @@
                         <button type="button" class="password-toggle" onclick="togglePassword()">
                             <i class="fas fa-eye" id="passwordToggleIcon"></i>
                         </button>
-                        <div class="invalid-feedback">
+                        <div class="invalid-feedback" style="display: none;">
                             Vui lòng nhập mật khẩu
                         </div>
                     </div>

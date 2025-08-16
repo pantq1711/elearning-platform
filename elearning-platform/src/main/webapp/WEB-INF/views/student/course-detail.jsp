@@ -1026,7 +1026,7 @@
                             <sec:authorize access="isAuthenticated()">
                                 <c:choose>
                                     <c:when test="${isEnrolled}">
-                                        <a href="${pageContext.request.contextPath}/student/courses/${course.id}"
+                                        <a href="${pageContext.request.contextPath}/student/courses/${course.id}/learn"
                                            class="btn btn-enrolled enroll-btn">
                                             <i class="fas fa-play me-2"></i>Tiếp tục học
                                         </a>
@@ -1164,8 +1164,7 @@
                     button.innerHTML = '<i class="fas fa-play me-2"></i>Tiếp tục học';
                     button.classList.remove('btn-enroll');
                     button.classList.add('btn-enrolled');
-                    button.onclick = () => window.location.href = `/student/courses/${courseId}`;
-
+                    button.onclick = () => window.location.href = `/student/courses/${courseId}/learn`;
                     // Show success message
                     showNotification('Đăng ký khóa học thành công!', 'success');
                 } else {

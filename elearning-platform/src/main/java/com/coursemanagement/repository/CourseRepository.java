@@ -23,6 +23,31 @@ import java.util.Optional;
 @Repository
 public interface CourseRepository extends JpaRepository<Course, Long>, JpaSpecificationExecutor<Course>
 {
+
+    /**
+     * Tìm featured courses với pagination
+     */
+    @Query("SELECT c FROM Course c WHERE c.featured = :featured AND c.active = :active ORDER BY c.createdAt DESC")
+    Page<Course> findByFeaturedAndActiveOrderByCreatedAtDesc(@Param("featured") boolean featured,
+                                                             @Param("active") boolean active,
+                                                             Pageable pageable);
+
+    /**
+     * Tìm featured courses (List version)
+     */
+    @Query("SELECT c FROM Course c WHERE c.featured = :featured AND c.active = :active ORDER BY c.createdAt DESC")
+    List<Course> findByFeaturedAndActiveOrderByCreatedAtDesc(@Param("featured") boolean featured,
+                                                             @Param("active") boolean active);
+
+    /**
+     * Lấy thống kê courses theo tháng cho instructor
+     */
+    @Query("SELECT YEAR(c.createdAt), MONTH(c.createdAt), COUNT(c) " +
+            "FROM Course c WHERE c.instructor = :instructor AND c.createdAt >= :fromDate " +
+            "GROUP BY YEAR(c.createdAt), MONTH(c.createdAt) " +
+            "ORDER BY YEAR(c.createdAt), MONTH(c.createdAt)")
+    List<Object[]> getCourseStatsByMonthForInstructor(@Param("instructor") User instructor,
+                                                      @Param("fromDate") LocalDateTime fromDate);
     /**
      * Search by name with pagination - THÊM MỚI
      */

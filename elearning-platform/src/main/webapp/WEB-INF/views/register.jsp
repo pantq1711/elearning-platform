@@ -561,7 +561,7 @@
                                    required
                                    autocomplete="name">
                         </div>
-                        <div class="invalid-feedback">
+                        <div class="invalid-feedback" style="display: none;">
                             Vui lòng nhập họ và tên đầy đủ!
                         </div>
                     </div>
@@ -582,7 +582,7 @@
                                    required
                                    autocomplete="username">
                         </div>
-                        <div class="invalid-feedback">
+                        <div class="invalid-feedback" style="display: none;">
                             Tên đăng nhập phải từ 3-20 ký tự, chỉ chứa chữ, số và dấu gạch dưới!
                         </div>
                         <div class="valid-feedback">
@@ -606,7 +606,7 @@
                                    required
                                    autocomplete="email">
                         </div>
-                        <div class="invalid-feedback">
+                        <div class="invalid-feedback" style="display: none;">
                             Vui lòng nhập địa chỉ email hợp lệ!
                         </div>
                         <div class="valid-feedback">
@@ -627,7 +627,7 @@
                                    value="${param.phone}"
                                    autocomplete="tel">
                         </div>
-                        <div class="invalid-feedback">
+                        <div class="invalid-feedback" style="display: none;">
                             Số điện thoại không hợp lệ!
                         </div>
                     </div>
@@ -656,7 +656,7 @@
                             </div>
                             <div class="strength-text">Mật khẩu cần ít nhất 8 ký tự, bao gồm chữ hoa, chữ thường và số</div>
                         </div>
-                        <div class="invalid-feedback">
+                        <div class="invalid-feedback" style="display: none;">
                             Mật khẩu phải có ít nhất 8 ký tự, bao gồm chữ hoa, chữ thường và số!
                         </div>
                     </div>
@@ -679,7 +679,7 @@
                                 <i class="fas fa-eye" id="confirmPasswordToggleIcon"></i>
                             </button>
                         </div>
-                        <div class="invalid-feedback">
+                        <div class="invalid-feedback" style="display: none;">
                             Mật khẩu xác nhận không khớp!
                         </div>
                         <div class="valid-feedback">

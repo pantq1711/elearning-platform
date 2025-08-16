@@ -692,12 +692,14 @@
                                 </div>
                             </div>
 
-                            <div class="course-status status-${course.status.name().toLowerCase()}">
+                            <div class="course-status ${course.active ? 'status-published' : 'status-draft'}">
                                 <c:choose>
-                                    <c:when test="${course.status == 'PUBLISHED'}">Đã xuất bản</c:when>
-                                    <c:when test="${course.status == 'DRAFT'}">Bản nháp</c:when>
-                                    <c:when test="${course.status == 'PENDING'}">Chờ duyệt</c:when>
-                                    <c:otherwise>${course.status}</c:otherwise>
+                                    <c:when test="${course.active}">
+                                        <i class="fas fa-check-circle me-1"></i>Đã xuất bản
+                                    </c:when>
+                                    <c:otherwise>
+                                        <i class="fas fa-edit me-1"></i>Bản nháp
+                                    </c:otherwise>
                                 </c:choose>
                             </div>
                         </div>

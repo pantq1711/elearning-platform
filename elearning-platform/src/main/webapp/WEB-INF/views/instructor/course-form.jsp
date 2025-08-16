@@ -570,7 +570,7 @@
                                    placeholder="Ví dụ: Lập trình Java từ cơ bản đến nâng cao"
                                    required
                                    maxlength="200">
-                            <div class="invalid-feedback">
+                            <div class="invalid-feedback" style="display: none;">
                                 Vui lòng nhập tên khóa học (tối đa 200 ký tự)
                             </div>
                             <div class="form-text">
@@ -592,7 +592,7 @@
                                     </option>
                                 </c:forEach>
                             </select>
-                            <div class="invalid-feedback">
+                            <div class="invalid-feedback" style="display: none;">
                                 Vui lòng chọn danh mục cho khóa học
                             </div>
                         </div>
@@ -612,7 +612,7 @@
                                   placeholder="Mô tả ngắn gọn về nội dung và mục tiêu của khóa học..."
                                   required
                                   maxlength="500">${course.shortDescription}</textarea>
-                        <div class="invalid-feedback">
+                        <div class="invalid-feedback" style="display: none;">
                             Vui lòng nhập mô tả ngắn (tối đa 500 ký tự)
                         </div>
                         <div class="form-text">
@@ -630,7 +630,7 @@
                                   name="description"
                                   rows="8"
                                   placeholder="Mô tả chi tiết về khóa học, bao gồm mục tiêu, nội dung, đối tượng học viên...">${course.description}</textarea>
-                        <div class="invalid-feedback">
+                        <div class="invalid-feedback" style="display: none;">
                             Vui lòng nhập mô tả chi tiết
                         </div>
                     </div>
@@ -763,7 +763,7 @@
                                   rows="5"
                                   placeholder="Nhập mỗi mục tiêu trên một dòng:&#10;- Nắm vững cú pháp Java cơ bản&#10;- Xây dựng ứng dụng web với Spring Boot&#10;- Tích hợp cơ sở dữ liệu MySQL..."
                                   required>${course.learningOutcomes}</textarea>
-                        <div class="invalid-feedback">
+                        <div class="invalid-feedback" style="display: none;">
                             Vui lòng nhập các mục tiêu học tập
                         </div>
                     </div>
@@ -812,7 +812,7 @@
                                 Nâng cao (Advanced)
                             </option>
                         </select>
-                        <div class="invalid-feedback">
+                        <div class="invalid-feedback" style="display: none;">
                             Vui lòng chọn cấp độ khóa học
                         </div>
                     </div>
