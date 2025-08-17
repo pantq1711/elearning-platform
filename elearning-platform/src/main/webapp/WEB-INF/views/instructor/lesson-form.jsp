@@ -3,7 +3,7 @@
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <%@ taglib prefix="form" uri="http://www.springframework.org/tags/form" %>
 <%@ taglib prefix="sec" uri="http://www.springframework.org/security/tags" %>
-<%@ taglib uri="http://java.sun.com/jsp/jstl/functions" prefix="fn" %>
+<%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -109,11 +109,21 @@
                     <div class="card-body">
                         <div class="row align-items-center">
                             <div class="col-auto">
-                                <img src="${pageContext.request.contextPath}/images/courses/${course.imageUrl}"
-                                     alt="${course.name}"
-                                     class="course-thumbnail"
-                                     style="width: 60px; height: 45px; object-fit: cover; border-radius: 6px;"
-                                     onerror="this.src='/images/course-default.png'">
+                                <c:choose>
+                                    <c:when test="${not empty course.imageUrl}">
+                                        <img src="${pageContext.request.contextPath}/images/courses/${course.imageUrl}"
+                                             alt="${course.name}"
+                                             class="course-thumbnail"
+                                             style="width: 60px; height: 45px; object-fit: cover; border-radius: 6px;"
+                                             onerror="this.src='${pageContext.request.contextPath}/images/course-default.png'">
+                                    </c:when>
+                                    <c:otherwise>
+                                        <div class="course-thumbnail d-flex align-items-center justify-content-center bg-primary text-white"
+                                             style="width: 60px; height: 45px; border-radius: 6px;">
+                                            <i class="fas fa-book"></i>
+                                        </div>
+                                    </c:otherwise>
+                                </c:choose>
                             </div>
                             <div class="col">
                                 <h6 class="mb-1">${course.name}</h6>
@@ -135,115 +145,110 @@
 
                 <!-- Form Tạo/Sửa Bài Học -->
                 <form:form method="POST" modelAttribute="lesson" enctype="multipart/form-data"
-                           action="${lesson.id != null ? '/instructor/lessons/'.concat(lesson.id).concat('/edit') : '/instructor/lessons/create'}"
-                           cssClass="needs-validation" novalidate="true">
+                           action="${lesson.id != null ?
+                                    pageContext.request.contextPath.concat('/instructor/lessons/').concat(lesson.id).concat('/edit') :
+                                    pageContext.request.contextPath.concat('/instructor/lessons/new')}"
+                           id="lessonForm">
 
-                    <!-- Hidden fields -->
-                    <form:hidden path="id" />
-                    <input type="hidden" name="courseId" value="${course.id}" />
+                    <!-- CSRF Token -->
+                    <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}"/>
+
+                    <!-- Course ID hidden field -->
+                    <form:hidden path="course.id" value="${course.id}"/>
 
                     <div class="row">
-                        <!-- Left Column - Main Content -->
+                        <!-- Left Column - Content -->
                         <div class="col-lg-8">
-
-                            <!-- Lesson Type Selection -->
-                            <div class="card mb-4">
-                                <div class="card-header">
-                                    <h5 class="card-title mb-0">
-                                        <i class="fas fa-layer-group me-2"></i>Loại Bài Học
-                                    </h5>
-                                </div>
-                                <div class="card-body">
-                                    <div class="row g-3">
-                                        <div class="col-md-4">
-                                            <div class="lesson-type-card card h-100 ${lesson.type == 'VIDEO' ? 'active' : ''}"
-                                                 onclick="selectLessonType('VIDEO')">
-                                                <div class="card-body text-center">
-                                                    <i class="fas fa-play-circle fa-3x text-primary mb-3"></i>
-                                                    <h6>Video</h6>
-                                                    <p class="text-muted small mb-0">Bài học video trực tuyến</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <div class="lesson-type-card card h-100 ${lesson.type == 'DOCUMENT' ? 'active' : ''}"
-                                                 onclick="selectLessonType('DOCUMENT')">
-                                                <div class="card-body text-center">
-                                                    <i class="fas fa-file-alt fa-3x text-info mb-3"></i>
-                                                    <h6>Tài liệu</h6>
-                                                    <p class="text-muted small mb-0">Tài liệu văn bản, PDF</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <div class="lesson-type-card card h-100 ${lesson.type == 'TEXT' ? 'active' : ''}"
-                                                 onclick="selectLessonType('TEXT')">
-                                                <div class="card-body text-center">
-                                                    <i class="fas fa-align-left fa-3x text-success mb-3"></i>
-                                                    <h6>Văn bản</h6>
-                                                    <p class="text-muted small mb-0">Nội dung văn bản</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <form:hidden path="type" id="lessonType" />
-                                </div>
-                            </div>
 
                             <!-- Basic Information -->
                             <div class="card mb-4">
                                 <div class="card-header">
-                                    <h5 class="card-title mb-0">
+                                    <h6 class="card-title mb-0">
                                         <i class="fas fa-info-circle me-2"></i>Thông Tin Cơ Bản
-                                    </h5>
+                                    </h6>
                                 </div>
                                 <div class="card-body">
-                                    <div class="row g-3">
-                                        <!-- Tên bài học -->
-                                        <div class="col-12">
+                                    <div class="row">
+                                        <!-- Tiêu đề bài học -->
+                                        <div class="col-12 mb-3">
                                             <label for="title" class="form-label">
-                                                Tên bài học <span class="text-danger">*</span>
+                                                Tiêu đề bài học <span class="text-danger">*</span>
                                             </label>
                                             <form:input path="title" cssClass="form-control"
                                                         placeholder="Nhập tên bài học..." required="true" />
                                             <form:errors path="title" cssClass="text-danger small" />
                                         </div>
 
-                                        <!-- Mô tả ngắn -->
-                                        <div class="col-12">
-                                            <label for="description" class="form-label">Mô tả ngắn</label>
-                                            <form:textarea path="description" cssClass="form-control" rows="3"
-                                                           placeholder="Mô tả ngắn gọn về nội dung bài học..." />
-                                            <form:errors path="description" cssClass="text-danger small" />
-                                        </div>
-
-                                        <!-- Thời lượng -->
-                                        <div class="col-md-6">
-                                            <label for="duration" class="form-label">
-                                                Thời lượng (phút)
+                                        <!-- Thời lượng ước tính - FIX: duration → estimatedDuration -->
+                                        <div class="col-md-6 mb-3">
+                                            <label for="estimatedDuration" class="form-label">
+                                                Thời lượng ước tính (phút)
                                             </label>
                                             <div class="input-group">
-                                                <form:input path="duration" type="number" cssClass="form-control"
+                                                <form:input path="estimatedDuration" type="number" cssClass="form-control"
                                                             min="0" step="1" placeholder="0" />
                                                 <span class="input-group-text">phút</span>
                                             </div>
-                                            <form:errors path="duration" cssClass="text-danger small" />
+                                            <form:errors path="estimatedDuration" cssClass="text-danger small" />
                                         </div>
 
-                                        <!-- Thứ tự -->
-                                        <div class="col-md-6">
+                                        <!-- Thứ tự - FIX: orderNumber → orderIndex -->
+                                        <div class="col-md-6 mb-3">
                                             <label for="orderIndex" class="form-label">
-                                                Thứ tự trong khóa học
+                                                Thứ tự trong khóa học <span class="text-danger">*</span>
                                             </label>
                                             <form:input path="orderIndex" type="number" cssClass="form-control"
-                                                        min="1" step="1" placeholder="1" />
+                                                        min="1" step="1" placeholder="1" required="true"/>
                                             <form:errors path="orderIndex" cssClass="text-danger small" />
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- Content Based on Type -->
+                            <!-- Lesson Type Selection -->
+                            <div class="card mb-4">
+                                <div class="card-header">
+                                    <h6 class="card-title mb-0">
+                                        <i class="fas fa-layer-group me-2"></i>Loại Bài Học
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <!-- Video Type -->
+                                        <div class="col-md-4 mb-3">
+                                            <div class="card lesson-type-card h-100" onclick="selectLessonType('VIDEO')">
+                                                <div class="card-body text-center">
+                                                    <i class="fas fa-play-circle fa-3x text-primary mb-3"></i>
+                                                    <h6 class="card-title">Video</h6>
+                                                    <p class="card-text small">Bài học với video hướng dẫn</p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Document Type -->
+                                        <div class="col-md-4 mb-3">
+                                            <div class="card lesson-type-card h-100" onclick="selectLessonType('DOCUMENT')">
+                                                <div class="card-body text-center">
+                                                    <i class="fas fa-file-alt fa-3x text-info mb-3"></i>
+                                                    <h6 class="card-title">Tài Liệu</h6>
+                                                    <p class="card-text small">Bài học với tài liệu PDF/Word</p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Text Type -->
+                                        <div class="col-md-4 mb-3">
+                                            <div class="card lesson-type-card h-100" onclick="selectLessonType('TEXT')">
+                                                <div class="card-body text-center">
+                                                    <i class="fas fa-align-left fa-3x text-success mb-3"></i>
+                                                    <h6 class="card-title">Văn Bản</h6>
+                                                    <p class="card-text small">Bài học chỉ có nội dung văn bản</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
 
                             <!-- Video Content -->
                             <div class="card mb-4" id="videoContent" style="display: none;">
@@ -255,40 +260,33 @@
                                 <div class="card-body">
                                     <!-- Video URL -->
                                     <div class="mb-3">
-                                        <label for="videoUrl" class="form-label">URL Video</label>
+                                        <label for="videoLink" class="form-label">URL Video</label>
                                         <div class="input-group">
                                             <span class="input-group-text">
                                                 <i class="fas fa-link"></i>
                                             </span>
-                                            <form:input path="videoUrl" cssClass="form-control"
+                                            <form:input path="videoLink" cssClass="form-control"
                                                         placeholder="https://youtube.com/watch?v=... hoặc link video khác" />
                                         </div>
+                                        <form:errors path="videoLink" cssClass="text-danger small" />
                                         <div class="form-text">
-                                            Hỗ trợ YouTube, Vimeo hoặc link video trực tiếp
+                                            Hỗ trợ YouTube, Vimeo, và các link video trực tiếp
                                         </div>
-                                        <form:errors path="videoUrl" cssClass="text-danger small" />
                                     </div>
 
-                                    <!-- Video Upload -->
+                                    <!-- Video Upload (Optional) -->
                                     <div class="mb-3">
-                                        <label class="form-label">Hoặc upload video</label>
+                                        <label class="form-label">Hoặc tải lên video</label>
                                         <div class="file-upload-area" id="videoUploadArea">
                                             <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
                                             <h6>Kéo thả video vào đây</h6>
-                                            <p class="text-muted mb-2">hoặc nhấn để chọn file</p>
-                                            <input type="file" name="videoFile" id="videoFile"
-                                                   accept="video/*" style="display: none;">
+                                            <p class="text-muted mb-2">hoặc <span class="text-primary">chọn file</span></p>
                                             <small class="text-muted">
-                                                Định dạng: MP4, AVI, MOV. Tối đa 500MB
+                                                Định dạng: MP4, AVI, MOV. Tối đa 100MB
                                             </small>
                                         </div>
-                                        <div id="videoPreview" class="mt-3" style="display: none;">
-                                            <video id="videoPreviewPlayer" class="video-preview" controls>
-                                                <c:if test="${not empty lesson.videoUrl}">
-                                                    <source src="${lesson.videoUrl}" type="video/mp4">
-                                                </c:if>
-                                            </video>
-                                        </div>
+                                        <input type="file" id="videoFile" name="videoFile"
+                                               accept="video/*" style="display: none;">
                                     </div>
                                 </div>
                             </div>
@@ -303,17 +301,17 @@
                                 <div class="card-body">
                                     <!-- Document Upload -->
                                     <div class="mb-3">
-                                        <label class="form-label">Upload tài liệu</label>
+                                        <label class="form-label">Tải lên tài liệu</label>
                                         <div class="file-upload-area" id="documentUploadArea">
                                             <i class="fas fa-file-upload fa-3x text-muted mb-3"></i>
                                             <h6>Kéo thả tài liệu vào đây</h6>
-                                            <p class="text-muted mb-2">hoặc nhấn để chọn file</p>
-                                            <input type="file" name="documentFile" id="documentFile"
-                                                   accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx" style="display: none;">
+                                            <p class="text-muted mb-2">hoặc <span class="text-primary">chọn file</span></p>
                                             <small class="text-muted">
-                                                Định dạng: PDF, DOC, DOCX, PPT, PPTX, XLS, XLSX. Tối đa 50MB
+                                                Định dạng: PDF, DOC, DOCX, PPT, PPTX. Tối đa 50MB
                                             </small>
                                         </div>
+                                        <input type="file" id="documentFile" name="documentFile"
+                                               accept=".pdf,.doc,.docx,.ppt,.pptx" style="display: none;">
                                     </div>
 
                                     <!-- Document URL -->
@@ -331,17 +329,18 @@
                                 </div>
                             </div>
 
-                            <!-- Text Content -->
-                            <div class="card mb-4" id="textContent" style="display: none;">
+                            <!-- Text Content - FIX: Không dùng description, dùng content -->
+                            <div class="card mb-4" id="textContent">
                                 <div class="card-header">
                                     <h5 class="card-title mb-0">
-                                        <i class="fas fa-align-left me-2"></i>Nội Dung Văn Bản
+                                        <i class="fas fa-align-left me-2"></i>Nội Dung Bài Học
                                     </h5>
                                 </div>
                                 <div class="card-body">
                                     <form:textarea path="content" cssClass="form-control content-editor"
                                                    id="contentEditor" rows="15"
-                                                   placeholder="Nhập nội dung bài học..." />
+                                                   placeholder="Nhập nội dung chi tiết của bài học..."
+                                                   required="true"/>
                                     <form:errors path="content" cssClass="text-danger small" />
                                 </div>
                             </div>
@@ -372,31 +371,20 @@
                                         </small>
                                     </div>
 
-                                    <!-- Cho phép xem trước -->
+                                    <!-- Cho phép xem trước - FIX: freePreview → preview -->
                                     <div class="mb-3">
                                         <div class="form-check form-switch">
                                             <form:checkbox path="preview" cssClass="form-check-input" />
                                             <label class="form-check-label" for="preview">
-                                                Cho phép xem trước
+                                                Cho phép xem trước miễn phí
                                             </label>
                                         </div>
                                         <small class="text-muted">
-                                            Người dùng chưa đăng ký có thể xem trước
+                                            Người dùng chưa đăng ký có thể xem trước bài học này
                                         </small>
                                     </div>
 
-                                    <!-- Yêu cầu hoàn thành -->
-                                    <div class="mb-3">
-                                        <div class="form-check form-switch">
-                                            <form:checkbox path="required" cssClass="form-check-input" />
-                                            <label class="form-check-label" for="required">
-                                                Bắt buộc hoàn thành
-                                            </label>
-                                        </div>
-                                        <small class="text-muted">
-                                            Học viên phải hoàn thành bài này để tiếp tục
-                                        </small>
-                                    </div>
+                                    <!-- Ghi chú: Xóa bỏ property "required" vì không tồn tại -->
                                 </div>
                             </div>
 
@@ -407,62 +395,30 @@
                                         <!-- Save Button -->
                                         <button type="submit" class="btn btn-primary">
                                             <i class="fas fa-save me-2"></i>
-                                                ${lesson.id != null ? 'Cập nhật bài học' : 'Tạo bài học'}
+                                                ${lesson.id != null ? 'Cập Nhật' : 'Tạo'} Bài Học
                                         </button>
-
-                                        <!-- Save & Add Another -->
-                                        <c:if test="${lesson.id == null}">
-                                            <button type="submit" name="saveAndAddAnother" value="true"
-                                                    class="btn btn-outline-primary">
-                                                <i class="fas fa-plus me-2"></i>
-                                                Lưu và thêm bài học khác
-                                            </button>
-                                        </c:if>
 
                                         <!-- Preview Button -->
                                         <c:if test="${lesson.id != null}">
-                                            <a href="${pageContext.request.contextPath}/instructor/lessons/${lesson.id}/preview""
+                                            <a href="${pageContext.request.contextPath}/lessons/${lesson.slug}"
                                                class="btn btn-outline-info" target="_blank">
-                                                <i class="fas fa-eye me-2"></i>
-                                                Xem trước
+                                                <i class="fas fa-eye me-2"></i>Xem Trước
                                             </a>
                                         </c:if>
 
                                         <!-- Cancel Button -->
                                         <a href="${pageContext.request.contextPath}/instructor/lessons?courseId=${course.id}"
                                            class="btn btn-outline-secondary">
-                                            <i class="fas fa-times me-2"></i>
-                                            Hủy
+                                            <i class="fas fa-arrow-left me-2"></i>Quay Lại
                                         </a>
-                                    </div>
-                                </div>
-                            </div>
 
-                            <!-- Help Tips -->
-                            <div class="card mt-4">
-                                <div class="card-header">
-                                    <h6 class="card-title mb-0">
-                                        <i class="fas fa-lightbulb me-2"></i>Gợi Ý
-                                    </h6>
-                                </div>
-                                <div class="card-body">
-                                    <div class="small text-muted">
-                                        <div class="mb-2">
-                                            <i class="fas fa-check-circle text-success me-1"></i>
-                                            <strong>Tên bài học:</strong> Nên ngắn gọn, súc tích
-                                        </div>
-                                        <div class="mb-2">
-                                            <i class="fas fa-check-circle text-success me-1"></i>
-                                            <strong>Thời lượng:</strong> Giúp học viên lên kế hoạch học
-                                        </div>
-                                        <div class="mb-2">
-                                            <i class="fas fa-check-circle text-success me-1"></i>
-                                            <strong>Mô tả:</strong> Tóm tắt nội dung chính
-                                        </div>
-                                        <div>
-                                            <i class="fas fa-check-circle text-success me-1"></i>
-                                            <strong>Thứ tự:</strong> Sắp xếp logic từ dễ đến khó
-                                        </div>
+                                        <!-- Delete Button (chỉ khi edit) -->
+                                        <c:if test="${lesson.id != null}">
+                                            <button type="button" class="btn btn-outline-danger"
+                                                    onclick="confirmDelete('${lesson.id}')">
+                                                <i class="fas fa-trash me-2"></i>Xóa Bài Học
+                                            </button>
+                                        </c:if>
                                     </div>
                                 </div>
                             </div>
@@ -505,7 +461,7 @@
         });
 
         // Khởi tạo lesson type từ server
-        const currentType = '${lesson.typeString}' || 'VIDEO';
+        const currentType = '${lesson.typeString}' || 'TEXT';
         selectLessonType(currentType);
 
         // Setup file upload areas
@@ -522,170 +478,120 @@
     function selectLessonType(type) {
         // Cập nhật UI
         $('.lesson-type-card').removeClass('active');
-        ${lesson.type == 'VIDEO' ? 'Video' : (lesson.type == 'DOCUMENT' ? 'Tài liệu' : 'Văn bản')}
+        $('[onclick="selectLessonType(\'' + type + '\')"]').addClass('active');
 
-        // Cập nhật hidden input
-        $('#lessonType').val(type);
-
-        // Hiển thị/ẩn content sections
+        // Ẩn tất cả content sections
         $('#videoContent, #documentContent, #textContent').hide();
 
-        switch(type) {
-            case 'VIDEO':
-                $('#videoContent').show();
-                break;
-            case 'DOCUMENT':
-                $('#documentContent').show();
-                break;
-            case 'TEXT':
-                $('#textContent').show();
-                break;
+        // Hiện section tương ứng
+        if (type === 'VIDEO') {
+            $('#videoContent, #textContent').show();
+        } else if (type === 'DOCUMENT') {
+            $('#documentContent, #textContent').show();
+        } else {
+            $('#textContent').show();
         }
     }
 
     /**
-     * Setup file upload với drag & drop
+     * Setup file upload functionality
      */
-    function setupFileUpload(areaId, inputId, handler) {
-        const area = document.getElementById(areaId);
-        const input = document.getElementById(inputId);
+    function setupFileUpload(uploadAreaId, fileInputId, handleFunction) {
+        const uploadArea = document.getElementById(uploadAreaId);
+        const fileInput = document.getElementById(fileInputId);
 
-        if (!area || !input) return;
+        uploadArea.addEventListener('click', () => fileInput.click());
 
-        // Click to select
-        area.addEventListener('click', () => input.click());
-
-        // Drag & drop events
-        area.addEventListener('dragover', (e) => {
+        uploadArea.addEventListener('dragover', (e) => {
             e.preventDefault();
-            area.classList.add('dragover');
+            uploadArea.classList.add('dragover');
         });
 
-        area.addEventListener('dragleave', () => {
-            area.classList.remove('dragover');
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
         });
 
-        area.addEventListener('drop', (e) => {
+        uploadArea.addEventListener('drop', (e) => {
             e.preventDefault();
-            area.classList.remove('dragover');
-
+            uploadArea.classList.remove('dragover');
             const files = e.dataTransfer.files;
             if (files.length > 0) {
-                input.files = files;
-                handler(files[0]);
+                fileInput.files = files;
+                handleFunction(files[0]);
             }
         });
 
-        // File input change
-        input.addEventListener('change', (e) => {
+        fileInput.addEventListener('change', (e) => {
             if (e.target.files.length > 0) {
-                handler(e.target.files[0]);
+                handleFunction(e.target.files[0]);
             }
         });
     }
 
     /**
-     * Xử lý file video được chọn
+     * Handle video file selection
      */
     function handleVideoFile(file) {
-        const preview = document.getElementById('videoPreview');
-        const player = document.getElementById('videoPreviewPlayer');
-
-        if (file.type.startsWith('video/')) {
-            const url = URL.createObjectURL(file);
-            player.src = url;
-            preview.style.display = 'block';
-
-            // Update upload area text
-            document.querySelector('#videoUploadArea h6').textContent = file.name;
-            document.querySelector('#videoUploadArea p').textContent = formatFileSize(file.size);
-        } else {
-            alert('Vui lòng chọn file video hợp lệ.');
-        }
+        console.log('Video file selected:', file.name);
+        // TODO: Implement video file handling
     }
 
     /**
-     * Xử lý file document được chọn
+     * Handle document file selection
      */
     function handleDocumentFile(file) {
-        const allowedTypes = [
-            'application/pdf',
-            'application/msword',
-            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            'application/vnd.ms-powerpoint',
-            'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-            'application/vnd.ms-excel',
-            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        ];
-
-        if (allowedTypes.includes(file.type)) {
-            // Update upload area text
-            document.querySelector('#documentUploadArea h6').textContent = file.name;
-            document.querySelector('#documentUploadArea p').textContent = formatFileSize(file.size);
-            document.querySelector('#documentUploadArea i').className = 'fas fa-file-check fa-3x text-success mb-3';
-        } else {
-            alert('Vui lòng chọn file tài liệu hợp lệ (PDF, DOC, PPT, XLS).');
-        }
-    }
-
-    /**
-     * Format file size
-     */
-    function formatFileSize(bytes) {
-        if (bytes === 0) return '0 Bytes';
-        const k = 1024;
-        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        console.log('Document file selected:', file.name);
+        // TODO: Implement document file handling
     }
 
     /**
      * Setup form validation
      */
     function setupFormValidation() {
-        const form = document.querySelector('.needs-validation');
-
-        form.addEventListener('submit', function(event) {
-            if (!form.checkValidity()) {
-                event.preventDefault();
-                event.stopPropagation();
-            }
-
-            // Validation bổ sung
-            const lessonType = $('#lessonType').val();
+        $('#lessonForm').on('submit', function(e) {
             let isValid = true;
 
-            if (lessonType === 'VIDEO') {
-                const videoUrl = $('input[name="videoUrl"]').val();
-                const videoFile = document.getElementById('videoFile').files.length;
-                if (!videoUrl && videoFile === 0) {
-                    alert('Vui lòng nhập URL video hoặc upload file video.');
-                    isValid = false;
-                }
-            } else if (lessonType === 'DOCUMENT') {
-                const documentUrl = $('input[name="documentUrl"]').val();
-                const documentFile = document.getElementById('documentFile').files.length;
-                if (!documentUrl && documentFile === 0) {
-                    alert('Vui lòng nhập URL tài liệu hoặc upload file tài liệu.');
-                    isValid = false;
-                }
-            } else if (lessonType === 'TEXT') {
-                const content = tinymce.get('contentEditor').getContent();
-                if (!content.trim()) {
-                    alert('Vui lòng nhập nội dung bài học.');
-                    isValid = false;
-                }
+            // Validate title
+            const title = $('#title').val().trim();
+            if (title.length < 5) {
+                isValid = false;
+                $('#title').addClass('is-invalid');
+            } else {
+                $('#title').removeClass('is-invalid');
+            }
+
+            // Validate content
+            const content = tinymce.get('contentEditor').getContent();
+            if (content.length < 20) {
+                isValid = false;
+                alert('Nội dung bài học phải có ít nhất 20 ký tự');
             }
 
             if (!isValid) {
-                event.preventDefault();
-                event.stopPropagation();
+                e.preventDefault();
             }
-
-            form.classList.add('was-validated');
         });
     }
-</script>
 
+    /**
+     * Confirm delete lesson
+     */
+    function confirmDelete(lessonId) {
+        if (confirm('Bạn có chắc chắn muốn xóa bài học này? Hành động này không thể hoàn tác.')) {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '${pageContext.request.contextPath}/instructor/lessons/' + lessonId + '/delete';
+
+            const csrfToken = document.createElement('input');
+            csrfToken.type = 'hidden';
+            csrfToken.name = '${_csrf.parameterName}';
+            csrfToken.value = '${_csrf.token}';
+
+            form.appendChild(csrfToken);
+            document.body.appendChild(form);
+            form.submit();
+        }
+    }
+</script>
 </body>
 </html>

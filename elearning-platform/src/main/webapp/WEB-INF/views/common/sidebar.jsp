@@ -97,27 +97,27 @@ Sử dụng cho các trang dashboard và quản lý
                     <span class="nav-text">Dashboard</span>
                 </a>
 
-                <a href="/admin/users""
+                <a href="/admin/users"
                    class="nav-item ${pageContext.request.requestURI.contains('/admin/users') ? 'active' : ''}">
                     <i class="fas fa-users nav-icon"></i>
                     <span class="nav-text">Quản lý người dùng</span>
                     <span class="nav-badge">${totalUsers}</span>
                 </a>
 
-                <a href="/admin/courses""
+                <a href="/admin/courses"
                    class="nav-item ${pageContext.request.requestURI.contains('/admin/courses') ? 'active' : ''}">
                     <i class="fas fa-book nav-icon"></i>
                     <span class="nav-text">Quản lý khóa học</span>
                     <span class="nav-badge">${totalCourses}</span>
                 </a>
 
-                <a href="/admin/categories""
+                <a href="/admin/categories"
                    class="nav-item ${pageContext.request.requestURI.contains('/admin/categories') ? 'active' : ''}">
                     <i class="fas fa-tags nav-icon"></i>
                     <span class="nav-text">Danh mục</span>
                 </a>
 
-                <a href="/admin/analytics""
+                <a href="/admin/analytics"
                    class="nav-item ${pageContext.request.requestURI.contains('/admin/analytics') ? 'active' : ''}">
                     <i class="fas fa-chart-bar nav-icon"></i>
                     <span class="nav-text">Thống kê báo cáo</span>
@@ -127,13 +127,13 @@ Sử dụng cho các trang dashboard và quản lý
             <div class="nav-section">
                 <div class="nav-section-title">Cài đặt</div>
 
-                <a href="/admin/settings""
+                <a href="/admin/settings"
                    class="nav-item ${pageContext.request.requestURI.contains('/admin/settings') ? 'active' : ''}">
                     <i class="fas fa-cogs nav-icon"></i>
                     <span class="nav-text">Cấu hình hệ thống</span>
                 </a>
 
-                <a href="/admin/backup""
+                <a href="/admin/backup"
                    class="nav-item ${pageContext.request.requestURI.contains('/admin/backup') ? 'active' : ''}">
                     <i class="fas fa-database nav-icon"></i>
                     <span class="nav-text">Sao lưu dữ liệu</span>
@@ -146,32 +146,32 @@ Sử dụng cho các trang dashboard và quản lý
             <div class="nav-section">
                 <div class="nav-section-title">Giảng dạy</div>
 
-                <a href="${pageContext.request.contextPath}/instructor/dashboard""
+                <a href="${pageContext.request.contextPath}/instructor/dashboard"
                    class="nav-item ${pageContext.request.requestURI.contains('/instructor/dashboard') ? 'active' : ''}">
                     <i class="fas fa-tachometer-alt nav-icon"></i>
                     <span class="nav-text">Dashboard</span>
                 </a>
 
-                <a href="${pageContext.request.contextPath}/instructor/courses""
+                <a href="${pageContext.request.contextPath}/instructor/courses"
                    class="nav-item ${pageContext.request.requestURI.contains('/instructor/courses') ? 'active' : ''}">
                     <i class="fas fa-book nav-icon"></i>
                     <span class="nav-text">Khóa học của tôi</span>
                     <span class="nav-badge">${instructorCourses}</span>
                 </a>
 
-                <a href="${pageContext.request.contextPath}/instructor/lessons""
+                <a href="${pageContext.request.contextPath}/instructor/lessons"
                    class="nav-item ${pageContext.request.requestURI.contains('/instructor/lessons') ? 'active' : ''}">
                     <i class="fas fa-play-circle nav-icon"></i>
                     <span class="nav-text">Quản lý bài giảng</span>
                 </a>
 
-                <a href="${pageContext.request.contextPath}/instructor/quizzes""
+                <a href="${pageContext.request.contextPath}/instructor/quizzes"
                    class="nav-item ${pageContext.request.requestURI.contains('/instructor/quizzes') ? 'active' : ''}">
                     <i class="fas fa-question-circle nav-icon"></i>
                     <span class="nav-text">Bài kiểm tra</span>
                 </a>
 
-                <a href="${pageContext.request.contextPath}/instructor/students""
+                <a href="${pageContext.request.contextPath}/instructor/students"
                    class="nav-item ${pageContext.request.requestURI.contains('/instructor/students') ? 'active' : ''}">
                     <i class="fas fa-user-graduate nav-icon"></i>
                     <span class="nav-text">Học viên</span>
@@ -182,13 +182,13 @@ Sử dụng cho các trang dashboard và quản lý
             <div class="nav-section">
                 <div class="nav-section-title">Phân tích</div>
 
-                <a href="${pageContext.request.contextPath}/instructor/analytics""
+                <a href="${pageContext.request.contextPath}/instructor/analytics"
                    class="nav-item ${pageContext.request.requestURI.contains('/instructor/analytics') ? 'active' : ''}">
                     <i class="fas fa-chart-line nav-icon"></i>
                     <span class="nav-text">Thống kê</span>
                 </a>
 
-                <a href="${pageContext.request.contextPath}/instructor/earnings""
+                <a href="${pageContext.request.contextPath}/instructor/earnings"
                    class="nav-item ${pageContext.request.requestURI.contains('/instructor/earnings') ? 'active' : ''}">
                     <i class="fas fa-dollar-sign nav-icon"></i>
                     <span class="nav-text">Thu nhập</span>
@@ -201,32 +201,32 @@ Sử dụng cho các trang dashboard và quản lý
             <div class="nav-section">
                 <div class="nav-section-title">Học tập</div>
 
-                <a href="${pageContext.request.contextPath}/student/dashboard""
+                <a href="${pageContext.request.contextPath}/student/dashboard"
                    class="nav-item ${pageContext.request.requestURI.contains('/student/dashboard') ? 'active' : ''}">
                     <i class="fas fa-tachometer-alt nav-icon"></i>
                     <span class="nav-text">Dashboard</span>
                 </a>
 
-                <a href="${pageContext.request.contextPath}/student/my-courses""
+                <a href="${pageContext.request.contextPath}/student/my-courses"
                    class="nav-item ${pageContext.request.requestURI.contains('/student/my-courses') ? 'active' : ''}">
                     <i class="fas fa-book-reader nav-icon"></i>
                     <span class="nav-text">Khóa học của tôi</span>
                     <span class="nav-badge">${myCoursesCount}</span>
                 </a>
 
-                <a href="${pageContext.request.contextPath}/courses""
+                <a href="${pageContext.request.contextPath}/courses"
                    class="nav-item">
                     <i class="fas fa-search nav-icon"></i>
                     <span class="nav-text">Khám phá khóa học</span>
                 </a>
 
-                <a href="${pageContext.request.contextPath}/student/certificates""
+                <a href="${pageContext.request.contextPath}/student/certificates"
                    class="nav-item ${pageContext.request.requestURI.contains('/student/certificates') ? 'active' : ''}">
                     <i class="fas fa-certificate nav-icon"></i>
                     <span class="nav-text">Chứng chỉ</span>
                 </a>
 
-                <a href="${pageContext.request.contextPath}/student/wishlist""
+                <a href="${pageContext.request.contextPath}/student/wishlist"
                    class="nav-item ${pageContext.request.requestURI.contains('/student/wishlist') ? 'active' : ''}">
                     <i class="fas fa-heart nav-icon"></i>
                     <span class="nav-text">Yêu thích</span>
@@ -237,13 +237,13 @@ Sử dụng cho các trang dashboard và quản lý
             <div class="nav-section">
                 <div class="nav-section-title">Tiến độ</div>
 
-                <a href="${pageContext.request.contextPath}/student/progress""
+                <a href="${pageContext.request.contextPath}/student/progress"
                    class="nav-item ${pageContext.request.requestURI.contains('/student/progress') ? 'active' : ''}">
                     <i class="fas fa-chart-pie nav-icon"></i>
                     <span class="nav-text">Tiến độ học tập</span>
                 </a>
 
-                <a href="${pageContext.request.contextPath}/student/achievements""
+                <a href="${pageContext.request.contextPath}/student/achievements"
                    class="nav-item ${pageContext.request.requestURI.contains('/student/achievements') ? 'active' : ''}">
                     <i class="fas fa-trophy nav-icon"></i>
                     <span class="nav-text">Thành tích</span>
@@ -255,13 +255,13 @@ Sử dụng cho các trang dashboard và quản lý
         <div class="nav-section">
             <div class="nav-section-title">Tài khoản</div>
 
-            <a href="${pageContext.request.contextPath}/profile""
+            <a href="${pageContext.request.contextPath}/profile"
                class="nav-item ${pageContext.request.requestURI.contains('/profile') ? 'active' : ''}">
                 <i class="fas fa-user-edit nav-icon"></i>
                 <span class="nav-text">Hồ sơ cá nhân</span>
             </a>
 
-            <a href="${pageContext.request.contextPath}/settings""
+            <a href="${pageContext.request.contextPath}/settings"
                class="nav-item ${pageContext.request.requestURI.contains('/settings') ? 'active' : ''}">
                 <i class="fas fa-cog nav-icon"></i>
                 <span class="nav-text">Cài đặt</span>

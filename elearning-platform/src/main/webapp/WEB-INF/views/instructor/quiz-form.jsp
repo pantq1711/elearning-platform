@@ -3,16 +3,13 @@
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <%@ taglib prefix="form" uri="http://www.springframework.org/tags/form" %>
 <%@ taglib prefix="sec" uri="http://www.springframework.org/security/tags" %>
-<%@ page contentType="text/html;charset=UTF-8" language="java" %>
-<%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
-<%@ taglib uri="http://java.sun.com/jsp/jstl/functions" prefix="fn" %>
-<%@ taglib uri="http://www.springframework.org/security/tags" prefix="sec" %>
+<%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${quiz.id != null ? 'Chỉnh Sửa' : 'Tạo Mới'} Quiz - EduLearn Platform</title>
+    <title>${quiz.id != null ? 'Chỉnh sửa' : 'Tạo mới'} Quiz - EduLearn Platform</title>
 
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -29,6 +26,7 @@
             border-radius: 12px;
             margin-bottom: 1.5rem;
             transition: all 0.3s ease;
+            background: white;
         }
         .question-card:hover {
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
@@ -38,45 +36,76 @@
             border-radius: 12px 12px 0 0;
             padding: 1rem;
             border-bottom: 1px solid #dee2e6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
         .answer-option {
             border: 1px solid #e9ecef;
             border-radius: 8px;
-            margin-bottom: 0.5rem;
             padding: 0.75rem;
+            margin-bottom: 0.5rem;
             transition: all 0.3s ease;
         }
         .answer-option:hover {
             border-color: #0d6efd;
-            background-color: #f8f9fa;
+            background-color: #f8f9ff;
         }
         .answer-option.correct {
             border-color: #198754;
-            background-color: #d1eddb;
+            background-color: #d1e7dd;
         }
-        .quiz-type-card {
-            border: 2px solid transparent;
+        .quiz-settings-card {
+            position: sticky;
+            top: 20px;
+        }
+        .datetime-input {
+            width: 100%;
+        }
+        .points-display {
+            background: linear-gradient(45deg, #0d6efd, #6610f2);
+            color: white;
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .question-type-selector {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        .question-type-btn {
+            flex: 1;
+            padding: 0.5rem;
+            border: 2px solid #dee2e6;
+            border-radius: 6px;
+            background: white;
             cursor: pointer;
             transition: all 0.3s ease;
         }
-        .quiz-type-card:hover {
-            border-color: #0d6efd;
-            box-shadow: 0 4px 12px rgba(13, 110, 253, 0.15);
-        }
-        .quiz-type-card.active {
+        .question-type-btn.active {
             border-color: #0d6efd;
             background-color: #e7f3ff;
-        }
-        .question-type-selector {
-            border: 1px solid #dee2e6;
-            border-radius: 8px;
-            padding: 0.5rem;
-        }
-        .sortable-ghost {
-            opacity: 0.5;
+            color: #0d6efd;
         }
         .drag-handle {
-            cursor: move;
+            cursor: grab;
+            color: #6c757d;
+        }
+        .drag-handle:hover {
+            color: #0d6efd;
+        }
+        .question-counter {
+            background: #0d6efd;
+            color: white;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.9rem;
         }
     </style>
 </head>
@@ -106,7 +135,10 @@
                                 </a>
                             </li>
                             <li class="breadcrumb-item">
-                                <a href="${pageContext.request.contextPath}/instructor/quizzes">Quiz</a>
+                                <a href="${pageContext.request.contextPath}/instructor/courses">Khóa học</a>
+                            </li>
+                            <li class="breadcrumb-item">
+                                <a href="${pageContext.request.contextPath}/instructor/quizzes?courseId=${course.id}">Quiz</a>
                             </li>
                             <li class="breadcrumb-item active">
                                 ${quiz.id != null ? 'Chỉnh sửa' : 'Tạo mới'}
@@ -114,12 +146,43 @@
                         </ol>
                     </nav>
                     <h1 class="h3 mb-0">
-                        <i class="fas fa-${quiz.id != null ? 'edit' : 'plus-circle'} text-warning me-2"></i>
+                        <i class="fas fa-${quiz.id != null ? 'edit' : 'plus-circle'} text-primary me-2"></i>
                         ${quiz.id != null ? 'Chỉnh Sửa' : 'Tạo Mới'} Quiz
                     </h1>
                     <p class="text-muted mb-0">
-                        ${quiz.id != null ? 'Cập nhật thông tin và câu hỏi quiz' : 'Tạo quiz mới với câu hỏi tương tác'}
+                        ${quiz.id != null ? 'Cập nhật thông tin quiz' : 'Thêm quiz mới cho khóa học'}
                     </p>
+                </div>
+
+                <!-- Course Info -->
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-auto">
+                                <c:choose>
+                                    <c:when test="${not empty course.imageUrl}">
+                                        <img src="${pageContext.request.contextPath}/images/courses/${course.imageUrl}"
+                                             alt="${course.name}"
+                                             class="course-thumbnail"
+                                             style="width: 60px; height: 45px; object-fit: cover; border-radius: 6px;"
+                                             onerror="this.src='${pageContext.request.contextPath}/images/course-default.png'">
+                                    </c:when>
+                                    <c:otherwise>
+                                        <div class="course-thumbnail d-flex align-items-center justify-content-center bg-primary text-white"
+                                             style="width: 60px; height: 45px; border-radius: 6px;">
+                                            <i class="fas fa-book"></i>
+                                        </div>
+                                    </c:otherwise>
+                                </c:choose>
+                            </div>
+                            <div class="col">
+                                <h6 class="mb-1">${course.name}</h6>
+                                <small class="text-muted">
+                                    <i class="fas fa-layer-group me-1"></i>${course.category.name}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Thông báo lỗi -->
@@ -130,140 +193,121 @@
                     </div>
                 </c:if>
 
+                <!-- Thông báo thành công -->
+                <c:if test="${not empty message}">
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        <i class="fas fa-check-circle me-2"></i>${message}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                </c:if>
+
                 <!-- Form Tạo/Sửa Quiz -->
                 <form:form method="POST" modelAttribute="quiz"
-                           action="${quiz.id != null ? '/instructor/quizzes/'.concat(quiz.id).concat('/edit') : '/instructor/quizzes/create'}"
-                           cssClass="needs-validation" novalidate="true">
+                           action="${quiz.id != null ?
+                                    pageContext.request.contextPath.concat('/instructor/quizzes/').concat(quiz.id).concat('/edit') :
+                                    pageContext.request.contextPath.concat('/instructor/quizzes/new')}"
+                           id="quizForm">
 
-                    <!-- Hidden fields -->
-                    <form:hidden path="id" />
+                    <!-- CSRF Token -->
+                    <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}"/>
+
+                    <!-- Course ID hidden field -->
+                    <form:hidden path="course.id" value="${course.id}"/>
 
                     <div class="row">
-                        <!-- Left Column - Main Content -->
+                        <!-- Left Column - Content -->
                         <div class="col-lg-8">
-
-                            <!-- Quiz Type Selection -->
-                            <c:if test="${quiz.id == null}">
-                                <div class="card mb-4">
-                                    <div class="card-header">
-                                        <h5 class="card-title mb-0">
-                                            <i class="fas fa-layer-group me-2"></i>Loại Quiz
-                                        </h5>
-                                    </div>
-                                    <div class="card-body">
-                                        <div class="row g-3">
-                                            <div class="col-md-4">
-                                                <div class="quiz-type-card card h-100 ${quiz.type == 'PRACTICE' ? 'active' : ''}"
-                                                     onclick="selectQuizType('PRACTICE')">
-                                                    <div class="card-body text-center">
-                                                        <i class="fas fa-dumbbell fa-3x text-info mb-3"></i>
-                                                        <h6>Luyện Tập</h6>
-                                                        <p class="text-muted small mb-0">Cho phép làm nhiều lần, không giới hạn thời gian</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-4">
-                                                <div class="quiz-type-card card h-100 ${quiz.type == 'EXAM' ? 'active' : ''}"
-                                                     onclick="selectQuizType('EXAM')">
-                                                    <div class="card-body text-center">
-                                                        <i class="fas fa-graduation-cap fa-3x text-warning mb-3"></i>
-                                                        <h6>Kiểm Tra</h6>
-                                                        <p class="text-muted small mb-0">Giới hạn thời gian, chỉ làm một lần</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-4">
-                                                <div class="quiz-type-card card h-100 ${quiz.type == 'SURVEY' ? 'active' : ''}"
-                                                     onclick="selectQuizType('SURVEY')">
-                                                    <div class="card-body text-center">
-                                                        <i class="fas fa-poll fa-3x text-success mb-3"></i>
-                                                        <h6>Khảo Sát</h6>
-                                                        <p class="text-muted small mb-0">Thu thập ý kiến, không có đáp án đúng/sai</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <form:hidden path="type" id="quizType" />
-                                    </div>
-                                </div>
-                            </c:if>
 
                             <!-- Basic Information -->
                             <div class="card mb-4">
                                 <div class="card-header">
-                                    <h5 class="card-title mb-0">
+                                    <h6 class="card-title mb-0">
                                         <i class="fas fa-info-circle me-2"></i>Thông Tin Cơ Bản
-                                    </h5>
+                                    </h6>
                                 </div>
                                 <div class="card-body">
-                                    <div class="row g-3">
-                                        <!-- Tên quiz -->
-                                        <div class="col-12">
+                                    <div class="row">
+                                        <!-- Tiêu đề quiz -->
+                                        <div class="col-12 mb-3">
                                             <label for="title" class="form-label">
-                                                Tên quiz <span class="text-danger">*</span>
+                                                Tiêu đề quiz <span class="text-danger">*</span>
                                             </label>
                                             <form:input path="title" cssClass="form-control"
                                                         placeholder="Nhập tên quiz..." required="true" />
                                             <form:errors path="title" cssClass="text-danger small" />
                                         </div>
 
-                                        <!-- Mô tả -->
-                                        <div class="col-12">
-                                            <label for="description" class="form-label">Mô tả</label>
+                                        <!-- Mô tả quiz -->
+                                        <div class="col-12 mb-3">
+                                            <label for="description" class="form-label">
+                                                Mô tả quiz
+                                            </label>
                                             <form:textarea path="description" cssClass="form-control" rows="3"
                                                            placeholder="Mô tả ngắn gọn về nội dung quiz..." />
                                             <form:errors path="description" cssClass="text-danger small" />
                                         </div>
 
-                                        <!-- Khóa học -->
-                                        <div class="col-md-6">
-                                            <label for="course" class="form-label">
-                                                Khóa học <span class="text-danger">*</span>
+                                        <!-- Thời lượng và điểm -->
+                                        <div class="col-md-4 mb-3">
+                                            <label for="duration" class="form-label">
+                                                Thời gian làm bài (phút) <span class="text-danger">*</span>
                                             </label>
-                                            <form:select path="course.id" cssClass="form-select" required="true">
-                                                <form:option value="">Chọn khóa học...</form:option>
-                                                <form:options items="${courses}" itemValue="id" itemLabel="name" />
-                                            </form:select>
-                                            <form:errors path="course" cssClass="text-danger small" />
+                                            <div class="input-group">
+                                                <form:input path="duration" type="number" cssClass="form-control"
+                                                            min="1" step="1" placeholder="60" required="true" />
+                                                <span class="input-group-text">phút</span>
+                                            </div>
+                                            <form:errors path="duration" cssClass="text-danger small" />
                                         </div>
 
-                                        <!-- Độ khó -->
-                                        <div class="col-md-6">
-                                            <label for="difficultyLevel" class="form-label">Độ khó</label>
-                                            <form:select path="difficultyLevel" cssClass="form-select">
-                                                <form:option value="EASY">Dễ</form:option>
-                                                <form:option value="MEDIUM">Trung bình</form:option>
-                                                <form:option value="HARD">Khó</form:option>
-                                            </form:select>
-                                            <form:errors path="difficultyLevel" cssClass="text-danger small" />
-                                        </div>
-
-                                        <!-- Điểm tối đa -->
-                                        <div class="col-md-4">
-                                            <label for="maxScore" class="form-label">Điểm tối đa</label>
+                                        <div class="col-md-4 mb-3">
+                                            <label for="maxScore" class="form-label">
+                                                Điểm tối đa <span class="text-danger">*</span>
+                                            </label>
                                             <form:input path="maxScore" type="number" cssClass="form-control"
-                                                        min="1" step="1" placeholder="100" />
+                                                        min="1" step="0.5" placeholder="100" required="true" />
                                             <form:errors path="maxScore" cssClass="text-danger small" />
                                         </div>
 
-                                        <!-- Điểm đậu -->
-                                        <div class="col-md-4">
-                                            <label for="passingScore" class="form-label">Điểm đậu</label>
-                                            <form:input path="passingScore" type="number" cssClass="form-control"
-                                                        min="0" step="1" placeholder="60" />
-                                            <form:errors path="passingScore" cssClass="text-danger small" />
+                                        <div class="col-md-4 mb-3">
+                                            <label for="passScore" class="form-label">
+                                                Điểm đậu <span class="text-danger">*</span>
+                                            </label>
+                                            <form:input path="passScore" type="number" cssClass="form-control"
+                                                        min="0" step="0.5" placeholder="60" required="true" />
+                                            <form:errors path="passScore" cssClass="text-danger small" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Quiz Availability -->
+                            <div class="card mb-4">
+                                <div class="card-header">
+                                    <h6 class="card-title mb-0">
+                                        <i class="fas fa-calendar-alt me-2"></i>Thời Gian Khả Dụng
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="availableFrom" class="form-label">
+                                                Bắt đầu từ
+                                            </label>
+                                            <form:input path="availableFrom" type="datetime-local"
+                                                        cssClass="form-control datetime-input" />
+                                            <form:errors path="availableFrom" cssClass="text-danger small" />
+                                            <div class="form-text">Để trống nếu không giới hạn</div>
                                         </div>
 
-                                        <!-- Thời gian (phút) -->
-                                        <div class="col-md-4">
-                                            <label for="timeLimit" class="form-label">Thời gian (phút)</label>
-                                            <div class="input-group">
-                                                <form:input path="timeLimit" type="number" cssClass="form-control"
-                                                            min="0" step="1" placeholder="0" />
-                                                <span class="input-group-text">phút</span>
-                                            </div>
-                                            <small class="text-muted">Để trống = không giới hạn</small>
-                                            <form:errors path="timeLimit" cssClass="text-danger small" />
+                                        <div class="col-md-6 mb-3">
+                                            <label for="availableUntil" class="form-label">
+                                                Kết thúc lúc
+                                            </label>
+                                            <form:input path="availableUntil" type="datetime-local"
+                                                        cssClass="form-control datetime-input" />
+                                            <form:errors path="availableUntil" cssClass="text-danger small" />
+                                            <div class="form-text">Để trống nếu không giới hạn</div>
                                         </div>
                                     </div>
                                 </div>
@@ -271,36 +315,22 @@
 
                             <!-- Questions Section -->
                             <div class="card mb-4">
-                                <div class="card-header">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <h5 class="card-title mb-0">
-                                            <i class="fas fa-question-circle me-2"></i>Câu Hỏi
-                                            <span class="badge bg-warning ms-2" id="questionCount">
-                                                    ${fn:length(quiz.questions)}
-                                            </span>
-                                        </h5>
-                                        <button type="button" class="btn btn-primary" onclick="addQuestion()">
-                                            <i class="fas fa-plus me-2"></i>Thêm Câu Hỏi
-                                        </button>
-                                    </div>
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <h6 class="card-title mb-0">
+                                        <i class="fas fa-question-circle me-2"></i>Câu Hỏi
+                                        <span class="badge bg-primary ms-2" id="questionCount">0</span>
+                                    </h6>
+                                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="addQuestion()">
+                                        <i class="fas fa-plus me-1"></i>Thêm Câu Hỏi
+                                    </button>
                                 </div>
                                 <div class="card-body">
-                                    <!-- Questions List -->
-                                    <div id="questionsList">
-                                        <c:choose>
-                                            <c:when test="${not empty quiz.questions}">
-                                                <c:forEach items="${quiz.questions}" var="question" varStatus="status">
-                                                    <!-- Question template sẽ được tạo bằng JavaScript -->
-                                                </c:forEach>
-                                            </c:when>
-                                            <c:otherwise>
-                                                <div class="text-center py-4" id="emptyQuestionsState">
-                                                    <i class="fas fa-question-circle text-muted mb-3" style="font-size: 3rem;"></i>
-                                                    <h6 class="text-muted">Chưa có câu hỏi nào</h6>
-                                                    <p class="text-muted mb-3">Nhấn "Thêm Câu Hỏi" để bắt đầu tạo quiz</p>
-                                                </div>
-                                            </c:otherwise>
-                                        </c:choose>
+                                    <div id="questionsContainer">
+                                        <!-- Questions sẽ được thêm động bằng JavaScript -->
+                                        <div class="text-center text-muted py-4" id="noQuestionsMessage">
+                                            <i class="fas fa-question-circle fa-3x mb-3"></i>
+                                            <p>Chưa có câu hỏi nào. Nhấn "Thêm Câu Hỏi" để bắt đầu.</p>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -310,8 +340,8 @@
                         <!-- Right Column - Settings -->
                         <div class="col-lg-4">
 
-                            <!-- Publish Settings -->
-                            <div class="card mb-4">
+                            <!-- Quiz Settings -->
+                            <div class="card quiz-settings-card mb-4">
                                 <div class="card-header">
                                     <h6 class="card-title mb-0">
                                         <i class="fas fa-cog me-2"></i>Cài Đặt Quiz
@@ -331,15 +361,17 @@
                                         </small>
                                     </div>
 
-                                    <!-- Số lần làm bài -->
+                                    <!-- Hiển thị đáp án -->
                                     <div class="mb-3">
-                                        <label for="maxAttempts" class="form-label">Số lần làm tối đa</label>
-                                        <form:input path="maxAttempts" type="number" cssClass="form-control"
-                                                    min="1" step="1" placeholder="1" />
+                                        <div class="form-check form-switch">
+                                            <form:checkbox path="showCorrectAnswers" cssClass="form-check-input" />
+                                            <label class="form-check-label" for="showCorrectAnswers">
+                                                Hiển thị đáp án đúng
+                                            </label>
+                                        </div>
                                         <small class="text-muted">
-                                            Số lần học viên được phép làm quiz
+                                            Hiển thị đáp án sau khi nộp bài
                                         </small>
-                                        <form:errors path="maxAttempts" cssClass="text-danger small" />
                                     </div>
 
                                     <!-- Xáo trộn câu hỏi -->
@@ -351,7 +383,7 @@
                                             </label>
                                         </div>
                                         <small class="text-muted">
-                                            Hiển thị câu hỏi theo thứ tự ngẫu nhiên
+                                            Thay đổi thứ tự câu hỏi mỗi lần làm
                                         </small>
                                     </div>
 
@@ -364,21 +396,27 @@
                                             </label>
                                         </div>
                                         <small class="text-muted">
-                                            Hiển thị đáp án theo thứ tự ngẫu nhiên
+                                            Thay đổi thứ tự đáp án mỗi lần làm
                                         </small>
                                     </div>
 
-                                    <!-- Hiển thị kết quả ngay -->
+                                    <!-- Yêu cầu đăng nhập -->
                                     <div class="mb-3">
                                         <div class="form-check form-switch">
-                                            <form:checkbox path="showResultsImmediately" cssClass="form-check-input" />
-                                            <label class="form-check-label" for="showResultsImmediately">
-                                                Hiển thị kết quả ngay
+                                            <form:checkbox path="requireLogin" cssClass="form-check-input" />
+                                            <label class="form-check-label" for="requireLogin">
+                                                Yêu cầu đăng nhập
                                             </label>
                                         </div>
                                         <small class="text-muted">
-                                            Học viên xem kết quả ngay sau khi nộp
+                                            Chỉ cho phép user đã đăng nhập làm quiz
                                         </small>
+                                    </div>
+
+                                    <!-- Tổng điểm -->
+                                    <div class="points-display">
+                                        <div class="h4 mb-1" id="totalPoints">${quiz.points != null ? quiz.points : 0}</div>
+                                        <div class="small">Tổng điểm quiz</div>
                                     </div>
                                 </div>
                             </div>
@@ -388,53 +426,32 @@
                                 <div class="card-body">
                                     <div class="d-grid gap-2">
                                         <!-- Save Button -->
-                                        <button type="submit" class="btn btn-warning">
+                                        <button type="submit" class="btn btn-primary">
                                             <i class="fas fa-save me-2"></i>
-                                                ${quiz.id != null ? 'Cập nhật quiz' : 'Tạo quiz'}
+                                                ${quiz.id != null ? 'Cập Nhật' : 'Tạo'} Quiz
                                         </button>
 
-                                        <!-- Save & Preview -->
-                                        <button type="submit" name="saveAndPreview" value="true"
-                                                class="btn btn-outline-warning">
-                                            <i class="fas fa-eye me-2"></i>
-                                            Lưu và xem trước
-                                        </button>
+                                        <!-- Preview Button -->
+                                        <c:if test="${quiz.id != null}">
+                                            <a href="${pageContext.request.contextPath}/quizzes/${quiz.id}/preview"
+                                               class="btn btn-outline-info" target="_blank">
+                                                <i class="fas fa-eye me-2"></i>Xem Trước
+                                            </a>
+                                        </c:if>
 
                                         <!-- Cancel Button -->
-                                        <a href="${pageContext.request.contextPath}/instructor/quizzes""
+                                        <a href="${pageContext.request.contextPath}/instructor/quizzes?courseId=${course.id}"
                                            class="btn btn-outline-secondary">
-                                            <i class="fas fa-times me-2"></i>
-                                            Hủy
+                                            <i class="fas fa-arrow-left me-2"></i>Quay Lại
                                         </a>
-                                    </div>
-                                </div>
-                            </div>
 
-                            <!-- Help Tips -->
-                            <div class="card mt-4">
-                                <div class="card-header">
-                                    <h6 class="card-title mb-0">
-                                        <i class="fas fa-lightbulb me-2"></i>Gợi Ý
-                                    </h6>
-                                </div>
-                                <div class="card-body">
-                                    <div class="small text-muted">
-                                        <div class="mb-2">
-                                            <i class="fas fa-check-circle text-success me-1"></i>
-                                            <strong>Tên quiz:</strong> Nên rõ ràng, dễ hiểu
-                                        </div>
-                                        <div class="mb-2">
-                                            <i class="fas fa-check-circle text-success me-1"></i>
-                                            <strong>Câu hỏi:</strong> Ít nhất 5 câu cho một quiz
-                                        </div>
-                                        <div class="mb-2">
-                                            <i class="fas fa-check-circle text-success me-1"></i>
-                                            <strong>Thời gian:</strong> Tính khoảng 1-2 phút/câu
-                                        </div>
-                                        <div>
-                                            <i class="fas fa-check-circle text-success me-1"></i>
-                                            <strong>Điểm đậu:</strong> Thường là 60-80% tổng điểm
-                                        </div>
+                                        <!-- Delete Button (chỉ khi edit) -->
+                                        <c:if test="${quiz.id != null}">
+                                            <button type="button" class="btn btn-outline-danger"
+                                                    onclick="confirmDelete('${quiz.id}')">
+                                                <i class="fas fa-trash me-2"></i>Xóa Quiz
+                                            </button>
+                                        </c:if>
                                     </div>
                                 </div>
                             </div>
@@ -449,81 +466,6 @@
     </div>
 </div>
 
-<!-- Question Modal -->
-<div class="modal fade" id="questionModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">
-                    <i class="fas fa-question-circle me-2"></i>
-                    <span id="questionModalTitle">Thêm Câu Hỏi</span>
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form id="questionForm">
-                    <input type="hidden" id="questionIndex" value="">
-
-                    <!-- Question Text -->
-                    <div class="mb-3">
-                        <label for="questionText" class="form-label">
-                            Câu hỏi <span class="text-danger">*</span>
-                        </label>
-                        <textarea id="questionText" class="form-control" rows="3"
-                                  placeholder="Nhập nội dung câu hỏi..." required></textarea>
-                    </div>
-
-                    <!-- Question Type -->
-                    <div class="mb-3">
-                        <label class="form-label">Loại câu hỏi</label>
-                        <div class="question-type-selector">
-                            <div class="form-check form-check-inline">
-                                <input class="form-check-input" type="radio" name="questionType"
-                                       id="multipleChoice" value="MULTIPLE_CHOICE" checked>
-                                <label class="form-check-label" for="multipleChoice">
-                                    Trắc nghiệm
-                                </label>
-                            </div>
-                            <div class="form-check form-check-inline">
-                                <input class="form-check-input" type="radio" name="questionType"
-                                       id="trueFalse" value="TRUE_FALSE">
-                                <label class="form-check-label" for="trueFalse">
-                                    Đúng/Sai
-                                </label>
-                            </div>
-                            <div class="form-check form-check-inline">
-                                <input class="form-check-input" type="radio" name="questionType"
-                                       id="shortAnswer" value="SHORT_ANSWER">
-                                <label class="form-check-label" for="shortAnswer">
-                                    Tự luận ngắn
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Answers Section -->
-                    <div id="answersSection">
-                        <!-- Sẽ được tạo bằng JavaScript -->
-                    </div>
-
-                    <!-- Question Score -->
-                    <div class="mb-3">
-                        <label for="questionScore" class="form-label">Điểm</label>
-                        <input type="number" id="questionScore" class="form-control"
-                               min="1" step="1" value="1" required>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-                <button type="button" class="btn btn-primary" onclick="saveQuestion()">
-                    <i class="fas fa-save me-2"></i>Lưu câu hỏi
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
 <!-- Include Footer -->
 <jsp:include page="/WEB-INF/views/common/footer.jsp" />
 
@@ -531,386 +473,291 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
 <script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
-<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 
 <script>
-    let questions = [];
-    let currentQuestionIndex = -1;
+    let questionCounter = 0;
+    let totalPoints = 0;
 
     $(document).ready(function() {
-        // Khởi tạo quiz type nếu đã có
-        const currentType = '${quiz.type}' || 'PRACTICE';
-        if (currentType) {
-            selectQuizType(currentType);
-        }
+        // Load existing questions if editing
+        <c:if test="${quiz.id != null && not empty quiz.questions}">
+        <c:forEach items="${quiz.questions}" var="question" varStatus="status">
+        addExistingQuestion(
+            '${question.questionText}',
+            '${question.optionA}',
+            '${question.optionB}',
+            '${question.optionC}',
+            '${question.optionD}',
+            '${question.correctOption}',
+            '${question.points}',
+            '${question.explanation}',
+            '${question.difficultyLevel}'
+        );
+        </c:forEach>
+        </c:if>
 
-        // Khởi tạo Sortable cho questions list
-        const questionsList = document.getElementById('questionsList');
-        if (questionsList) {
-            new Sortable(questionsList, {
-                animation: 150,
-                handle: '.drag-handle',
-                onEnd: function(evt) {
-                    updateQuestionOrder();
-                }
-            });
-        }
-
-        // Load existing questions nếu có
-        loadExistingQuestions();
-
-        // Setup form validation
+        // Form validation
         setupFormValidation();
+
+        // Update total points display
+        updateTotalPoints();
     });
-
-    /**
-     * Chọn loại quiz
-     */
-    function selectQuizType(type) {
-        // Cập nhật UI
-        $('.quiz-type-card').removeClass('active');
-        $(`.quiz-type-card:has(h6:contains('${type === 'PRACTICE' ? 'Luyện Tập' : type === 'EXAM' ? 'Kiểm Tra' : 'Khảo Sát'}'))`).addClass('active');
-
-        // Cập nhật hidden input
-        $('#quizType').val(type);
-    }
 
     /**
      * Thêm câu hỏi mới
      */
     function addQuestion() {
-        currentQuestionIndex = -1;
-        $('#questionModalTitle').text('Thêm Câu Hỏi');
-        $('#questionForm')[0].reset();
-        $('input[name="questionType"][value="MULTIPLE_CHOICE"]').prop('checked', true);
-        generateAnswersSection('MULTIPLE_CHOICE');
-        $('#questionModal').modal('show');
+        questionCounter++;
+        const questionHtml = createQuestionHtml(questionCounter, '', '', '', '', '', 'A', 1.0, '', 'MEDIUM');
+
+        if ($('#questionsContainer .question-card').length === 0) {
+            $('#noQuestionsMessage').hide();
+        }
+
+        $('#questionsContainer').append(questionHtml);
+        updateQuestionCount();
+        updateTotalPoints();
+
+        // Initialize TinyMCE for new question
+        initQuestionEditor(questionCounter);
     }
 
     /**
-     * Chỉnh sửa câu hỏi
+     * Thêm câu hỏi có sẵn (khi edit)
      */
-    function editQuestion(index) {
-        currentQuestionIndex = index;
-        const question = questions[index];
+    function addExistingQuestion(text, optA, optB, optC, optD, correct, points, explanation, difficulty) {
+        questionCounter++;
+        const questionHtml = createQuestionHtml(questionCounter, text, optA, optB, optC, optD, correct, points, explanation, difficulty);
 
-        $('#questionModalTitle').text('Chỉnh Sửa Câu Hỏi');
-        $('#questionText').val(question.text);
-        $('#questionScore').val(question.score);
-        $(`input[name="questionType"][value="${question.type}"]`).prop('checked', true);
+        $('#noQuestionsMessage').hide();
+        $('#questionsContainer').append(questionHtml);
+        updateQuestionCount();
+        updateTotalPoints();
 
-        generateAnswersSection(question.type);
+        // Initialize TinyMCE for question
+        initQuestionEditor(questionCounter);
+    }
 
-        // Load answers
-        if (question.answers) {
-            question.answers.forEach((answer, i) => {
-                $(`#answer${i}`).val(answer.text);
-                if (answer.correct) {
-                    $(`input[name="correctAnswer"][value="${i}"]`).prop('checked', true);
-                }
-            });
-        }
+    /**
+     * Tạo HTML cho một câu hỏi - FIX: Tránh template literals và === operator
+     */
+    function createQuestionHtml(index, text, optA, optB, optC, optD, correct, points, explanation, difficulty) {
+        var correctA = (correct == 'A') ? 'checked' : '';
+        var correctB = (correct == 'B') ? 'checked' : '';
+        var correctC = (correct == 'C') ? 'checked' : '';
+        var correctD = (correct == 'D') ? 'checked' : '';
+        var difficultyEasy = (difficulty == 'EASY') ? 'selected' : '';
+        var difficultyMedium = (difficulty == 'MEDIUM') ? 'selected' : '';
+        var difficultyHard = (difficulty == 'HARD') ? 'selected' : '';
 
-        $('#questionModal').modal('show');
+        return '<div class="question-card" data-index="' + index + '">' +
+            '<div class="question-header">' +
+            '<div class="d-flex align-items-center">' +
+            '<i class="fas fa-grip-vertical drag-handle me-2"></i>' +
+            '<div class="question-counter">' + index + '</div>' +
+            '<span class="ms-2 fw-bold">Câu hỏi ' + index + '</span>' +
+            '</div>' +
+            '<div>' +
+            '<button type="button" class="btn btn-sm btn-outline-danger" onclick="removeQuestion(' + index + ')">' +
+            '<i class="fas fa-trash"></i>' +
+            '</button>' +
+            '</div>' +
+            '</div>' +
+            '<div class="card-body">' +
+            '<div class="mb-3">' +
+            '<label class="form-label">Nội dung câu hỏi <span class="text-danger">*</span></label>' +
+            '<textarea class="form-control question-editor" id="questionText_' + index + '" ' +
+            'name="questions[' + (index-1) + '].questionText" required rows="3" ' +
+            'placeholder="Nhập nội dung câu hỏi...">' + text + '</textarea>' +
+            '</div>' +
+            '<div class="row mb-3">' +
+            '<div class="col-md-6 mb-2">' +
+            '<label class="form-label">Đáp án A <span class="text-danger">*</span></label>' +
+            '<div class="input-group">' +
+            '<span class="input-group-text">' +
+            '<input type="radio" name="questions[' + (index-1) + '].correctOption" value="A" ' + correctA + '>' +
+            '</span>' +
+            '<input type="text" class="form-control" name="questions[' + (index-1) + '].optionA" ' +
+            'value="' + optA + '" placeholder="Nhập đáp án A..." required>' +
+            '</div>' +
+            '</div>' +
+            '<div class="col-md-6 mb-2">' +
+            '<label class="form-label">Đáp án B <span class="text-danger">*</span></label>' +
+            '<div class="input-group">' +
+            '<span class="input-group-text">' +
+            '<input type="radio" name="questions[' + (index-1) + '].correctOption" value="B" ' + correctB + '>' +
+            '</span>' +
+            '<input type="text" class="form-control" name="questions[' + (index-1) + '].optionB" ' +
+            'value="' + optB + '" placeholder="Nhập đáp án B..." required>' +
+            '</div>' +
+            '</div>' +
+            '<div class="col-md-6 mb-2">' +
+            '<label class="form-label">Đáp án C <span class="text-danger">*</span></label>' +
+            '<div class="input-group">' +
+            '<span class="input-group-text">' +
+            '<input type="radio" name="questions[' + (index-1) + '].correctOption" value="C" ' + correctC + '>' +
+            '</span>' +
+            '<input type="text" class="form-control" name="questions[' + (index-1) + '].optionC" ' +
+            'value="' + optC + '" placeholder="Nhập đáp án C..." required>' +
+            '</div>' +
+            '</div>' +
+            '<div class="col-md-6 mb-2">' +
+            '<label class="form-label">Đáp án D <span class="text-danger">*</span></label>' +
+            '<div class="input-group">' +
+            '<span class="input-group-text">' +
+            '<input type="radio" name="questions[' + (index-1) + '].correctOption" value="D" ' + correctD + '>' +
+            '</span>' +
+            '<input type="text" class="form-control" name="questions[' + (index-1) + '].optionD" ' +
+            'value="' + optD + '" placeholder="Nhập đáp án D..." required>' +
+            '</div>' +
+            '</div>' +
+            '</div>' +
+            '<div class="row mb-3">' +
+            '<div class="col-md-4">' +
+            '<label class="form-label">Điểm</label>' +
+            '<input type="number" class="form-control question-points" ' +
+            'name="questions[' + (index-1) + '].points" value="' + points + '" ' +
+            'min="0.5" step="0.5" onchange="updateTotalPoints()">' +
+            '</div>' +
+            '<div class="col-md-8">' +
+            '<label class="form-label">Độ khó</label>' +
+            '<select class="form-select" name="questions[' + (index-1) + '].difficultyLevel">' +
+            '<option value="EASY" ' + difficultyEasy + '>Dễ</option>' +
+            '<option value="MEDIUM" ' + difficultyMedium + '>Trung bình</option>' +
+            '<option value="HARD" ' + difficultyHard + '>Khó</option>' +
+            '</select>' +
+            '</div>' +
+            '</div>' +
+            '<div class="mb-3">' +
+            '<label class="form-label">Giải thích (tuỳ chọn)</label>' +
+            '<textarea class="form-control" name="questions[' + (index-1) + '].explanation" ' +
+            'rows="2" placeholder="Giải thích tại sao đáp án này đúng...">' + explanation + '</textarea>' +
+            '</div>' +
+            '<input type="hidden" name="questions[' + (index-1) + '].displayOrder" value="' + index + '">' +
+            '<input type="hidden" name="questions[' + (index-1) + '].questionType" value="MULTIPLE_CHOICE">' +
+            '</div>' +
+            '</div>';
+    }
+
+    /**
+     * Initialize TinyMCE for question editor
+     */
+    function initQuestionEditor(index) {
+        tinymce.init({
+            selector: `#questionText_${index}`,
+            height: 200,
+            menubar: false,
+            plugins: ['lists', 'link', 'code'],
+            toolbar: 'undo redo | bold italic | bullist numlist | link | code',
+            content_style: 'body { font-family: Arial, sans-serif; font-size: 14px }'
+        });
     }
 
     /**
      * Xóa câu hỏi
      */
-    function deleteQuestion(index) {
-        if (confirm('Bạn có chắc chắn muốn xóa câu hỏi này không?')) {
-            questions.splice(index, 1);
-            renderQuestions();
+    function removeQuestion(index) {
+        if (confirm('Bạn có chắc chắn muốn xóa câu hỏi này?')) {
+            $(`.question-card[data-index="${index}"]`).remove();
             updateQuestionCount();
-        }
-    }
+            updateTotalPoints();
 
-    /**
-     * Lưu câu hỏi
-     */
-    function saveQuestion() {
-        const questionText = $('#questionText').val().trim();
-        const questionType = $('input[name="questionType"]:checked').val();
-        const questionScore = parseInt($('#questionScore').val()) || 1;
-
-        if (!questionText) {
-            alert('Vui lòng nhập nội dung câu hỏi');
-            return;
-        }
-
-        const question = {
-            text: questionText,
-            type: questionType,
-            score: questionScore,
-            answers: []
-        };
-
-        // Collect answers based on question type
-        if (questionType === 'MULTIPLE_CHOICE') {
-            for (let i = 0; i < 4; i++) {
-                const answerText = $(`#answer${i}`).val().trim();
-                if (answerText) {
-                    question.answers.push({
-                        text: answerText,
-                        correct: $(`input[name="correctAnswer"][value="${i}"]`).is(':checked')
-                    });
-                }
+            if ($('#questionsContainer .question-card').length === 0) {
+                $('#noQuestionsMessage').show();
             }
-
-            // Validate at least one correct answer
-            const hasCorrectAnswer = question.answers.some(a => a.correct);
-            if (!hasCorrectAnswer) {
-                alert('Vui lòng chọn ít nhất một đáp án đúng');
-                return;
-            }
-        } else if (questionType === 'TRUE_FALSE') {
-            const correctAnswer = $('input[name="trueFalseAnswer"]:checked').val();
-            if (!correctAnswer) {
-                alert('Vui lòng chọn đáp án đúng');
-                return;
-            }
-            question.answers = [
-                { text: 'Đúng', correct: correctAnswer === 'true' },
-                { text: 'Sai', correct: correctAnswer === 'false' }
-            ];
-        }
-        // For SHORT_ANSWER, no predefined answers needed
-
-        // Save or update question
-        if (currentQuestionIndex >= 0) {
-            questions[currentQuestionIndex] = question;
-        } else {
-            questions.push(question);
-        }
-
-        renderQuestions();
-        updateQuestionCount();
-        $('#questionModal').modal('hide');
-    }
-
-    /**
-     * Generate answers section based on question type
-     */
-    function generateAnswersSection(type) {
-        const answersSection = $('#answersSection');
-        answersSection.empty();
-
-        if (type === 'MULTIPLE_CHOICE') {
-            let html = '<div class="mb-3"><label class="form-label">Đáp án <span class="text-danger">*</span></label>';
-
-            for (let i = 0; i < 4; i++) {
-                html += `
-                <div class="answer-option d-flex align-items-center mb-2">
-                    <div class="form-check me-3">
-                        <input class="form-check-input" type="radio" name="correctAnswer"
-                               value="${i}" id="correct${i}">
-                        <label class="form-check-label" for="correct${i}">Đúng</label>
-                    </div>
-                    <input type="text" id="answer${i}" class="form-control"
-                           placeholder="Đáp án ${String.fromCharCode(65 + i)}" ${i < 2 ? 'required' : ''}>
-                </div>
-            `;
-            }
-
-            html += '</div>';
-            answersSection.html(html);
-
-        } else if (type === 'TRUE_FALSE') {
-            answersSection.html(`
-            <div class="mb-3">
-                <label class="form-label">Đáp án đúng <span class="text-danger">*</span></label>
-                <div>
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="trueFalseAnswer"
-                               id="answerTrue" value="true" required>
-                        <label class="form-check-label" for="answerTrue">Đúng</label>
-                    </div>
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="trueFalseAnswer"
-                               id="answerFalse" value="false" required>
-                        <label class="form-check-label" for="answerFalse">Sai</label>
-                    </div>
-                </div>
-            </div>
-        `);
-
-        } else if (type === 'SHORT_ANSWER') {
-            answersSection.html(`
-            <div class="alert alert-info">
-                <i class="fas fa-info-circle me-2"></i>
-                Câu hỏi tự luận sẽ được chấm điểm thủ công bởi giảng viên.
-            </div>
-        `);
         }
     }
 
     /**
-     * Render questions list
-     */
-    function renderQuestions() {
-        const questionsList = $('#questionsList');
-
-        if (questions.length === 0) {
-            questionsList.html(`
-            <div class="text-center py-4" id="emptyQuestionsState">
-                <i class="fas fa-question-circle text-muted mb-3" style="font-size: 3rem;"></i>
-                <h6 class="text-muted">Chưa có câu hỏi nào</h6>
-                <p class="text-muted mb-3">Nhấn "Thêm Câu Hỏi" để bắt đầu tạo quiz</p>
-            </div>
-        `);
-            return;
-        }
-
-        let html = '';
-        questions.forEach((question, index) => {
-            html += `
-            <div class="question-card" data-index="${index}">
-                <div class="question-header">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div class="flex-grow-1">
-                            <div class="d-flex align-items-center mb-2">
-                                <i class="fas fa-grip-vertical text-muted me-2 drag-handle"
-                                   style="cursor: move;" title="Kéo để sắp xếp"></i>
-                                <h6 class="mb-0">Câu ${index + 1}</h6>
-                                <span class="badge bg-secondary ms-2">${question.score} điểm</span>
-                                <span class="badge bg-info ms-1">
-                                    ${question.type === 'MULTIPLE_CHOICE' ? 'Trắc nghiệm' :
-                                      question.type === 'TRUE_FALSE' ? 'Đúng/Sai' : 'Tự luận'}
-                                </span>
-                            </div>
-                            <p class="mb-2">${question.text}</p>
-                        </div>
-                        <div class="btn-group">
-                            <button type="button" class="btn btn-sm btn-outline-primary"
-                                    onclick="editQuestion(${index})" title="Chỉnh sửa">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button type="button" class="btn btn-sm btn-outline-danger"
-                                    onclick="deleteQuestion(${index})" title="Xóa">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                <div class="card-body">
-                    ${renderQuestionAnswers(question)}
-                </div>
-            </div>
-        `;
-        });
-
-        questionsList.html(html);
-    }
-
-    /**
-     * Render question answers
-     */
-    function renderQuestionAnswers(question) {
-        if (question.type === 'SHORT_ANSWER') {
-            return '<p class="text-muted mb-0"><i class="fas fa-pen me-2"></i>Câu trả lời tự luận</p>';
-        }
-
-        if (!question.answers || question.answers.length === 0) {
-            return '<p class="text-muted mb-0">Chưa có đáp án</p>';
-        }
-
-        let html = '<div class="row">';
-        question.answers.forEach((answer, index) => {
-            const isCorrect = answer.correct;
-            html += `
-            <div class="col-md-6 mb-2">
-                <div class="answer-option ${isCorrect ? 'correct' : ''}">
-                    <div class="d-flex align-items-center">
-                        <span class="me-2">${String.fromCharCode(65 + index)}.</span>
-                        <span class="flex-grow-1">${answer.text}</span>
-                        ${isCorrect ? '<i class="fas fa-check text-success ms-2"></i>' : ''}
-                    </div>
-                </div>
-            </div>
-        `;
-        });
-        html += '</div>';
-
-        return html;
-    }
-
-    /**
-     * Update question count badge
+     * Cập nhật số lượng câu hỏi
      */
     function updateQuestionCount() {
-        $('#questionCount').text(questions.length);
+        const count = $('#questionsContainer .question-card').length;
+        $('#questionCount').text(count);
     }
 
     /**
-     * Update question order after drag & drop
+     * Cập nhật tổng điểm
      */
-    function updateQuestionOrder() {
-        const newOrder = [];
-        $('#questionsList .question-card').each(function(index) {
-            const oldIndex = parseInt($(this).data('index'));
-            newOrder.push(questions[oldIndex]);
+    function updateTotalPoints() {
+        let total = 0;
+        $('.question-points').each(function() {
+            const value = parseFloat($(this).val()) || 0;
+            total += value;
         });
-        questions = newOrder;
-        renderQuestions();
-    }
-
-    /**
-     * Load existing questions if editing
-     */
-    function loadExistingQuestions() {
-        // Nếu đang chỉnh sửa quiz, load questions từ server
-        // Đây chỉ là ví dụ, cần implement theo backend
-        <c:if test="${not empty quiz.questions}">
-        // Load questions from server data
-        questions = [
-            // Dữ liệu questions sẽ được load từ server
-        ];
-        renderQuestions();
-        updateQuestionCount();
-        </c:if>
+        $('#totalPoints').text(total.toFixed(1));
+        totalPoints = total;
     }
 
     /**
      * Setup form validation
      */
     function setupFormValidation() {
-        const form = document.querySelector('.needs-validation');
+        $('#quizForm').on('submit', function(e) {
+            let isValid = true;
 
-        form.addEventListener('submit', function(event) {
-            if (!form.checkValidity()) {
-                event.preventDefault();
-                event.stopPropagation();
+            // Validate title
+            const title = $('#title').val().trim();
+            if (title.length < 5) {
+                isValid = false;
+                $('#title').addClass('is-invalid');
+                alert('Tiêu đề quiz phải có ít nhất 5 ký tự');
+            } else {
+                $('#title').removeClass('is-invalid');
             }
 
-            // Custom validation
-            if (questions.length === 0) {
-                alert('Vui lòng thêm ít nhất một câu hỏi cho quiz.');
-                event.preventDefault();
-                event.stopPropagation();
+            // Validate questions
+            const questionCount = $('#questionsContainer .question-card').length;
+            if (questionCount === 0) {
+                isValid = false;
+                alert('Quiz phải có ít nhất 1 câu hỏi');
             }
 
-            // Add questions to form data
-            if (questions.length > 0) {
-                // Tạo hidden inputs để submit questions
-                questions.forEach((question, index) => {
-                    const questionData = JSON.stringify(question);
-                    $('<input>').attr({
-                        type: 'hidden',
-                        name: `questions[${index}]`,
-                        value: questionData
-                    }).appendTo(form);
-                });
+            // Validate each question has correct answer selected
+            $('.question-card').each(function() {
+                const hasCorrectAnswer = $(this).find('input[type="radio"]:checked').length > 0;
+                if (!hasCorrectAnswer) {
+                    isValid = false;
+                    $(this).find('.question-header').addClass('border-danger');
+                    alert('Vui lòng chọn đáp án đúng cho tất cả câu hỏi');
+                    return false;
+                }
+            });
+
+            // Validate pass score not greater than max score
+            const maxScore = parseFloat($('#maxScore').val()) || 0;
+            const passScore = parseFloat($('#passScore').val()) || 0;
+            if (passScore > maxScore) {
+                isValid = false;
+                $('#passScore').addClass('is-invalid');
+                alert('Điểm đậu không được lớn hơn điểm tối đa');
             }
 
-            form.classList.add('was-validated');
+            if (!isValid) {
+                e.preventDefault();
+            }
         });
     }
 
-    // Event listeners cho question type changes
-    $(document).on('change', 'input[name="questionType"]', function() {
-        generateAnswersSection($(this).val());
-    });
-</script>
+    /**
+     * Confirm delete quiz
+     */
+    function confirmDelete(quizId) {
+        if (confirm('Bạn có chắc chắn muốn xóa quiz này? Hành động này sẽ xóa tất cả câu hỏi và kết quả làm bài. Không thể hoàn tác.')) {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '${pageContext.request.contextPath}/instructor/quizzes/' + quizId + '/delete';
 
+            const csrfToken = document.createElement('input');
+            csrfToken.type = 'hidden';
+            csrfToken.name = '${_csrf.parameterName}';
+            csrfToken.value = '${_csrf.token}';
+
+            form.appendChild(csrfToken);
+            document.body.appendChild(form);
+            form.submit();
+        }
+    }
+</script>
 </body>
 </html>

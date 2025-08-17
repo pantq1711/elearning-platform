@@ -800,15 +800,14 @@
                         <label class="form-label" for="level">
                             Cấp độ khóa học <span class="required">*</span>
                         </label>
-                        <select class="form-select" id="level" name="level" required>
-                            <option value="">Chọn cấp độ...</option>
-                            <option value="BEGINNER" ${course != null && course.level == 'BEGINNER' ? 'selected' : ''}>
+                        <select class="form-select" id="difficultyLevel" name="difficultyLevel" required>                            <option value="">Chọn cấp độ...</option>
+                            <option value="EASY" ${course != null && course.difficultyLevel == 'EASY' ? 'selected' : ''}>
                                 Cơ bản (Beginner)
                             </option>
-                            <option value="INTERMEDIATE" ${course != null && course.level == 'INTERMEDIATE' ? 'selected' : ''}>
+                            <option value="MEDIUM" ${course != null && course.difficultyLevel == 'MEDIUM' ? 'selected' : ''}>
                                 Trung cấp (Intermediate)
                             </option>
-                            <option value="ADVANCED" ${course != null && course.level == 'ADVANCED' ? 'selected' : ''}>
+                            <option value="HARD" ${course != null && course.difficultyLevel == 'HARD' ? 'selected' : ''}>
                                 Nâng cao (Advanced)
                             </option>
                         </select>

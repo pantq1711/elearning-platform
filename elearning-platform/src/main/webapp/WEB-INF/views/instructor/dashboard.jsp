@@ -660,7 +660,7 @@
                         <i class="fas fa-book"></i>
                         Khóa học gần đây
                     </h3>
-                    <a href="${pageContext.request.contextPath}/instructor/courses"" class="section-action">
+                    <a href="${pageContext.request.contextPath}/instructor/courses" class="section-action">
                         Xem tất cả <i class="fas fa-arrow-right ms-1"></i>
                     </a>
                 </div>
@@ -724,7 +724,7 @@
                         <i class="fas fa-clock"></i>
                         Hoạt động gần đây
                     </h3>
-                    <a href="${pageContext.request.contextPath}/instructor/activity"" class="section-action">
+                    <a href="${pageContext.request.contextPath}/instructor/activity" class="section-action">
                         Xem tất cả <i class="fas fa-arrow-right ms-1"></i>
                     </a>
                 </div>
