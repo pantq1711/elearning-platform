@@ -484,9 +484,9 @@
         $('#videoContent, #documentContent, #textContent').hide();
 
         // Hiện section tương ứng
-        if (type === 'VIDEO') {
+        if (type == 'VIDEO') {
             $('#videoContent, #textContent').show();
-        } else if (type === 'DOCUMENT') {
+        } else if (type == 'DOCUMENT') {
             $('#documentContent, #textContent').show();
         } else {
             $('#textContent').show();

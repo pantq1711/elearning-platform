@@ -208,7 +208,7 @@
                                                 </td>
                                                 <td>
                                                     <c:choose>
-                                                        <c:when test="${lesson.published}">
+                                                        <c:when test="${lesson.active}">
                                                             <span class="badge bg-success">Đã xuất bản</span>
                                                         </c:when>
                                                         <c:otherwise>

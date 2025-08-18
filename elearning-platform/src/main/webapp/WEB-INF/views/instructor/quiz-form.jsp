@@ -204,8 +204,8 @@
                 <!-- Form Tạo/Sửa Quiz -->
                 <form:form method="POST" modelAttribute="quiz"
                            action="${quiz.id != null ?
-                                    pageContext.request.contextPath.concat('/instructor/quizzes/').concat(quiz.id).concat('/edit') :
-                                    pageContext.request.contextPath.concat('/instructor/quizzes/new')}"
+                                    pageContext.request.contextPath.concat('/instructor/quizzes/').concat(quiz.id.toString()) :
+                                    pageContext.request.contextPath.concat('/instructor/quizzes')}"
                            id="quizForm">
 
                     <!-- CSRF Token -->

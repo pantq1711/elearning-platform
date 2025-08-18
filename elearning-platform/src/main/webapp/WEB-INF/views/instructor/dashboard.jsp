@@ -19,7 +19,8 @@
     <link href="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.min.css" rel="stylesheet">
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
+    <!-- CSS cải thiện dashboard -->
+    <link href="${pageContext.request.contextPath}/css/dashboard-improved.css" rel="stylesheet">
     <!-- Custom CSS -->
     <style>
         :root {

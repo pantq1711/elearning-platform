@@ -3,617 +3,903 @@
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 <%@ taglib prefix="sec" uri="http://www.springframework.org/security/tags" %>
-<%@ taglib uri="http://java.sun.com/jsp/jstl/functions" prefix="fn" %>
+
 <!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quản Lý Quiz - EduLearn Platform</title>
+    <title>Quản lý bài kiểm tra - EduLearn Platform</title>
 
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <!-- DataTables CSS -->
-    <link href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Custom CSS -->
-    <link href="${pageContext.request.contextPath}/css/instructor.css" rel="stylesheet">
+    <link href="${pageContext.request.contextPath}/css/dashboard-improved.css" rel="stylesheet">
+
     <style>
-        .quiz-stats-card {
-            border-left: 4px solid #0d6efd;
+        :root {
+            --primary-color: #4f46e5;
+            --primary-dark: #3730a3;
+            --success-color: #059669;
+            --warning-color: #d97706;
+            --danger-color: #dc2626;
+            --info-color: #0891b2;
+            --light-bg: #f8fafc;
+            --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --border-color: #e5e7eb;
+            --text-primary: #1f2937;
+            --text-secondary: #6b7280;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--light-bg);
+            margin: 0;
+        }
+
+        .dashboard-layout {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .main-content {
+            flex: 1;
+            margin-left: 280px;
+            padding: 2rem;
+            transition: margin-left 0.3s ease;
+        }
+
+        @media (max-width: 991.98px) {
+            .main-content {
+                margin-left: 0;
+                padding: 1rem;
+            }
+        }
+
+        /* Page Header */
+        .page-header {
+            background: white;
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--card-shadow);
+            border: 1px solid var(--border-color);
+        }
+
+        .page-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .page-subtitle {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            margin-bottom: 0;
+        }
+
+        .page-actions {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .btn-primary-custom {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            text-decoration: none;
+            font-weight: 500;
             transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
-        .quiz-stats-card:hover {
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            transform: translateY(-2px);
+
+        .btn-primary-custom:hover {
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary-color));
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+            color: white;
         }
-        .difficulty-badge {
-            font-size: 0.75rem;
-            padding: 0.25rem 0.5rem;
+
+        /* Stats Row */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
         }
-        .quiz-actions .btn {
-            margin: 0.125rem;
-        }
-        .question-count {
-            background: #e9ecef;
-            border-radius: 50px;
-            padding: 0.25rem 0.75rem;
-            font-size: 0.875rem;
-        }
-        .pass-rate-bar {
-            height: 8px;
-            background: #e9ecef;
-            border-radius: 4px;
+
+        .stat-card {
+            background: white;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            box-shadow: var(--card-shadow);
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+            position: relative;
             overflow: hidden;
         }
-        .pass-rate-fill {
-            height: 100%;
-            transition: width 0.3s ease;
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary-color), var(--primary-dark));
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .stat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-title {
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .stat-icon {
+            font-size: 2.5rem;
+            color: var(--primary-color);
+            opacity: 0.7;
+        }
+
+        /* Filters */
+        .filter-row {
+            display: grid;
+            grid-template-columns: 1fr auto auto;
+            gap: 1.5rem;
+            align-items: center;
+            background: white;
+            padding: 1.5rem;
+            border-radius: 1rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--card-shadow);
+            border: 1px solid var(--border-color);
+        }
+
+        .search-box {
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 0.75rem 1rem 0.75rem 2.5rem;
+            border: 2px solid var(--border-color);
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+            outline: none;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+        }
+
+        .filter-select {
+            padding: 0.75rem 1rem;
+            border: 2px solid var(--border-color);
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            min-width: 150px;
+        }
+
+        .filter-select:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+            outline: none;
+        }
+
+        /* Quiz Table */
+        .table-container {
+            background: white;
+            border-radius: 1rem;
+            overflow: hidden;
+            box-shadow: var(--card-shadow);
+            border: 1px solid var(--border-color);
+        }
+
+        .table {
+            margin-bottom: 0;
+        }
+
+        .table thead th {
+            background: var(--light-bg);
+            border-bottom: 2px solid var(--border-color);
+            color: var(--text-primary);
+            font-weight: 600;
+            padding: 1rem;
+            border-top: none;
+        }
+
+        .table tbody td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            vertical-align: middle;
+        }
+
+        .table tbody tr:hover {
+            background-color: rgba(79, 70, 229, 0.02);
+        }
+
+        .table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* Quiz Item Styles */
+        .quiz-title {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .quiz-description {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .course-info {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .course-thumbnail {
+            width: 32px;
+            height: 24px;
+            border-radius: 4px;
+            object-fit: cover;
+        }
+
+        .course-name {
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .course-category {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        /* Badges */
+        .badge {
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            font-size: 0.8rem;
+        }
+
+        .badge-active {
+            background-color: var(--success-color);
+            color: white;
+        }
+
+        .badge-inactive {
+            background-color: var(--text-secondary);
+            color: white;
+        }
+
+        .badge-questions {
+            background-color: var(--info-color);
+            color: white;
+        }
+
+        .badge-duration {
+            background-color: var(--warning-color);
+            color: white;
+        }
+
+        /* Action Buttons */
+        .btn-group {
+            display: flex;
+            gap: 0.25rem;
+        }
+
+        .btn-sm {
+            padding: 0.375rem 0.75rem;
+            font-size: 0.8rem;
+            border-radius: 0.375rem;
+        }
+
+        .btn-outline-primary {
+            border: 1px solid var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        .btn-outline-primary:hover {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .btn-outline-success {
+            border: 1px solid var(--success-color);
+            color: var(--success-color);
+        }
+
+        .btn-outline-success:hover {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .btn-outline-warning {
+            border: 1px solid var(--warning-color);
+            color: var(--warning-color);
+        }
+
+        .btn-outline-warning:hover {
+            background: var(--warning-color);
+            color: white;
+        }
+
+        .btn-outline-secondary {
+            border: 1px solid var(--text-secondary);
+            color: var(--text-secondary);
+        }
+
+        .btn-outline-secondary:hover {
+            background: var(--text-secondary);
+            color: white;
+        }
+
+        .btn-outline-danger {
+            border: 1px solid var(--danger-color);
+            color: var(--danger-color);
+        }
+
+        .btn-outline-danger:hover {
+            background: var(--danger-color);
+            color: white;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            background: white;
+            border-radius: 1rem;
+            box-shadow: var(--card-shadow);
+            border: 1px solid var(--border-color);
+        }
+
+        .empty-icon {
+            font-size: 4rem;
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+        }
+
+        .empty-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.75rem;
+        }
+
+        .empty-description {
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .page-title {
+                font-size: 1.5rem;
+            }
+
+            .page-actions {
+                flex-direction: column;
+            }
+
+            .btn-primary-custom {
+                justify-content: center;
+            }
+
+            .filter-row {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-row {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .table-responsive {
+                font-size: 0.9rem;
+            }
+
+            .btn-group {
+                flex-direction: column;
+            }
         }
     </style>
 </head>
 
 <body>
-<!-- Include Header -->
-<jsp:include page="/WEB-INF/views/common/header.jsp" />
+<div class="dashboard-layout">
+    <!-- Include Sidebar -->
+    <jsp:include page="/WEB-INF/views/common/sidebar.jsp" />
 
-<div class="container-fluid">
-    <div class="row">
-        <!-- Include Sidebar -->
-        <div class="col-md-3 col-lg-2">
-            <jsp:include page="/WEB-INF/views/common/sidebar.jsp" />
-        </div>
-
-        <!-- Main Content -->
-        <div class="col-md-9 col-lg-10">
-            <div class="main-content p-4">
-
-                <!-- Page Header -->
-                <div class="page-header mb-4">
-                    <div class="row align-items-center">
-                        <div class="col">
-                            <nav aria-label="breadcrumb">
-                                <ol class="breadcrumb">
-                                    <li class="breadcrumb-item">
-                                        <a href="${pageContext.request.contextPath}/instructor/dashboard">
-                                            <i class="fas fa-home"></i> Dashboard
-                                        </a>
-                                    </li>
-                                    <li class="breadcrumb-item">
-                                        <a href="${pageContext.request.contextPath}/instructor/courses">Khóa học</a>
-                                    </li>
-                                    <li class="breadcrumb-item active">Quiz</li>
-                                </ol>
-                            </nav>
-                            <h1 class="h3 mb-0">
-                                <i class="fas fa-question-circle text-warning me-2"></i>
-                                Quản Lý Quiz
-                            </h1>
-                            <p class="text-muted mb-0">Tạo và quản lý bài kiểm tra cho khóa học của bạn</p>
-                        </div>
-                        <div class="col-auto">
-                            <!-- Nút tạo quiz mới -->
-                            <div class="btn-group">
-                                <a href="${pageContext.request.contextPath}/instructor/quizzes/create""
-                                   class="btn btn-warning">
-                                    <i class="fas fa-plus me-2"></i>Tạo Quiz
-                                </a>
-                                <button type="button" class="btn btn-warning dropdown-toggle dropdown-toggle-split"
-                                        data-bs-toggle="dropdown">
-                                    <span class="visually-hidden">Toggle Dropdown</span>
-                                </button>
-                                <ul class="dropdown-menu">
-                                    <li>
-                                        <a class="dropdown-item" href="${pageContext.request.contextPath}/instructor/quizzes/create?type=PRACTICE">
-                                            <i class="fas fa-dumbbell me-2"></i>Quiz luyện tập
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item" href="${pageContext.request.contextPath}/instructor/quizzes/create?type=EXAM">
-                                            <i class="fas fa-graduation-cap me-2"></i>Bài kiểm tra
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item" href="${pageContext.request.contextPath}/instructor/quizzes/create?type=SURVEY">
-                                            <i class="fas fa-poll me-2"></i>Khảo sát
-                                        </a>
-                                    </li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="d-flex justify-content-between align-items-start flex-wrap">
+                <div>
+                    <h1 class="page-title">Quản lý bài kiểm tra</h1>
+                    <p class="page-subtitle">
+                        Tạo, chỉnh sửa và quản lý các bài kiểm tra cho học viên
+                    </p>
                 </div>
-
-                <!-- Stats Overview -->
-                <div class="row mb-4">
-                    <div class="col-md-3">
-                        <div class="card quiz-stats-card h-100">
-                            <div class="card-body">
-                                <div class="d-flex align-items-center">
-                                    <div class="flex-shrink-0">
-                                        <i class="fas fa-question-circle fa-2x text-warning"></i>
-                                    </div>
-                                    <div class="flex-grow-1 ms-3">
-                                        <h3 class="mb-0">${totalQuizzes}</h3>
-                                        <p class="text-muted mb-0">Tổng Quiz</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="card quiz-stats-card h-100">
-                            <div class="card-body">
-                                <div class="d-flex align-items-center">
-                                    <div class="flex-shrink-0">
-                                        <i class="fas fa-users fa-2x text-info"></i>
-                                    </div>
-                                    <div class="flex-grow-1 ms-3">
-                                        <h3 class="mb-0">${totalAttempts}</h3>
-                                        <p class="text-muted mb-0">Lượt làm bài</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="card quiz-stats-card h-100">
-                            <div class="card-body">
-                                <div class="d-flex align-items-center">
-                                    <div class="flex-shrink-0">
-                                        <i class="fas fa-chart-line fa-2x text-success"></i>
-                                    </div>
-                                    <div class="flex-grow-1 ms-3">
-                                        <h3 class="mb-0">
-                                            <fmt:formatNumber value="${averageScore}" maxFractionDigits="1" />%
-                                        </h3>
-                                        <p class="text-muted mb-0">Điểm trung bình</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="card quiz-stats-card h-100">
-                            <div class="card-body">
-                                <div class="d-flex align-items-center">
-                                    <div class="flex-shrink-0">
-                                        <i class="fas fa-trophy fa-2x text-primary"></i>
-                                    </div>
-                                    <div class="flex-grow-1 ms-3">
-                                        <h3 class="mb-0">
-                                            <fmt:formatNumber value="${passRate}" maxFractionDigits="1" />%
-                                        </h3>
-                                        <p class="text-muted mb-0">Tỷ lệ đậu</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                <div class="page-actions">
+                    <a href="${pageContext.request.contextPath}/instructor/quizzes/new" class="btn-primary-custom">
+                        <i class="fas fa-plus"></i>
+                        Tạo quiz mới
+                    </a>
                 </div>
-
-                <!-- Thông báo -->
-                <c:if test="${not empty message}">
-                    <div class="alert alert-success alert-dismissible fade show" role="alert">
-                        <i class="fas fa-check-circle me-2"></i>${message}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                </c:if>
-
-                <c:if test="${not empty error}">
-                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                        <i class="fas fa-exclamation-circle me-2"></i>${error}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                </c:if>
-
-                <!-- Filters & Search -->
-                <div class="card mb-4">
-                    <div class="card-body">
-                        <form method="GET" action="/instructor/quizzes">
-                            <div class="row align-items-end g-3">
-                                <!-- Search -->
-                                <div class="col-md-4">
-                                    <label class="form-label">Tìm kiếm</label>
-                                    <div class="input-group">
-                                        <span class="input-group-text">
-                                            <i class="fas fa-search"></i>
-                                        </span>
-                                        <input type="text" class="form-control" name="search"
-                                               value="${param.search}" placeholder="Tìm kiếm quiz...">
-                                    </div>
-                                </div>
-
-                                <!-- Course Filter -->
-                                <div class="col-md-3">
-                                    <label class="form-label">Khóa học</label>
-                                    <select name="courseId" class="form-select">
-                                        <option value="">Tất cả khóa học</option>
-                                        <c:forEach items="${courses}" var="course">
-                                            <option value="${course.id}"
-                                                ${param.courseId == course.id ? 'selected' : ''}>
-                                                    ${course.name}
-                                            </option>
-                                        </c:forEach>
-                                    </select>
-                                </div>
-
-                                <!-- Type Filter -->
-                                <div class="col-md-2">
-                                    <label class="form-label">Loại</label>
-                                    <select name="type" class="form-select">
-                                        <option value="">Tất cả</option>
-                                        <option value="PRACTICE" ${param.type == 'PRACTICE' ? 'selected' : ''}>
-                                            Luyện tập
-                                        </option>
-                                        <option value="EXAM" ${param.type == 'EXAM' ? 'selected' : ''}>
-                                            Kiểm tra
-                                        </option>
-                                        <option value="SURVEY" ${param.type == 'SURVEY' ? 'selected' : ''}>
-                                            Khảo sát
-                                        </option>
-                                    </select>
-                                </div>
-
-                                <!-- Status Filter -->
-                                <div class="col-md-2">
-                                    <label class="form-label">Trạng thái</label>
-                                    <select name="status" class="form-select">
-                                        <option value="">Tất cả</option>
-                                        <option value="active" ${param.status == 'active' ? 'selected' : ''}>
-                                            Hoạt động
-                                        </option>
-                                        <option value="inactive" ${param.status == 'inactive' ? 'selected' : ''}>
-                                            Tạm dừng
-                                        </option>
-                                    </select>
-                                </div>
-
-                                <!-- Filter Button -->
-                                <div class="col-md-1">
-                                    <button type="submit" class="btn btn-primary w-100">
-                                        <i class="fas fa-filter"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-
-                <!-- Quizzes List -->
-                <div class="card">
-                    <div class="card-header">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <h5 class="card-title mb-0">
-                                <i class="fas fa-list me-2"></i>Danh Sách Quiz
-                                <span class="badge bg-warning ms-2">${fn:length(quizzes)}</span>
-                            </h5>
-                            <div class="btn-group" role="group">
-                                <button type="button" class="btn btn-outline-secondary dropdown-toggle"
-                                        data-bs-toggle="dropdown">
-                                    <i class="fas fa-sort me-1"></i>Sắp xếp
-                                </button>
-                                <ul class="dropdown-menu">
-                                    <li>
-                                        <a class="dropdown-item" href="?sort=name">
-                                            <i class="fas fa-sort-alpha-up me-2"></i>Tên A-Z
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item" href="?sort=course">
-                                            <i class="fas fa-book me-2"></i>Theo khóa học
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item" href="?sort=attempts">
-                                            <i class="fas fa-users me-2"></i>Lượt làm bài
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item" href="?sort=created">
-                                            <i class="fas fa-calendar me-2"></i>Mới nhất
-                                        </a>
-                                    </li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="card-body p-0">
-                        <c:choose>
-                            <c:when test="${not empty quizzes}">
-                                <div class="table-responsive">
-                                    <table class="table table-hover mb-0" id="quizzesTable">
-                                        <thead class="table-light">
-                                        <tr>
-                                            <th width="35%">Quiz</th>
-                                            <th width="20%">Khóa học</th>
-                                            <th width="10%">Loại</th>
-                                            <th width="10%">Câu hỏi</th>
-                                            <th width="10%">Lượt làm</th>
-                                            <th width="10%">Tỷ lệ đậu</th>
-                                            <th width="5%">Trạng thái</th>
-                                            <th width="15%">Hành động</th>
-                                        </tr>
-                                        </thead>
-                                        <tbody>
-                                        <c:forEach items="${quizzes}" var="quiz" varStatus="status">
-                                            <tr>
-                                                <td>
-                                                    <div>
-                                                        <div class="fw-semibold mb-1">${quiz.title}</div>
-                                                        <c:if test="${not empty quiz.description}">
-                                                            <small class="text-muted">
-                                                                    ${fn:substring(quiz.description, 0, 60)}
-                                                                <c:if test="${fn:length(quiz.description) > 60}">...</c:if>
-                                                            </small>
-                                                        </c:if>
-                                                        <div class="mt-1">
-                                                                <span class="difficulty-badge badge bg-${quiz.difficultyLevel == 'EASY' ? 'success' : quiz.difficultyLevel == 'MEDIUM' ? 'warning' : 'danger'}">
-                                                                    <c:choose>
-                                                                        <c:when test="${quiz.difficultyLevel == 'EASY'}">Dễ</c:when>
-                                                                        <c:when test="${quiz.difficultyLevel == 'MEDIUM'}">Trung bình</c:when>
-                                                                        <c:when test="${quiz.difficultyLevel == 'HARD'}">Khó</c:when>
-                                                                        <c:otherwise>Không xác định</c:otherwise>
-                                                                    </c:choose>
-                                                                </span>
-                                                            <c:if test="${quiz.timeLimit > 0}">
-                                                                    <span class="badge bg-info ms-1">
-                                                                        <i class="fas fa-clock me-1"></i>
-                                                                        ${quiz.timeLimit} phút
-                                                                    </span>
-                                                            </c:if>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <div class="d-flex align-items-center">
-                                                        <img src="${pageContext.request.contextPath}/images/courses/${quiz.course.imageUrl}"
-                                                             alt="${quiz.course.name}"
-                                                             class="me-2"
-                                                             style="width: 32px; height: 24px; object-fit: cover; border-radius: 4px;"
-                                                             onerror="this.src='/images/course-default.png'">
-                                                        <div>
-                                                            <div class="fw-medium">${quiz.course.name}</div>
-                                                            <small class="text-muted">${quiz.course.category.name}</small>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                        <span class="badge bg-light text-dark">
-                                                            <c:choose>
-                                                                <c:when test="${quiz.type == 'PRACTICE'}">
-                                                                    <i class="fas fa-dumbbell me-1"></i>Luyện tập
-                                                                </c:when>
-                                                                <c:when test="${quiz.type == 'EXAM'}">
-                                                                    <i class="fas fa-graduation-cap me-1"></i>Kiểm tra
-                                                                </c:when>
-                                                                <c:when test="${quiz.type == 'SURVEY'}">
-                                                                    <i class="fas fa-poll me-1"></i>Khảo sát
-                                                                </c:when>
-                                                                <c:otherwise>Khác</c:otherwise>
-                                                            </c:choose>
-                                                        </span>
-                                                </td>
-                                                <td>
-                                                        <span class="question-count">
-                                                            <i class="fas fa-question me-1"></i>
-                                                            ${quiz.questionCount} câu
-                                                        </span>
-                                                </td>
-                                                <td>
-                                                    <div class="text-center">
-                                                        <div class="fw-semibold">${quiz.attemptCount}</div>
-                                                        <small class="text-muted">lượt</small>
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <div>
-                                                        <div class="d-flex justify-content-between align-items-center mb-1">
-                                                            <small>
-                                                                <fmt:formatNumber value="${quiz.passRate}" maxFractionDigits="0" />%
-                                                            </small>
-                                                        </div>
-                                                        <div class="pass-rate-bar">
-                                                            <div class="pass-rate-fill bg-${quiz.passRate >= 80 ? 'success' : quiz.passRate >= 60 ? 'warning' : 'danger'}"
-                                                                 style="width: ${quiz.passRate}%"></div>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                        <span class="badge bg-${quiz.active ? 'success' : 'secondary'}">
-                                                                ${quiz.active ? 'Hoạt động' : 'Tạm dừng'}
-                                                        </span>
-                                                </td>
-                                                <td>
-                                                    <div class="quiz-actions">
-                                                        <!-- Xem chi tiết -->
-                                                        <a href="${pageContext.request.contextPath}/instructor/quizzes/${quiz.id}"
-                                                           class="btn btn-sm btn-outline-info" title="Xem chi tiết">
-                                                            <i class="fas fa-eye"></i>
-                                                        </a>
-                                                        <!-- Chỉnh sửa -->
-                                                        <a href="${pageContext.request.contextPath}/instructor/quizzes/${quiz.id}/edit""
-                                                           class="btn btn-sm btn-outline-primary" title="Chỉnh sửa">
-                                                            <i class="fas fa-edit"></i>
-                                                        </a>
-                                                        <!-- Xem kết quả -->
-                                                        <a href="${pageContext.request.contextPath}/instructor/quizzes/${quiz.id}/results""
-                                                           class="btn btn-sm btn-outline-success" title="Xem kết quả">
-                                                            <i class="fas fa-chart-bar"></i>
-                                                        </a>
-                                                        <!-- Preview -->
-                                                        <a href="${pageContext.request.contextPath}/instructor/quizzes/${quiz.id}/preview""
-                                                           class="btn btn-sm btn-outline-warning" title="Xem trước" target="_blank">
-                                                            <i class="fas fa-play"></i>
-                                                        </a>
-                                                        <!-- Sao chép -->
-                                                        <button type="button" class="btn btn-sm btn-outline-secondary"
-                                                                onclick="copyQuiz(${quiz.id})" title="Sao chép">
-                                                            <i class="fas fa-copy"></i>
-                                                        </button>
-                                                        <!-- Xóa -->
-                                                        <button type="button" class="btn btn-sm btn-outline-danger"
-                                                                onclick="deleteQuiz(${quiz.id}, '${quiz.title}')"
-                                                                title="Xóa">
-                                                            <i class="fas fa-trash"></i>
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        </c:forEach>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </c:when>
-                            <c:otherwise>
-                                <!-- Empty State -->
-                                <div class="text-center py-5">
-                                    <div class="empty-state">
-                                        <i class="fas fa-question-circle text-muted mb-3" style="font-size: 4rem;"></i>
-                                        <h5 class="text-muted">Chưa có quiz nào</h5>
-                                        <p class="text-muted mb-4">
-                                            Tạo quiz đầu tiên để kiểm tra kiến thức của học viên.
-                                        </p>
-                                        <a href="${pageContext.request.contextPath}/instructor/quizzes/create""
-                                           class="btn btn-warning">
-                                            <i class="fas fa-plus me-2"></i>Tạo Quiz Đầu Tiên
-                                        </a>
-                                    </div>
-                                </div>
-                            </c:otherwise>
-                        </c:choose>
-                    </div>
-                </div>
-
             </div>
         </div>
+
+        <!-- Stats Cards -->
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div>
+                        <div class="stat-number">${fn:length(quizzes)}</div>
+                        <div class="stat-title">Tổng quiz</div>
+                    </div>
+                    <div class="stat-icon">
+                        <i class="fas fa-question-circle"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div>
+                        <div class="stat-number">
+                            <c:set var="activeQuizzes" value="0" />
+                            <c:forEach items="${quizzes}" var="quiz">
+                                <c:if test="${quiz.active}">
+                                    <c:set var="activeQuizzes" value="${activeQuizzes + 1}" />
+                                </c:if>
+                            </c:forEach>
+                            ${activeQuizzes}
+                        </div>
+                        <div class="stat-title">Quiz đang hoạt động</div>
+                    </div>
+                    <div class="stat-icon">
+                        <i class="fas fa-play-circle"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div>
+                        <div class="stat-number">
+                            <c:set var="totalQuestions" value="0" />
+                            <c:forEach items="${quizzes}" var="quiz">
+                                <c:set var="totalQuestions" value="${totalQuestions + fn:length(quiz.questions)}" />
+                            </c:forEach>
+                            ${totalQuestions}
+                        </div>
+                        <div class="stat-title">Tổng câu hỏi</div>
+                    </div>
+                    <div class="stat-icon">
+                        <i class="fas fa-list"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div>
+                        <div class="stat-number">
+                            <c:set var="totalAttempts" value="0" />
+                            <c:forEach items="${quizzes}" var="quiz">
+                                <c:set var="totalAttempts" value="${totalAttempts + fn:length(quiz.quizResults)}" />
+                            </c:forEach>
+                            ${totalAttempts}
+                        </div>
+                        <div class="stat-title">Lượt làm bài</div>
+                    </div>
+                    <div class="stat-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="filter-row">
+            <div class="search-box">
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" class="search-input" placeholder="Tìm kiếm quiz..."
+                       value="${searchQuery}" onchange="searchQuizzes(this.value)">
+            </div>
+            <select class="filter-select" onchange="filterByStatus(this.value)">
+                <option value="">Tất cả trạng thái</option>
+                <option value="active">Đang hoạt động</option>
+                <option value="inactive">Không hoạt động</option>
+            </select>
+            <select class="filter-select" onchange="filterByCourse(this.value)">
+                <option value="">Tất cả khóa học</option>
+                <c:forEach items="${courses}" var="course">
+                    <option value="${course.id}">${course.name}</option>
+                </c:forEach>
+            </select>
+        </div>
+
+        <!-- Quiz Table -->
+        <c:choose>
+            <c:when test="${not empty quizzes}">
+                <div class="table-container">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                            <tr>
+                                <th width="25%">Tiêu đề</th>
+                                <th width="20%">Khóa học</th>
+                                <th width="10%">Câu hỏi</th>
+                                <th width="10%">Thời gian</th>
+                                <th width="10%">Lượt làm</th>
+                                <th width="10%">Trạng thái</th>
+                                <th width="15%">Hành động</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <c:forEach items="${quizzes}" var="quiz" varStatus="status">
+                                <tr>
+                                    <!-- Quiz Title & Description -->
+                                    <td>
+                                        <div class="quiz-title">${quiz.title}</div>
+                                        <c:if test="${not empty quiz.description}">
+                                            <div class="quiz-description">
+                                                    ${fn:substring(quiz.description, 0, 80)}
+                                                <c:if test="${fn:length(quiz.description) > 80}">...</c:if>
+                                            </div>
+                                        </c:if>
+                                    </td>
+
+                                    <!-- Course Info -->
+                                    <td>
+                                        <div class="course-info">
+                                            <c:choose>
+                                                <c:when test="${not empty quiz.course.thumbnail}">
+                                                    <img src="${pageContext.request.contextPath}/images/courses/${quiz.course.thumbnail}"
+                                                         alt="${quiz.course.name}" class="course-thumbnail"
+                                                         onerror="this.style.display='none'">
+                                                </c:when>
+                                                <c:otherwise>
+                                                    <div class="course-thumbnail" style="background: var(--primary-color); display: flex; align-items: center; justify-content: center;">
+                                                        <i class="fas fa-book" style="color: white; font-size: 0.7rem;"></i>
+                                                    </div>
+                                                </c:otherwise>
+                                            </c:choose>
+                                            <div>
+                                                <div class="course-name">${quiz.course.name}</div>
+                                                <div class="course-category">${quiz.course.category.name}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+
+                                    <!-- Questions Count -->
+                                    <td>
+                                            <span class="badge badge-questions">
+                                                <i class="fas fa-list me-1"></i>
+                                                ${fn:length(quiz.questions)} câu
+                                            </span>
+                                    </td>
+
+                                    <!-- Duration -->
+                                    <td>
+                                            <span class="badge badge-duration">
+                                                <i class="fas fa-clock me-1"></i>
+                                                <c:choose>
+                                                    <c:when test="${quiz.duration != null && quiz.duration > 0}">
+                                                        ${quiz.duration} phút
+                                                    </c:when>
+                                                    <c:otherwise>
+                                                        Không giới hạn
+                                                    </c:otherwise>
+                                                </c:choose>
+                                            </span>
+                                    </td>
+
+                                    <!-- Attempts -->
+                                    <td>
+                                        <span class="fw-medium">${fn:length(quiz.quizResults)}</span>
+                                        <c:if test="${fn:length(quiz.quizResults) > 0}">
+                                            <br>
+                                            <small class="text-muted">
+                                                <c:set var="passedCount" value="0" />
+                                                <c:forEach items="${quiz.quizResults}" var="result">
+                                                    <c:if test="${result.passed}">
+                                                        <c:set var="passedCount" value="${passedCount + 1}" />
+                                                    </c:if>
+                                                </c:forEach>
+                                                    ${passedCount} đậu
+                                            </small>
+                                        </c:if>
+                                    </td>
+
+                                    <!-- Status -->
+                                    <td>
+                                            <span class="badge ${quiz.active ? 'badge-active' : 'badge-inactive'}">
+                                                <c:choose>
+                                                    <c:when test="${quiz.active}">
+                                                        <i class="fas fa-check-circle me-1"></i>Hoạt động
+                                                    </c:when>
+                                                    <c:otherwise>
+                                                        <i class="fas fa-pause-circle me-1"></i>Tạm dừng
+                                                    </c:otherwise>
+                                                </c:choose>
+                                            </span>
+                                    </td>
+
+                                    <!-- Actions -->
+                                    <td>
+                                        <div class="btn-group">
+                                            <!-- View Details -->
+                                            <a href="${pageContext.request.contextPath}/instructor/quizzes/${quiz.id}"
+                                               class="btn btn-sm btn-outline-primary" title="Xem chi tiết">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <!-- Edit -->
+                                            <a href="${pageContext.request.contextPath}/instructor/quizzes/${quiz.id}/edit"
+                                               class="btn btn-sm btn-outline-success" title="Chỉnh sửa">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <!-- Results -->
+                                            <a href="${pageContext.request.contextPath}/instructor/quizzes/${quiz.id}/results"
+                                               class="btn btn-sm btn-outline-warning" title="Xem kết quả">
+                                                <i class="fas fa-chart-bar"></i>
+                                            </a>
+                                            <!-- Copy -->
+                                            <button type="button" class="btn btn-sm btn-outline-secondary"
+                                                    onclick="copyQuiz(${quiz.id})" title="Sao chép">
+                                                <i class="fas fa-copy"></i>
+                                            </button>
+                                            <!-- Delete -->
+                                            <button type="button" class="btn btn-sm btn-outline-danger"
+                                                    onclick="deleteQuiz(${quiz.id})" title="Xóa">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </c:forEach>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </c:when>
+            <c:otherwise>
+                <!-- Empty State -->
+                <div class="empty-state">
+                    <div class="empty-icon">
+                        <i class="fas fa-question-circle"></i>
+                    </div>
+                    <h3 class="empty-title">Chưa có quiz nào</h3>
+                    <p class="empty-description">
+                        Bạn chưa tạo quiz nào. Hãy bắt đầu tạo quiz đầu tiên để kiểm tra kiến thức của học viên!
+                    </p>
+                    <a href="${pageContext.request.contextPath}/instructor/quizzes/new" class="btn-primary-custom">
+                        <i class="fas fa-plus"></i>
+                        Tạo quiz đầu tiên
+                    </a>
+                </div>
+            </c:otherwise>
+        </c:choose>
     </div>
 </div>
 
-<!-- Delete Confirmation Modal -->
-<div class="modal fade" id="deleteModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">
-                    <i class="fas fa-exclamation-triangle text-warning me-2"></i>
-                    Xác nhận xóa
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <p>Bạn có chắc chắn muốn xóa quiz <strong id="quizNameToDelete"></strong> không?</p>
-                <div class="alert alert-warning">
-                    <i class="fas fa-warning me-2"></i>
-                    Hành động này sẽ xóa tất cả câu hỏi và kết quả liên quan! Không thể hoàn tác!
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-                <form id="deleteForm" method="POST" style="display: inline;">
-                    <button type="submit" class="btn btn-danger">
-                        <i class="fas fa-trash me-2"></i>Xóa quiz
-                    </button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Include Footer -->
-<jsp:include page="/WEB-INF/views/common/footer.jsp" />
-
-<!-- Scripts -->
+<!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
 
 <script>
-    $(document).ready(function() {
-        // Khởi tạo DataTable
-        $('#quizzesTable').DataTable({
-            language: {
-                url: 'https://cdn.datatables.net/plug-ins/1.13.4/i18n/vi.json'
-            },
-            order: [[0, 'asc']], // Sắp xếp theo tên quiz
-            pageLength: 25,
-            responsive: true,
-            columnDefs: [
-                { orderable: false, targets: [7] } // Không cho phép sắp xếp cột hành động
-            ]
-        });
-    });
-
-    /**
-     * Xóa quiz
-     */
-    function deleteQuiz(quizId, quizTitle) {
-        $('#quizNameToDelete').text(quizTitle);
-        $('#deleteForm').attr('action', '<c:url value="/instructor/quizzes/" />' + quizId + '/delete');
-        $('#deleteModal').modal('show');
+    // Tìm kiếm quiz
+    function searchQuizzes(query) {
+        const url = new URL(window.location);
+        if (query.trim()) {
+            url.searchParams.set('search', query.trim());
+        } else {
+            url.searchParams.delete('search');
+        }
+        window.location.href = url.toString();
     }
 
-    /**
-     * Sao chép quiz
-     */
+    // Lọc theo trạng thái
+    function filterByStatus(status) {
+        const url = new URL(window.location);
+        if (status) {
+            url.searchParams.set('status', status);
+        } else {
+            url.searchParams.delete('status');
+        }
+        window.location.href = url.toString();
+    }
+
+    // Lọc theo khóa học
+    function filterByCourse(courseId) {
+        const url = new URL(window.location);
+        if (courseId) {
+            url.searchParams.set('course', courseId);
+        } else {
+            url.searchParams.delete('course');
+        }
+        window.location.href = url.toString();
+    }
+
+    // Sao chép quiz
     function copyQuiz(quizId) {
-        if (confirm('Bạn có muốn tạo bản sao của quiz này không? Bản sao sẽ bao gồm tất cả câu hỏi.')) {
-            $.ajax({
-                url: '<c:url value="/instructor/quizzes/" />' + quizId + '/copy',
+        if (confirm('Bạn có muốn sao chép quiz này?')) {
+            fetch('${pageContext.request.contextPath}/instructor/quizzes/' + quizId + '/copy', {
                 method: 'POST',
-                success: function(response) {
-                    showToast('Đã sao chép quiz thành công', 'success');
-                    setTimeout(() => location.reload(), 1000);
-                },
-                error: function() {
-                    showToast('Có lỗi xảy ra khi sao chép quiz', 'error');
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    '${_csrf.headerName}': '${_csrf.token}'
                 }
-            });
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast('Sao chép quiz thành công!', 'success');
+                        setTimeout(() => window.location.reload(), 1500);
+                    } else {
+                        showToast(data.message || 'Có lỗi xảy ra!', 'error');
+                    }
+                })
+                .catch(error => {
+                    showToast('Có lỗi xảy ra khi sao chép quiz!', 'error');
+                    console.error('Error:', error);
+                });
         }
     }
 
-    /**
-     * Hiển thị thông báo toast
-     */
-    function showToast(message, type = 'info') {
-        const toastContainer = document.getElementById('toast-container') || createToastContainer();
+    // Xóa quiz
+    function deleteQuiz(quizId) {
+        if (confirm('Bạn có chắc chắn muốn xóa quiz này? Hành động này không thể hoàn tác và sẽ xóa tất cả kết quả làm bài.')) {
+            fetch('${pageContext.request.contextPath}/instructor/quizzes/' + quizId + '/delete', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    '${_csrf.headerName}': '${_csrf.token}'
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast('Xóa quiz thành công!', 'success');
+                        setTimeout(() => window.location.reload(), 1500);
+                    } else {
+                        showToast(data.message || 'Có lỗi xảy ra!', 'error');
+                    }
+                })
+                .catch(error => {
+                    showToast('Có lỗi xảy ra khi xóa quiz!', 'error');
+                    console.error('Error:', error);
+                });
+        }
+    }
 
+    // Toast notification system
+    function showToast(message, type) {
+        // Remove existing toast
+        const existingToast = document.querySelector('.custom-toast');
+        if (existingToast) {
+            existingToast.remove();
+        }
+
+        // Create toast element
         const toast = document.createElement('div');
-        toast.className = `toast align-items-center text-white bg-${type === 'error' ? 'danger' : 'success'} border-0`;
-        toast.setAttribute('role', 'alert');
-        toast.innerHTML = `
-        <div class="d-flex">
-            <div class="toast-body">
-                <i class="fas fa-${type === 'error' ? 'exclamation-circle' : 'check-circle'} me-2"></i>
-                ${message}
-            </div>
-            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-        </div>
-    `;
+        toast.className = 'custom-toast toast-' + type;
 
-        toastContainer.appendChild(toast);
-        const bsToast = new bootstrap.Toast(toast);
-        bsToast.show();
+        // Use == instead of === for JSP compatibility
+        const iconClass = (type == 'success') ? 'fa-check-circle' : 'fa-exclamation-circle';
+        const bgColor = (type == 'success') ? '#059669' : '#dc2626';
 
-        // Tự động xóa toast sau khi ẩn
-        toast.addEventListener('hidden.bs.toast', function() {
-            toast.remove();
-        });
+        toast.innerHTML =
+            '<div class="toast-content">' +
+            '<i class="fas ' + iconClass + '"></i>' +
+            '<span>' + message + '</span>' +
+            '</div>';
+
+        // Add styles
+        toast.style.cssText =
+            'position: fixed;' +
+            'top: 2rem;' +
+            'right: 2rem;' +
+            'z-index: 9999;' +
+            'background: ' + bgColor + ';' +
+            'color: white;' +
+            'padding: 1rem 1.5rem;' +
+            'border-radius: 0.5rem;' +
+            'box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);' +
+            'display: flex;' +
+            'align-items: center;' +
+            'gap: 0.75rem;' +
+            'font-weight: 500;' +
+            'transform: translateX(100%);' +
+            'transition: transform 0.3s ease;';
+
+        document.body.appendChild(toast);
+
+        // Show toast
+        setTimeout(() => {
+            toast.style.transform = 'translateX(0)';
+        }, 100);
+
+        // Hide toast after 3 seconds
+        setTimeout(() => {
+            toast.style.transform = 'translateX(100%)';
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.parentNode.removeChild(toast);
+                }
+            }, 300);
+        }, 3000);
     }
 
-    /**
-     * Tạo container cho toast nếu chưa có
-     */
-    function createToastContainer() {
-        const container = document.createElement('div');
-        container.id = 'toast-container';
-        container.className = 'toast-container position-fixed top-0 end-0 p-3';
-        container.style.zIndex = '9999';
-        document.body.appendChild(container);
-        return container;
-    }
+    // Handle search input
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.querySelector('.search-input');
+        let searchTimeout;
+
+        if (searchInput) {
+            searchInput.addEventListener('input', function() {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    searchQuizzes(this.value);
+                }, 500);
+            });
+
+            // Handle Enter key
+            searchInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    clearTimeout(searchTimeout);
+                    searchQuizzes(this.value);
+                }
+            });
+        }
+    });
 </script>
 
 </body>

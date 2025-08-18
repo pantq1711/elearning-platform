@@ -13,6 +13,8 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.validation.Valid;
+
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -413,35 +415,90 @@ public class InstructorController {
     /**
      * Xử lý tạo quiz mới
      */
-    @PostMapping("/courses/{courseId}/quizzes")
-    public String createQuiz(@PathVariable Long courseId,
-                             @Valid @ModelAttribute Quiz quiz,
-                             BindingResult result,
-                             Authentication authentication,
-                             RedirectAttributes redirectAttributes,
-                             Model model) {
+    @GetMapping("/quizzes")
+    public String quizzes(Model model, Authentication authentication) {
         try {
             User currentUser = (User) authentication.getPrincipal();
-            Course course = courseService.findByIdAndInstructor(courseId, currentUser)
-                    .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học"));
+
+            // Debug logging
+
+            // Sử dụng method mới với eager loading
+            List<Quiz> quizzes = quizService.findByInstructor(currentUser);
+
+
+            // Thêm courses cho filter dropdown
+            List<Course> courses = courseService.findByInstructorOrderByCreatedAtDesc(currentUser);
+
+            model.addAttribute("currentUser", currentUser);
+            model.addAttribute("quizzes", quizzes);
+            model.addAttribute("courses", courses);
+
+            // Thêm null checks và default values
+            if (quizzes == null) {
+                model.addAttribute("quizzes", new ArrayList<>());
+            }
+            if (courses == null) {
+                model.addAttribute("courses", new ArrayList<>());
+            }
+
+            return "instructor/quizzes";
+
+        } catch (Exception e) {
+            // Detailed error logging
+
+            model.addAttribute("error", "Có lỗi xảy ra khi tải danh sách quiz: " + e.getMessage());
+            model.addAttribute("quizzes", new ArrayList<>());
+            model.addAttribute("courses", new ArrayList<>());
+
+            // Vẫn trả về trang quizzes nhưng với empty data
+            return "instructor/quizzes";
+        }
+    }
+    /**
+     * SỬA LỖI: Tạo quiz mới từ standalone form
+     */
+    @PostMapping("/quizzes")
+    public String createQuizStandalone(@Valid @ModelAttribute Quiz quiz,
+                                       BindingResult result,
+                                       Authentication authentication,
+                                       RedirectAttributes redirectAttributes,
+                                       Model model) {
+        try {
+            User currentUser = (User) authentication.getPrincipal();
 
             if (result.hasErrors()) {
-                model.addAttribute("course", course);
+                // Reload courses for dropdown
+                List<Course> courses = courseService.findByInstructorOrderByCreatedAtDesc(currentUser);
+                model.addAttribute("courses", courses != null ? courses : new ArrayList<>());
                 return "instructor/quiz-form";
             }
 
-            quiz.setCourse(course);
-            quizService.createQuiz(quiz);
+            // Validate course ownership
+            Course course = courseService.findByIdAndInstructor(quiz.getCourse().getId(), currentUser)
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy khóa học hoặc bạn không có quyền truy cập"));
 
-            redirectAttributes.addFlashAttribute("success", "Tạo bài kiểm tra thành công!");
-            return "redirect:/instructor/courses/" + courseId;
+            quiz.setCourse(course);
+            Quiz savedQuiz = quizService.createQuiz(quiz);
+
+            redirectAttributes.addFlashAttribute("success", "Tạo quiz thành công!");
+            return "redirect:/instructor/quizzes/" + savedQuiz.getId();
 
         } catch (Exception e) {
-            model.addAttribute("error", "Có lỗi xảy ra khi tạo bài kiểm tra: " + e.getMessage());
+
+            model.addAttribute("error", "Có lỗi xảy ra khi tạo quiz: " + e.getMessage());
+
+            // Reload courses for dropdown
+            try {
+                User currentUser = (User) authentication.getPrincipal();
+                List<Course> courses = courseService.findByInstructorOrderByCreatedAtDesc(currentUser);
+                model.addAttribute("courses", courses != null ? courses : new ArrayList<>());
+            } catch (Exception ex) {
+                model.addAttribute("courses", new ArrayList<>());
+            }
+
             return "instructor/quiz-form";
         }
     }
-
     // ===== STATISTICS =====
 
     /**
@@ -523,21 +580,21 @@ public class InstructorController {
         }
     }
 
-    @GetMapping("/quizzes")
-    public String quizzes(Model model, Authentication authentication) {
-        try {
-            User currentUser = (User) authentication.getPrincipal();
-            List<Quiz> quizzes = quizService.findByInstructor(currentUser);
-
-            model.addAttribute("currentUser", currentUser);
-            model.addAttribute("quizzes", quizzes);
-            return "instructor/quizzes";
-
-        } catch (Exception e) {
-            model.addAttribute("error", "Có lỗi xảy ra: " + e.getMessage());
-            return "error/500";
-        }
-    }
+//    @GetMapping("/quizzes")
+//    public String quizzes(Model model, Authentication authentication) {
+//        try {
+//            User currentUser = (User) authentication.getPrincipal();
+//            List<Quiz> quizzes = quizService.findByInstructor(currentUser);
+//
+//            model.addAttribute("currentUser", currentUser);
+//            model.addAttribute("quizzes", quizzes);
+//            return "instructor/quizzes";
+//
+//        } catch (Exception e) {
+//            model.addAttribute("error", "Có lỗi xảy ra: " + e.getMessage());
+//            return "error/500";
+//        }
+//    }
 
     @GetMapping("/quizzes/new")
     public String newQuizStandalone(Model model, Authentication authentication) {

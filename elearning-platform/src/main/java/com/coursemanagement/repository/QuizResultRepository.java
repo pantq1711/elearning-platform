@@ -298,4 +298,28 @@ public interface QuizResultRepository extends JpaRepository<QuizResult, Long> {
     @Query("UPDATE QuizResult qr SET qr.completed = false, qr.score = 0, qr.passed = false " +
             "WHERE qr.quiz = :quiz")
     void resetQuizResults(@Param("quiz") Quiz quiz);
+
+    /**
+     * Tìm quiz results theo quiz và sắp xếp theo ngày attempt
+     */
+    List<QuizResult> findByQuizOrderByAttemptDateDesc(Quiz quiz);
+
+    /**
+     * Tìm quiz results theo quiz (không sắp xếp)
+     */
+    /**
+     * Kiểm tra student đã làm quiz chưa
+     */
+    boolean existsByStudentAndQuiz(User student, Quiz quiz);
+
+    /**
+     * Đếm số lượng attempts của quiz
+     */
+
+
+    /**
+     * Đếm số lượng passed attempts của quiz
+     */
+    @Query("SELECT COUNT(qr) FROM QuizResult qr WHERE qr.quiz = :quiz AND qr.passed = true")
+    Long countPassedByQuiz(@Param("quiz") Quiz quiz);
 }

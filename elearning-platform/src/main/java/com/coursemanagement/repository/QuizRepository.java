@@ -393,4 +393,26 @@ public interface QuizRepository extends JpaRepository<Quiz, Long> {
      */
     @Query("SELECT qr FROM QuizResult qr WHERE qr.quiz = :quiz ORDER BY qr.completionTime DESC")
     Page<QuizResult> findRecentResultsByQuiz(@Param("quiz") Quiz quiz, Pageable pageable);
+    /**
+     * SỬA LỖI N+1: Tìm quizzes theo instructor với FETCH JOIN
+     * Eager load course và category để tránh lazy loading
+     */
+    @Query("SELECT DISTINCT q FROM Quiz q " +
+            "LEFT JOIN FETCH q.course c " +
+            "LEFT JOIN FETCH c.category " +
+            "LEFT JOIN FETCH c.instructor " +
+            "WHERE c.instructor = :instructor AND q.active = true " +
+            "ORDER BY q.createdAt DESC")
+    List<Quiz> findQuizzesByInstructorWithDetails(@Param("instructor") User instructor);
+
+    /**
+     * SỬA LỖI: Tìm tất cả quizzes theo instructor với FETCH JOIN
+     */
+    @Query("SELECT DISTINCT q FROM Quiz q " +
+            "LEFT JOIN FETCH q.course c " +
+            "LEFT JOIN FETCH c.category " +
+            "LEFT JOIN FETCH c.instructor " +
+            "WHERE c.instructor = :instructor " +
+            "ORDER BY q.createdAt DESC")
+    List<Quiz> findAllQuizzesByInstructorWithDetails(@Param("instructor") User instructor);
 }
